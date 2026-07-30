@@ -1,5 +1,13 @@
 import type { InformacoesSistema } from './informacoes-sistema'
 import type {
+  AtualizarCategoriaProdutoEntrada,
+  CategoriaProduto,
+  CriarCategoriaProdutoEntrada,
+  InativarCategoriaProdutoEntrada,
+  ListarCategoriasProdutoEntrada,
+  ReativarCategoriaProdutoEntrada,
+} from './categoria-produto'
+import type {
   MovimentoCaixa,
   RegistrarMovimentoCaixaEntrada,
   ResumoCaixaAtual,
@@ -9,6 +17,17 @@ import type {
   FecharSessaoCaixaEntrada,
   SessaoCaixa,
 } from './sessao-caixa'
+import type {
+  AtualizarProdutoEntrada,
+  BuscarProdutosEntrada,
+  CriarProdutoEntrada,
+  InativarProdutoEntrada,
+  ListarProdutosEntrada,
+  ObterProdutoPorIdEntrada,
+  Produto,
+  ProdutoComCategoria,
+  ReativarProdutoEntrada,
+} from './produto'
 
 export interface PdvApi {
   sistema: {
@@ -24,6 +43,28 @@ export interface PdvApi {
     obterResumoCaixaAtual: () => Promise<ResumoCaixaAtual | null>
     fecharSessaoCaixa: (entrada: FecharSessaoCaixaEntrada) => Promise<SessaoCaixa>
     obterUltimaSessaoCaixa: () => Promise<SessaoCaixa | null>
+  }
+  produtos: {
+    criarCategoria: (entrada: CriarCategoriaProdutoEntrada) => Promise<CategoriaProduto>
+    listarCategorias: (
+      entrada?: ListarCategoriasProdutoEntrada,
+    ) => Promise<CategoriaProduto[]>
+    atualizarCategoria: (
+      entrada: AtualizarCategoriaProdutoEntrada,
+    ) => Promise<CategoriaProduto>
+    inativarCategoria: (
+      entrada: InativarCategoriaProdutoEntrada,
+    ) => Promise<CategoriaProduto>
+    reativarCategoria: (
+      entrada: ReativarCategoriaProdutoEntrada,
+    ) => Promise<CategoriaProduto>
+    criarProduto: (entrada: CriarProdutoEntrada) => Promise<Produto>
+    listarProdutos: (entrada?: ListarProdutosEntrada) => Promise<ProdutoComCategoria[]>
+    buscarProdutos: (entrada: BuscarProdutosEntrada) => Promise<ProdutoComCategoria[]>
+    atualizarProduto: (entrada: AtualizarProdutoEntrada) => Promise<Produto>
+    inativarProduto: (entrada: InativarProdutoEntrada) => Promise<Produto>
+    reativarProduto: (entrada: ReativarProdutoEntrada) => Promise<Produto>
+    obterProdutoPorId: (entrada: ObterProdutoPorIdEntrada) => Promise<Produto>
   }
 }
 

@@ -23,6 +23,32 @@ const apiPdv: PdvApi = {
     obterUltimaSessaoCaixa: () =>
       ipcRenderer.invoke(CANAIS_IPC.CAIXA_OBTER_ULTIMA_SESSAO),
   },
+  produtos: {
+    criarCategoria: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.PRODUTOS_CRIAR_CATEGORIA, entrada),
+    listarCategorias: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.PRODUTOS_LISTAR_CATEGORIAS, entrada),
+    atualizarCategoria: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.PRODUTOS_ATUALIZAR_CATEGORIA, entrada),
+    inativarCategoria: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.PRODUTOS_INATIVAR_CATEGORIA, entrada),
+    reativarCategoria: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.PRODUTOS_REATIVAR_CATEGORIA, entrada),
+    criarProduto: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.PRODUTOS_CRIAR_PRODUTO, entrada),
+    listarProdutos: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.PRODUTOS_LISTAR_PRODUTOS, entrada),
+    buscarProdutos: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.PRODUTOS_BUSCAR_PRODUTOS, entrada),
+    atualizarProduto: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.PRODUTOS_ATUALIZAR_PRODUTO, entrada),
+    inativarProduto: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.PRODUTOS_INATIVAR_PRODUTO, entrada),
+    reativarProduto: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.PRODUTOS_REATIVAR_PRODUTO, entrada),
+    obterProdutoPorId: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.PRODUTOS_OBTER_PRODUTO_POR_ID, entrada),
+  },
 }
 
 contextBridge.exposeInMainWorld('pdv', apiPdv)

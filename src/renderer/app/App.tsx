@@ -1,11 +1,46 @@
+import { useState } from 'react'
 import { AberturaCaixaPage } from '../modules/caixa/pages/abertura-caixa.page'
 import { CaixaAtualPage } from '../modules/caixa/pages/caixa-atual.page'
 import { FechamentoCaixaPage } from '../modules/caixa/pages/fechamento-caixa.page'
 import { PosFechamentoCaixaPage } from '../modules/caixa/pages/pos-fechamento-caixa.page'
+import { ProdutosPage } from '../modules/produtos/pages/produtos.page'
 import { useCaixa } from '../modules/caixa/hooks/use-caixa'
+import { useProdutos } from '../modules/produtos/hooks/use-produtos'
 import { STATUS_SESSAO_CAIXA } from '@shared/types/sessao-caixa'
+import '../modules/produtos/pages/produtos.css'
 
-export function App() {
+type SecaoApp = 'caixa' | 'produtos'
+
+function NavegacaoPrincipal({
+  secaoAtiva,
+  onMudarSecao,
+}: {
+  secaoAtiva: SecaoApp
+  onMudarSecao: (secao: SecaoApp) => void
+}) {
+  return (
+    <nav className="navegacao-principal" data-testid="navegacao-principal">
+      <button
+        type="button"
+        data-testid="nav-caixa"
+        data-ativo={secaoAtiva === 'caixa'}
+        onClick={() => onMudarSecao('caixa')}
+      >
+        Caixa
+      </button>
+      <button
+        type="button"
+        data-testid="nav-produtos"
+        data-ativo={secaoAtiva === 'produtos'}
+        onClick={() => onMudarSecao('produtos')}
+      >
+        Produtos
+      </button>
+    </nav>
+  )
+}
+
+function FluxoCaixa() {
   const caixa = useCaixa()
 
   if (caixa.carregando) {
@@ -33,4 +68,20 @@ export function App() {
   }
 
   return <CaixaAtualPage caixa={caixa} />
+}
+
+export function App() {
+  const [secaoAtiva, setSecaoAtiva] = useState<SecaoApp>('caixa')
+  const produtos = useProdutos()
+
+  return (
+    <>
+      <NavegacaoPrincipal secaoAtiva={secaoAtiva} onMudarSecao={setSecaoAtiva} />
+      {secaoAtiva === 'produtos' ? (
+        <ProdutosPage produtos={produtos} />
+      ) : (
+        <FluxoCaixa />
+      )}
+    </>
+  )
 }

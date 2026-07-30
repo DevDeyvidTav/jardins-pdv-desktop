@@ -3,9 +3,10 @@ import { CANAIS_IPC } from '../../src/shared/types/canais-ipc'
 import type { PdvApi } from '../../src/shared/types/pdv-api'
 
 describe('contrato da API exposta pelo preload', () => {
-  it('define canais IPC do sistema e do caixa', () => {
+  it('define canais IPC do sistema, caixa e produtos', () => {
     expect(CANAIS_IPC.CAIXA_FECHAR_SESSAO).toBe('caixa:fechar-sessao')
-    expect(CANAIS_IPC.CAIXA_OBTER_ULTIMA_SESSAO).toBe('caixa:obter-ultima-sessao')
+    expect(CANAIS_IPC.PRODUTOS_CRIAR_PRODUTO).toBe('produtos:criar-produto')
+    expect(CANAIS_IPC.PRODUTOS_BUSCAR_PRODUTOS).toBe('produtos:buscar-produtos')
   })
 
   it('mantem formato esperado da API window.pdv', () => {
@@ -64,9 +65,99 @@ describe('contrato da API exposta pelo preload', () => {
         }),
         obterUltimaSessaoCaixa: async () => null,
       },
+      produtos: {
+        criarCategoria: async () => ({
+          id: 'cat-1',
+          nome: 'Bebidas',
+          descricao: null,
+          ativo: true,
+          criadoEm: new Date().toISOString(),
+          atualizadoEm: new Date().toISOString(),
+        }),
+        listarCategorias: async () => [],
+        atualizarCategoria: async () => ({
+          id: 'cat-1',
+          nome: 'Bebidas',
+          descricao: null,
+          ativo: true,
+          criadoEm: new Date().toISOString(),
+          atualizadoEm: new Date().toISOString(),
+        }),
+        inativarCategoria: async () => ({
+          id: 'cat-1',
+          nome: 'Bebidas',
+          descricao: null,
+          ativo: false,
+          criadoEm: new Date().toISOString(),
+          atualizadoEm: new Date().toISOString(),
+        }),
+        reativarCategoria: async () => ({
+          id: 'cat-1',
+          nome: 'Bebidas',
+          descricao: null,
+          ativo: true,
+          criadoEm: new Date().toISOString(),
+          atualizadoEm: new Date().toISOString(),
+        }),
+        criarProduto: async () => ({
+          id: 'prod-1',
+          categoriaId: 'cat-1',
+          nome: 'Coca-Cola lata',
+          descricao: null,
+          precoCentavos: 600,
+          ativo: true,
+          criadoEm: new Date().toISOString(),
+          atualizadoEm: new Date().toISOString(),
+        }),
+        listarProdutos: async () => [],
+        buscarProdutos: async () => [],
+        atualizarProduto: async () => ({
+          id: 'prod-1',
+          categoriaId: 'cat-1',
+          nome: 'Coca-Cola lata',
+          descricao: null,
+          precoCentavos: 600,
+          ativo: true,
+          criadoEm: new Date().toISOString(),
+          atualizadoEm: new Date().toISOString(),
+        }),
+        inativarProduto: async () => ({
+          id: 'prod-1',
+          categoriaId: 'cat-1',
+          nome: 'Coca-Cola lata',
+          descricao: null,
+          precoCentavos: 600,
+          ativo: false,
+          criadoEm: new Date().toISOString(),
+          atualizadoEm: new Date().toISOString(),
+        }),
+        reativarProduto: async () => ({
+          id: 'prod-1',
+          categoriaId: 'cat-1',
+          nome: 'Coca-Cola lata',
+          descricao: null,
+          precoCentavos: 600,
+          ativo: true,
+          criadoEm: new Date().toISOString(),
+          atualizadoEm: new Date().toISOString(),
+        }),
+        obterProdutoPorId: async () => ({
+          id: 'prod-1',
+          categoriaId: 'cat-1',
+          nome: 'Coca-Cola lata',
+          descricao: null,
+          precoCentavos: 600,
+          ativo: true,
+          criadoEm: new Date().toISOString(),
+          atualizadoEm: new Date().toISOString(),
+        }),
+      },
     }
 
     expect(typeof api.caixa.fecharSessaoCaixa).toBe('function')
-    expect(typeof api.caixa.obterUltimaSessaoCaixa).toBe('function')
+    expect(typeof api.produtos.criarProduto).toBe('function')
+    expect(typeof api.produtos.buscarProdutos).toBe('function')
+    expect(typeof api.produtos.reativarCategoria).toBe('function')
+    expect(typeof api.produtos.reativarProduto).toBe('function')
   })
 })
