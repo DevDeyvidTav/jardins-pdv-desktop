@@ -19,6 +19,19 @@ export const CANAIS_IPC = {
   PRODUTOS_INATIVAR_PRODUTO: 'produtos:inativar-produto',
   PRODUTOS_REATIVAR_PRODUTO: 'produtos:reativar-produto',
   PRODUTOS_OBTER_PRODUTO_POR_ID: 'produtos:obter-produto-por-id',
+  MESAS_CRIAR_INTERVALO: 'mesas:criar-intervalo',
+  MESAS_LISTAR: 'mesas:listar',
+  MESAS_ATUALIZAR: 'mesas:atualizar',
+  MESAS_INATIVAR: 'mesas:inativar',
+  PEDIDOS_CRIAR_PEDIDO_MESA: 'pedidos:criar-pedido-mesa',
+  PEDIDOS_CRIAR_PEDIDO_BALCAO: 'pedidos:criar-pedido-balcao',
+  PEDIDOS_OBTER_PEDIDO_ABERTO_POR_MESA: 'pedidos:obter-pedido-aberto-por-mesa',
+  PEDIDOS_LISTAR_PEDIDOS_ABERTOS: 'pedidos:listar-pedidos-abertos',
+  PEDIDOS_ADICIONAR_ITEM: 'pedidos:adicionar-item',
+  PEDIDOS_ALTERAR_QUANTIDADE_ITEM: 'pedidos:alterar-quantidade-item',
+  PEDIDOS_REMOVER_ITEM: 'pedidos:remover-item',
+  PEDIDOS_OBTER_RESUMO: 'pedidos:obter-resumo',
+  PEDIDOS_CANCELAR: 'pedidos:cancelar',
 } as const
 
 export type CanalIpc = (typeof CANAIS_IPC)[keyof typeof CANAIS_IPC]

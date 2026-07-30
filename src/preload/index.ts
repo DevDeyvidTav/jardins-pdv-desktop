@@ -49,6 +49,31 @@ const apiPdv: PdvApi = {
     obterProdutoPorId: (entrada) =>
       ipcRenderer.invoke(CANAIS_IPC.PRODUTOS_OBTER_PRODUTO_POR_ID, entrada),
   },
+  mesas: {
+    criarMesasPorIntervalo: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.MESAS_CRIAR_INTERVALO, entrada),
+    listarMesas: () => ipcRenderer.invoke(CANAIS_IPC.MESAS_LISTAR),
+    atualizarMesa: (entrada) => ipcRenderer.invoke(CANAIS_IPC.MESAS_ATUALIZAR, entrada),
+    inativarMesa: (entrada) => ipcRenderer.invoke(CANAIS_IPC.MESAS_INATIVAR, entrada),
+  },
+  pedidos: {
+    criarPedidoMesa: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.PEDIDOS_CRIAR_PEDIDO_MESA, entrada),
+    criarPedidoBalcao: () => ipcRenderer.invoke(CANAIS_IPC.PEDIDOS_CRIAR_PEDIDO_BALCAO),
+    obterPedidoAbertoPorMesa: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.PEDIDOS_OBTER_PEDIDO_ABERTO_POR_MESA, entrada),
+    listarPedidosAbertos: () =>
+      ipcRenderer.invoke(CANAIS_IPC.PEDIDOS_LISTAR_PEDIDOS_ABERTOS),
+    adicionarItemPedido: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.PEDIDOS_ADICIONAR_ITEM, entrada),
+    alterarQuantidadeItemPedido: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.PEDIDOS_ALTERAR_QUANTIDADE_ITEM, entrada),
+    removerItemPedido: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.PEDIDOS_REMOVER_ITEM, entrada),
+    obterResumoPedido: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.PEDIDOS_OBTER_RESUMO, entrada),
+    cancelarPedido: (entrada) => ipcRenderer.invoke(CANAIS_IPC.PEDIDOS_CANCELAR, entrada),
+  },
 }
 
 contextBridge.exposeInMainWorld('pdv', apiPdv)

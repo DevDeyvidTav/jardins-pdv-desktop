@@ -28,6 +28,23 @@ import type {
   ProdutoComCategoria,
   ReativarProdutoEntrada,
 } from './produto'
+import type {
+  AtualizarMesaEntrada,
+  CriarMesasPorIntervaloEntrada,
+  InativarMesaEntrada,
+  Mesa,
+} from './mesa'
+import type {
+  AdicionarItemPedidoEntrada,
+  AlterarQuantidadeItemPedidoEntrada,
+  CancelarPedidoEntrada,
+  CriarPedidoMesaEntrada,
+  ObterPedidoAbertoPorMesaEntrada,
+  ObterResumoPedidoEntrada,
+  Pedido,
+  RemoverItemPedidoEntrada,
+  ResumoPedido,
+} from './pedido'
 
 export interface PdvApi {
   sistema: {
@@ -65,6 +82,29 @@ export interface PdvApi {
     inativarProduto: (entrada: InativarProdutoEntrada) => Promise<Produto>
     reativarProduto: (entrada: ReativarProdutoEntrada) => Promise<Produto>
     obterProdutoPorId: (entrada: ObterProdutoPorIdEntrada) => Promise<Produto>
+  }
+  mesas: {
+    criarMesasPorIntervalo: (
+      entrada: CriarMesasPorIntervaloEntrada,
+    ) => Promise<Mesa[]>
+    listarMesas: () => Promise<Mesa[]>
+    atualizarMesa: (entrada: AtualizarMesaEntrada) => Promise<Mesa>
+    inativarMesa: (entrada: InativarMesaEntrada) => Promise<Mesa>
+  }
+  pedidos: {
+    criarPedidoMesa: (entrada: CriarPedidoMesaEntrada) => Promise<Pedido>
+    criarPedidoBalcao: () => Promise<Pedido>
+    obterPedidoAbertoPorMesa: (
+      entrada: ObterPedidoAbertoPorMesaEntrada,
+    ) => Promise<ResumoPedido | null>
+    listarPedidosAbertos: () => Promise<Pedido[]>
+    adicionarItemPedido: (entrada: AdicionarItemPedidoEntrada) => Promise<ResumoPedido>
+    alterarQuantidadeItemPedido: (
+      entrada: AlterarQuantidadeItemPedidoEntrada,
+    ) => Promise<ResumoPedido>
+    removerItemPedido: (entrada: RemoverItemPedidoEntrada) => Promise<ResumoPedido>
+    obterResumoPedido: (entrada: ObterResumoPedidoEntrada) => Promise<ResumoPedido>
+    cancelarPedido: (entrada: CancelarPedidoEntrada) => Promise<Pedido>
   }
 }
 

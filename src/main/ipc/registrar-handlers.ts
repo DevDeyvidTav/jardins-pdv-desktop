@@ -1,9 +1,13 @@
 import { registrarHandlersSistema } from './sistema.ipc'
 import { registrarHandlersCaixa } from '../modules/caixa/caixa.ipc'
 import { registrarHandlersProdutos } from '../modules/produtos/produtos.ipc'
+import { registrarHandlersMesas } from '../modules/mesas/mesas.ipc'
+import { registrarHandlersPedidos } from '../modules/pedidos/pedidos.ipc'
 
 export function registrarHandlersIpc(): void {
   registrarHandlersSistema()
   registrarHandlersCaixa()
   registrarHandlersProdutos()
+  registrarHandlersMesas()
+  registrarHandlersPedidos()
 }

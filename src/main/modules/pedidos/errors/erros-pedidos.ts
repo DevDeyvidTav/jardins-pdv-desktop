@@ -1,0 +1,26 @@
+export const CODIGOS_ERRO_PEDIDOS = {
+  CAIXA_NAO_ABERTO: 'CAIXA_NAO_ABERTO',
+  MESA_NAO_ENCONTRADA: 'MESA_NAO_ENCONTRADA',
+  MESA_INATIVA: 'MESA_INATIVA',
+  MESA_OCUPADA: 'MESA_OCUPADA',
+  PEDIDO_NAO_ENCONTRADO: 'PEDIDO_NAO_ENCONTRADO',
+  PEDIDO_NAO_ABERTO: 'PEDIDO_NAO_ABERTO',
+  PRODUTO_NAO_ENCONTRADO: 'PRODUTO_NAO_ENCONTRADO',
+  PRODUTO_INATIVO: 'PRODUTO_INATIVO',
+  QUANTIDADE_INVALIDA: 'QUANTIDADE_INVALIDA',
+  ITEM_NAO_ENCONTRADO: 'ITEM_NAO_ENCONTRADO',
+  ENTRADA_INVALIDA: 'ENTRADA_INVALIDA',
+} as const
+
+export type CodigoErroPedidos =
+  (typeof CODIGOS_ERRO_PEDIDOS)[keyof typeof CODIGOS_ERRO_PEDIDOS]
+
+export class ErroPedidos extends Error {
+  readonly codigo: CodigoErroPedidos
+
+  constructor(codigo: CodigoErroPedidos, mensagem: string) {
+    super(mensagem)
+    this.name = 'ErroPedidos'
+    this.codigo = codigo
+  }
+}

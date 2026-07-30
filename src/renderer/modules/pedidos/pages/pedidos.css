@@ -1,0 +1,598 @@
+/*
+ * Layout operacional de pedidos — inspirado no Swfast v62.
+ * Documentacao completa: docs/layout-pedidos-mesas.md
+ */
+.pedidos {
+  --mesa-livre-fundo: linear-gradient(180deg, #f1f8e9 0%, #c8e6c9 100%);
+  --mesa-ocupada-fundo: linear-gradient(180deg, #fffde7 0%, #ffe082 100%);
+  --mesa-inativa-fundo: linear-gradient(180deg, #ffebee 0%, #ffcdd2 100%);
+  --mesa-selecionada-borda: #1976d2;
+  --mesa-selecionada-sombra: 0 0 0 3px rgba(25, 118, 210, 0.35);
+  --filtro-livre-fundo: #e8f5e9;
+  --filtro-ocupada-fundo: #fff9c4;
+  --filtro-inativa-fundo: #ffcdd2;
+  --filtro-todas-fundo: #eceff1;
+  --painel-fundo: #ffffff;
+  --grade-fundo: #f5f7fa;
+
+  --grade-celula-altura: 2.625rem;
+  --grade-colunas: 10;
+
+  height: calc(100vh - 4.5rem);
+  min-height: calc(100vh - 4.5rem);
+  padding: 0;
+  background: var(--grade-fundo);
+  overflow: hidden;
+}
+
+.pedidos--carregando {
+  display: grid;
+  place-items: center;
+  color: #6b7280;
+  padding: 2rem;
+}
+
+.pedidos__cartao {
+  width: min(100%, 960px);
+  margin: 2rem auto;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+}
+
+.pedidos-operacao {
+  display: grid;
+  grid-template-columns: minmax(300px, 34%) 1fr;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.pedidos-operacao__grade-area {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  padding: 0.875rem 1rem 1rem;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.pedidos-operacao__grade-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0.125rem;
+}
+
+.pedidos-operacao__toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.pedidos-operacao__toolbar h1 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #111827;
+}
+
+.pedidos-operacao__acoes-toolbar {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.pedidos-operacao__cadastro-mesas {
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.pedidos__sucesso {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.pedidos__erro {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.pedidos__botao-secundario,
+.pedidos-operacao__toolbar button,
+.formulario-mesa button,
+.painel-mesa-pedido button,
+.busca-produtos-pedido button,
+.lista-itens-pedido button {
+  padding: 0.625rem 1rem;
+  border: none;
+  border-radius: 8px;
+  background: #111827;
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pedidos__botao-secundario {
+  background: #ffffff;
+  color: #111827;
+  border: 1px solid #d1d5db;
+}
+
+/* Painel esquerdo — detalhe do pedido */
+.painel-mesa-pedido {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: 0.875rem;
+  background: var(--painel-fundo);
+  border-right: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+
+.painel-mesa-pedido--vazio {
+  place-content: center;
+  text-align: center;
+  color: #6b7280;
+}
+
+.painel-mesa-pedido__instrucao {
+  margin: 0;
+  max-width: 18rem;
+  margin-inline: auto;
+}
+
+.painel-mesa-pedido__cabecalho {
+  flex-shrink: 0;
+  padding-bottom: 0.625rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.painel-mesa-pedido__mesa-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.painel-mesa-pedido__rotulo {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.painel-mesa-pedido__numero {
+  display: inline-grid;
+  place-items: center;
+  min-width: 2.5rem;
+  padding: 0.125rem 0.5rem;
+  border: 2px solid #1976d2;
+  border-radius: 6px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1565c0;
+}
+
+.painel-mesa-pedido__status {
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+
+.painel-mesa-pedido__status--livre {
+  color: #2e7d32;
+}
+
+.painel-mesa-pedido__status--ocupada {
+  color: #ef6c00;
+}
+
+.painel-mesa-pedido__status--inativa {
+  color: #c62828;
+}
+
+.busca-produtos-pedido__botao-adicionar {
+  align-self: end;
+  white-space: nowrap;
+  padding: 0.5rem 0.875rem !important;
+  font-size: 0.875rem;
+}
+
+.painel-mesa-pedido__acoes,
+.painel-mesa-pedido__acoes-pedido {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.painel-mesa-pedido__acoes {
+  margin-top: 0.625rem;
+}
+
+.painel-mesa-pedido__acao-principal {
+  flex: 1;
+  padding: 0.625rem 0.75rem !important;
+  font-size: 0.875rem;
+}
+
+.painel-mesa-pedido__acao-secundaria {
+  background: #ffffff !important;
+  color: #111827 !important;
+  border: 1px solid #d1d5db !important;
+}
+
+.painel-mesa-pedido__lista {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin-top: 0.625rem;
+  overflow: hidden;
+}
+
+.painel-mesa-pedido__lista .lista-itens-pedido--tabela {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.painel-mesa-pedido__inferior {
+  flex-shrink: 0;
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.625rem;
+  padding-top: 0.625rem;
+  border-top: 1px solid #e5e7eb;
+  background: var(--painel-fundo);
+}
+
+.painel-mesa-pedido__tabela-cabecalho {
+  display: grid;
+  grid-template-columns: 3.25rem 1fr 4rem 4.25rem;
+  gap: 0.375rem;
+  padding: 0.375rem 0.5rem;
+  background: #f3f4f6;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #4b5563;
+  flex-shrink: 0;
+}
+
+.painel-mesa-pedido__rodape {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.painel-mesa-pedido__totais {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.painel-mesa-pedido__totais span {
+  margin: 0;
+}
+
+.painel-mesa-pedido__total {
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: #2e7d32;
+}
+
+/* Grade de mesas */
+.grade-mesas {
+  display: grid;
+  grid-template-columns: repeat(var(--grade-colunas), minmax(0, 1fr));
+  gap: 0.375rem;
+  align-content: start;
+}
+
+.grade-mesas__vazio {
+  margin: 0;
+  padding: 1.5rem;
+  text-align: center;
+  color: #6b7280;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px dashed #d1d5db;
+  grid-column: 1 / -1;
+}
+
+.grade-mesas__celula {
+  height: var(--grade-celula-altura);
+  min-height: var(--grade-celula-altura);
+  border: 2px solid transparent;
+  border-radius: 8px;
+  font: inherit;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+
+.grade-mesas__celula:hover {
+  transform: translateY(-1px);
+}
+
+.grade-mesas__celula--livre {
+  background: var(--mesa-livre-fundo);
+  color: #1b5e20;
+}
+
+.grade-mesas__celula--ocupada {
+  background: var(--mesa-ocupada-fundo);
+  color: #e65100;
+}
+
+.grade-mesas__celula--inativa {
+  background: var(--mesa-inativa-fundo);
+  color: #b71c1c;
+  opacity: 0.75;
+}
+
+.grade-mesas__celula--selecionada {
+  border-color: var(--mesa-selecionada-borda);
+  box-shadow: var(--mesa-selecionada-sombra);
+}
+
+.grade-mesas__numero {
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Filtros de status — sempre visiveis no rodape da grade */
+.filtros-status-mesas {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.375rem;
+  flex-shrink: 0;
+  padding-top: 0.25rem;
+  border-top: 1px solid #e5e7eb;
+  background: var(--grade-fundo);
+}
+
+.filtros-status-mesas__botao {
+  padding: 0.5rem 0.375rem;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.filtros-status-mesas__botao--livre {
+  background: var(--filtro-livre-fundo);
+  color: #2e7d32;
+}
+
+.filtros-status-mesas__botao--ocupada {
+  background: var(--filtro-ocupada-fundo);
+  color: #ef6c00;
+}
+
+.filtros-status-mesas__botao--inativa {
+  background: var(--filtro-inativa-fundo);
+  color: #c62828;
+}
+
+.filtros-status-mesas__botao--todas {
+  background: var(--filtro-todas-fundo);
+  color: #374151;
+}
+
+.filtros-status-mesas__botao--ativo {
+  border-color: #111827;
+}
+
+/* Formulario e busca de produtos */
+.formulario-mesa,
+.busca-produtos-pedido,
+.busca-produtos-pedido__formulario {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.busca-produtos-pedido--compacto {
+  gap: 0.375rem;
+}
+
+.busca-produtos-pedido--compacto .busca-produtos-pedido__formulario {
+  grid-template-columns: 1fr 3.5rem auto;
+  align-items: end;
+}
+
+.busca-produtos-pedido--compacto .busca-produtos-pedido__campo {
+  font-size: 0.75rem;
+  gap: 0.25rem;
+}
+
+.busca-produtos-pedido--compacto input,
+.busca-produtos-pedido--compacto select {
+  padding: 0.4375rem 0.5rem;
+  font-size: 0.8125rem;
+}
+
+.busca-produtos-pedido--compacto .busca-produtos-pedido__campo:first-child input {
+  padding: 0.375rem 0.5rem;
+}
+
+.busca-produtos-pedido--compacto .busca-produtos-pedido__erro {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 0.75rem;
+  color: #b91c1c;
+}
+
+.formulario-mesa__intervalo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.formulario-mesa__descricao,
+.formulario-mesa__preview {
+  margin: 0;
+  color: #6b7280;
+}
+
+.formulario-mesa__campo,
+.busca-produtos-pedido__campo {
+  display: grid;
+  gap: 0.375rem;
+  font-weight: 600;
+}
+
+.formulario-mesa input,
+.busca-produtos-pedido input,
+.busca-produtos-pedido select {
+  padding: 0.625rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font: inherit;
+}
+
+/* Itens do pedido — variante tabela */
+.lista-itens-pedido {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.lista-itens-pedido--tabela {
+  display: grid;
+  gap: 0.375rem;
+}
+
+.lista-itens-pedido__linha {
+  display: grid;
+  grid-template-columns: 3.25rem 1fr 4rem 4.25rem;
+  gap: 0.375rem;
+  align-items: center;
+  padding: 0.375rem 0.5rem;
+  border-radius: 6px;
+  background: #fafafa;
+  font-size: 0.8125rem;
+}
+
+.lista-itens-pedido__linha:hover {
+  background: #e3f2fd;
+}
+
+.lista-itens-pedido__quantidade {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+.lista-itens-pedido__quantidade button {
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border-radius: 6px;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.lista-itens-pedido__produto p {
+  margin: 0.125rem 0 0;
+  font-size: 0.8125rem;
+  color: #6b7280;
+}
+
+.lista-itens-pedido__total-acoes {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem;
+}
+
+.lista-itens-pedido__total-acoes button {
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border-radius: 6px;
+  background: #fee2e2 !important;
+  color: #b91c1c !important;
+}
+
+.lista-itens-pedido__vazio {
+  margin: 0;
+  padding: 0.5rem;
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.8125rem;
+}
+
+.pedidos__sucesso,
+.pedidos__erro {
+  flex-shrink: 0;
+  font-size: 0.875rem;
+  padding: 0.5rem 0.75rem;
+}
+
+.pedidos-operacao__cadastro-mesas {
+  flex-shrink: 0;
+}
+
+@media (max-width: 1024px) {
+  .pedidos {
+    --grade-colunas: 8;
+    height: auto;
+    min-height: calc(100vh - 4.5rem);
+    overflow: visible;
+  }
+
+  .pedidos-operacao {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+    height: auto;
+  }
+
+  .painel-mesa-pedido {
+    border-right: none;
+    border-bottom: 1px solid #e5e7eb;
+    max-height: 42vh;
+  }
+
+  .pedidos-operacao__grade-area {
+    min-height: 50vh;
+  }
+}
+
+@media (max-width: 640px) {
+  .pedidos {
+    --grade-colunas: 6;
+  }
+
+  .filtros-status-mesas {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .busca-produtos-pedido--compacto .busca-produtos-pedido__formulario {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .busca-produtos-pedido__botao-adicionar {
+    grid-column: 1 / -1;
+  }
+}
