@@ -1,0 +1,13 @@
+node_modules/
+out/
+dist/
+coverage/
+*.log
+.DS_Store
+test-results/
+playwright-report/
+playwright/.cache/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.tsbuildinfo

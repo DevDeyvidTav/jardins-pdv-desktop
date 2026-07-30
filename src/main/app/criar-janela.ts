@@ -1,0 +1,37 @@
+import { BrowserWindow } from 'electron'
+import { join } from 'node:path'
+
+const CONFIGURACAO_SEGURANCA = {
+  contextIsolation: true,
+  nodeIntegration: false,
+  sandbox: true,
+} as const
+
+export function criarJanelaPrincipal(): BrowserWindow {
+  const janela = new BrowserWindow({
+    width: 960,
+    height: 640,
+    minWidth: 800,
+    minHeight: 600,
+    show: false,
+    autoHideMenuBar: true,
+    webPreferences: {
+      ...CONFIGURACAO_SEGURANCA,
+      preload: join(__dirname, '../preload/index.js'),
+    },
+  })
+
+  janela.on('ready-to-show', () => {
+    janela.show()
+  })
+
+  if (process.env.ELECTRON_RENDERER_URL) {
+    janela.loadURL(process.env.ELECTRON_RENDERER_URL)
+  } else {
+    janela.loadFile(join(__dirname, '../renderer/index.html'))
+  }
+
+  return janela
+}
+
+export { CONFIGURACAO_SEGURANCA }

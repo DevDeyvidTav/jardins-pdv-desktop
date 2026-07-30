@@ -1,0 +1,73 @@
+.pagina-inicial {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+}
+
+.pagina-inicial__cartao {
+  width: min(100%, 640px);
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+}
+
+.pagina-inicial__etiqueta {
+  margin: 0 0 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #2563eb;
+}
+
+.pagina-inicial h1 {
+  margin: 0 0 1rem;
+  font-size: 2rem;
+  color: #111827;
+}
+
+.pagina-inicial__mensagem {
+  margin: 0 0 1.5rem;
+  color: #4b5563;
+}
+
+.pagina-inicial__erro {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.pagina-inicial__carregando {
+  margin: 0;
+  color: #6b7280;
+}
+
+.status-fundacao {
+  margin: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.status-fundacao__item {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid #f3f4f6;
+}
+
+.status-fundacao__item dt {
+  margin: 0;
+  font-weight: 600;
+  color: #374151;
+}
+
+.status-fundacao__item dd {
+  margin: 0;
+  color: #111827;
+}
