@@ -8,9 +8,11 @@ import {
 import { criarCriarPedidoMesa } from '../../../src/main/modules/pedidos/use-cases/criar-pedido-mesa'
 import { criarCriarPedidoBalcao } from '../../../src/main/modules/pedidos/use-cases/criar-pedido-balcao'
 import { STATUS_MESA } from '@shared/types/mesa'
+import { itemPedidoEstaAtivo } from '@shared/types/pedido'
 import { prepararAmbientePedidos } from '../../helpers/pedido-teste'
 import { prepararBancoTeste } from '../../helpers/banco-teste'
 import { criarCriarMesasPorIntervalo } from '../../../src/main/modules/mesas/use-cases/criar-mesas-por-intervalo'
+import { criarObterResumoPedido } from '../../../src/main/modules/pedidos/use-cases/consultas-pedido'
 
 describe('pedidos', () => {
   let encerrarBanco: (() => void) | undefined
@@ -141,7 +143,7 @@ describe('pedidos', () => {
     expect(resumoAtualizado.pedido.totalCentavos).toBe(1800)
   })
 
-  it('recalcula total ao remover item', async () => {
+  it('recalcula total ao cancelar item', async () => {
     const ambiente = await prepararAmbientePedidos()
     encerrarBanco = ambiente.encerrar
 
@@ -152,13 +154,86 @@ describe('pedidos', () => {
       quantidade: 2,
     })
 
-    const resumoFinal = ambiente.removerItemPedido({
+    const resumoFinal = ambiente.cancelarItemPedido({
       pedidoId: pedido.id,
       itemId: resumo.itens[0]!.id,
     })
 
     expect(resumoFinal.itens).toHaveLength(0)
     expect(resumoFinal.pedido.totalCentavos).toBe(0)
+  })
+
+  it('preserva item cancelado no banco com soft delete', async () => {
+    const ambiente = await prepararAmbientePedidos()
+    encerrarBanco = ambiente.encerrar
+
+    const pedido = ambiente.criarPedidoMesa({ mesaId: ambiente.mesa.id })
+    const resumo = ambiente.adicionarItemPedido({
+      pedidoId: pedido.id,
+      produtoId: ambiente.produto.id,
+      quantidade: 1,
+    })
+
+    ambiente.cancelarItemPedido({
+      pedidoId: pedido.id,
+      itemId: resumo.itens[0]!.id,
+    })
+
+    const itensPersistidos = ambiente.repositorioItem.listarPorPedido(pedido.id, false)
+
+    expect(itensPersistidos).toHaveLength(1)
+    expect(itensPersistidos[0]?.canceladoEm).not.toBeNull()
+    expect(itemPedidoEstaAtivo(itensPersistidos[0]!)).toBe(false)
+  })
+
+  it('inclui itens cancelados no resumo detalhado', async () => {
+    const ambiente = await prepararAmbientePedidos()
+    encerrarBanco = ambiente.encerrar
+
+    const obterResumo = criarObterResumoPedido()
+    const pedido = ambiente.criarPedidoMesa({ mesaId: ambiente.mesa.id })
+    const resumo = ambiente.adicionarItemPedido({
+      pedidoId: pedido.id,
+      produtoId: ambiente.produto.id,
+      quantidade: 1,
+    })
+
+    ambiente.cancelarItemPedido({
+      pedidoId: pedido.id,
+      itemId: resumo.itens[0]!.id,
+    })
+
+    const resumoDetalhado = obterResumo({
+      pedidoId: pedido.id,
+      incluirItensCancelados: true,
+    })
+
+    expect(resumoDetalhado.itens).toHaveLength(1)
+    expect(resumoDetalhado.itens[0]?.canceladoEm).not.toBeNull()
+  })
+
+  it('cancela todos os itens ativos ao cancelar pedido', async () => {
+    const ambiente = await prepararAmbientePedidos()
+    encerrarBanco = ambiente.encerrar
+
+    const pedido = ambiente.criarPedidoMesa({ mesaId: ambiente.mesa.id })
+    ambiente.adicionarItemPedido({
+      pedidoId: pedido.id,
+      produtoId: ambiente.produto.id,
+      quantidade: 1,
+    })
+    ambiente.adicionarItemPedido({
+      pedidoId: pedido.id,
+      produtoId: ambiente.produto.id,
+      quantidade: 2,
+    })
+
+    ambiente.cancelarPedido({ pedidoId: pedido.id })
+
+    const itensPersistidos = ambiente.repositorioItem.listarPorPedido(pedido.id, false)
+
+    expect(itensPersistidos).toHaveLength(2)
+    expect(itensPersistidos.every((item) => item.canceladoEm !== null)).toBe(true)
   })
 
   it('impede alteracao em pedido cancelado', async () => {

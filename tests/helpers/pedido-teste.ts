@@ -13,7 +13,7 @@ import { criarCriarPedidoMesa } from '../../src/main/modules/pedidos/use-cases/c
 import { criarCriarPedidoBalcao } from '../../src/main/modules/pedidos/use-cases/criar-pedido-balcao'
 import { criarAdicionarItemPedido } from '../../src/main/modules/pedidos/use-cases/adicionar-item-pedido'
 import { criarAlterarQuantidadeItemPedido } from '../../src/main/modules/pedidos/use-cases/alterar-quantidade-item-pedido'
-import { criarRemoverItemPedido } from '../../src/main/modules/pedidos/use-cases/remover-item-pedido'
+import { criarCancelarItemPedido } from '../../src/main/modules/pedidos/use-cases/cancelar-item-pedido'
 import { criarCancelarPedido } from '../../src/main/modules/pedidos/use-cases/cancelar-pedido'
 import { criarInativarProduto } from '../../src/main/modules/produtos/use-cases/inativar-produto'
 
@@ -47,8 +47,8 @@ export async function prepararAmbientePedidos() {
     repositorioPedido,
     repositorioItem,
   )
-  const removerItemPedido = criarRemoverItemPedido(repositorioPedido, repositorioItem)
-  const cancelarPedido = criarCancelarPedido(repositorioPedido, repositorioMesa)
+  const cancelarItemPedido = criarCancelarItemPedido(repositorioPedido, repositorioItem)
+  const cancelarPedido = criarCancelarPedido(repositorioPedido, repositorioMesa, repositorioItem)
 
   const sessao = abrirSessaoCaixa({
     operadorId: 'local',
@@ -73,11 +73,13 @@ export async function prepararAmbientePedidos() {
     mesa,
     repositorioMesa,
     repositorioProduto,
+    repositorioItem,
     criarPedidoMesa,
     criarPedidoBalcao,
     adicionarItemPedido,
     alterarQuantidadeItemPedido,
-    removerItemPedido,
+    cancelarItemPedido,
+    removerItemPedido: cancelarItemPedido,
     cancelarPedido,
     inativarProduto,
     criarMesasPorIntervalo,

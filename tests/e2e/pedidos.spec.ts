@@ -76,7 +76,8 @@ test.describe('pedidos locais', () => {
       await expect(janela.getByTestId('pagina-pedido-aberto')).toBeVisible({ timeout: 10_000 })
 
       await janela.getByTestId('botao-adicionar-item-painel').click()
-      await janela.getByTestId('campo-produto-pedido').selectOption({ index: 1 })
+      await janela.getByTestId('campo-produto-pedido').click()
+      await janela.getByTestId('opcao-produto-pedido').first().click()
       await janela.getByTestId('campo-quantidade-item').fill('2')
       await janela.getByTestId('botao-adicionar-item').click()
       await expect(janela.getByTestId('item-pedido')).toHaveCount(1)
@@ -90,7 +91,8 @@ test.describe('pedidos locais', () => {
       await expect(janela.getByTestId('pedido-total')).toHaveText(/R\$\s*0,00/)
 
       await janela.getByTestId('botao-adicionar-item-painel').click()
-      await janela.getByTestId('campo-produto-pedido').selectOption({ index: 1 })
+      await janela.getByTestId('campo-produto-pedido').click()
+      await janela.getByTestId('opcao-produto-pedido').first().click()
       await janela.getByTestId('campo-quantidade-item').fill('1')
       await janela.getByTestId('botao-adicionar-item').click()
       await expect(janela.getByTestId('pedido-total')).toHaveText(/R\$\s*6,00/)

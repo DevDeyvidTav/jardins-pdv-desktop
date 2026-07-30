@@ -6,10 +6,13 @@ import { criarMesaRepository } from '../../mesas/repositories/mesa.repository'
 import { CODIGOS_ERRO_PEDIDOS, ErroPedidos } from '../errors/erros-pedidos'
 import type { PedidoRepository } from '../repositories/pedido.repository'
 import { criarPedidoRepository } from '../repositories/pedido.repository'
+import type { PedidoItemRepository } from '../repositories/pedido-item.repository'
+import { criarPedidoItemRepository } from '../repositories/pedido-item.repository'
 
 export function criarCancelarPedido(
   repositorioPedido: PedidoRepository = criarPedidoRepository(),
   repositorioMesa: MesaRepository = criarMesaRepository(),
+  repositorioItem: PedidoItemRepository = criarPedidoItemRepository(),
 ) {
   return function cancelarPedido(entrada: CancelarPedidoEntrada): Pedido {
     const pedido = repositorioPedido.buscarPorId(entrada.pedidoId)
@@ -27,6 +30,8 @@ export function criarCancelarPedido(
         'Pedido nao esta aberto para cancelamento.',
       )
     }
+
+    repositorioItem.cancelarItensAtivosPorPedido(entrada.pedidoId)
 
     const pedidoCancelado = repositorioPedido.cancelar(entrada.pedidoId)
 

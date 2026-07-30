@@ -9,6 +9,7 @@ import {
   criarPedidoMesaSchema,
   obterPedidoAbertoPorMesaSchema,
   obterResumoPedidoSchema,
+  cancelarItemPedidoSchema,
   removerItemPedidoSchema,
 } from './schemas/pedido.schema'
 import { adicionarItemPedido } from './use-cases/adicionar-item-pedido'
@@ -21,7 +22,7 @@ import {
   obterPedidoAbertoPorMesa,
   obterResumoPedido,
 } from './use-cases/consultas-pedido'
-import { removerItemPedido } from './use-cases/remover-item-pedido'
+import { cancelarItemPedido } from './use-cases/cancelar-item-pedido'
 
 function tratarErroPedidos(erro: unknown): never {
   if (erro instanceof ErroPedidos) {
@@ -93,7 +94,7 @@ export function registrarHandlersPedidos(): void {
 
   ipcMain.handle(CANAIS_IPC.PEDIDOS_REMOVER_ITEM, (_evento, entradaDesconhecida) => {
     try {
-      return removerItemPedido(removerItemPedidoSchema.parse(entradaDesconhecida))
+      return cancelarItemPedido(cancelarItemPedidoSchema.parse(entradaDesconhecida))
     } catch (erro) {
       tratarErroPedidos(erro)
     }

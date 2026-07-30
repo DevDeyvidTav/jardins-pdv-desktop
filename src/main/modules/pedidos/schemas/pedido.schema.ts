@@ -26,13 +26,16 @@ export const alterarQuantidadeItemPedidoSchema = z.object({
   quantidade: quantidadeSchema,
 })
 
-export const removerItemPedidoSchema = z.object({
+export const cancelarItemPedidoSchema = z.object({
   pedidoId: z.string().trim().min(1, 'Pedido e obrigatorio.'),
   itemId: z.string().trim().min(1, 'Item e obrigatorio.'),
 })
 
+export const removerItemPedidoSchema = cancelarItemPedidoSchema
+
 export const obterResumoPedidoSchema = z.object({
   pedidoId: z.string().trim().min(1, 'Pedido e obrigatorio.'),
+  incluirItensCancelados: z.boolean().optional(),
 })
 
 export const cancelarPedidoSchema = z.object({

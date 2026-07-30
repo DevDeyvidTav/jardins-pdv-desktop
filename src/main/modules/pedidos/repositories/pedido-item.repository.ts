@@ -168,6 +168,10 @@ export class PedidoItemRepository {
       throw new Error('Item nao encontrado.')
     }
 
+    if (existente.canceladoEm) {
+      return existente
+    }
+
     const conexao = this.obterConexao()
     const agora = agoraEmIsoUtc()
 
@@ -179,6 +183,20 @@ export class PedidoItemRepository {
     persistirConexaoBanco(conexao)
 
     return { ...existente, canceladoEm: agora, atualizadoEm: agora }
+  }
+
+  cancelarItensAtivosPorPedido(pedidoId: string): void {
+    const conexao = this.obterConexao()
+    const agora = agoraEmIsoUtc()
+
+    conexao.instancia.run(
+      `UPDATE pedido_item
+       SET cancelado_em = ?, atualizado_em = ?
+       WHERE pedido_id = ? AND cancelado_em IS NULL`,
+      [agora, agora, pedidoId],
+    )
+
+    persistirConexaoBanco(conexao)
   }
 }
 

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type { Mesa } from '@shared/types/mesa'
 import type { Pedido, ResumoPedido } from '@shared/types/pedido'
 import type { ProdutoComCategoria } from '@shared/types/produto'
+import type { CategoriaProduto } from '@shared/types/categoria-produto'
 import type { SessaoCaixa } from '@shared/types/sessao-caixa'
 import { STATUS_MESA } from '@shared/types/mesa'
 import {
@@ -16,6 +17,7 @@ export interface UsePedidosResultado {
   pedidosAbertos: Pedido[]
   resumoPedido: ResumoPedido | null
   produtosAtivos: ProdutoComCategoria[]
+  categoriasAtivas: CategoriaProduto[]
   sessaoCaixa: SessaoCaixa | null
   carregando: boolean
   carregandoPedido: boolean
@@ -23,7 +25,6 @@ export interface UsePedidosResultado {
   exibirCadastroMesas: boolean
   erro: string | null
   sucesso: string | null
-  termoBuscaProduto: string
   criarMesasPorIntervalo: (numeroInicial: number, numeroFinal: number) => Promise<boolean>
   abrirPedidoMesa: (mesaId: string) => Promise<boolean>
   abrirPedidoBalcao: () => Promise<boolean>
@@ -36,7 +37,6 @@ export interface UsePedidosResultado {
   ) => Promise<boolean>
   alterarQuantidadeItem: (itemId: string, quantidade: number) => Promise<boolean>
   removerItem: (itemId: string) => Promise<boolean>
-  definirTermoBuscaProduto: (termo: string) => void
   definirFiltroStatusMesas: (filtro: FiltroStatusMesa) => void
   abrirFormularioItem: () => void
   fecharFormularioItem: () => void
@@ -63,6 +63,7 @@ export function usePedidos(): UsePedidosResultado {
   const [pedidosAbertos, setPedidosAbertos] = useState<Pedido[]>([])
   const [resumoPedido, setResumoPedido] = useState<ResumoPedido | null>(null)
   const [produtosAtivos, setProdutosAtivos] = useState<ProdutoComCategoria[]>([])
+  const [categoriasAtivas, setCategoriasAtivas] = useState<CategoriaProduto[]>([])
   const [sessaoCaixa, setSessaoCaixa] = useState<SessaoCaixa | null>(null)
   const [carregando, setCarregando] = useState(true)
   const [carregandoPedido, setCarregandoPedido] = useState(false)
@@ -70,32 +71,25 @@ export function usePedidos(): UsePedidosResultado {
   const [exibirCadastroMesas, setExibirCadastroMesas] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [sucesso, setSucesso] = useState<string | null>(null)
-  const [termoBuscaProduto, setTermoBuscaProduto] = useState('')
-
-  const carregarProdutos = useCallback(async (termo: string) => {
-    if (termo.trim() !== '') {
-      return window.pdv.produtos.buscarProdutos({ termo, apenasAtivos: true })
-    }
-
-    return window.pdv.produtos.listarProdutos({ apenasAtivos: true })
-  }, [])
 
   const carregarDados = useCallback(async () => {
     setCarregando(true)
     setErro(null)
 
     try {
-      const [sessao, listaMesas, abertos, produtos] = await Promise.all([
+      const [sessao, listaMesas, abertos, produtos, categorias] = await Promise.all([
         window.pdv.caixa.obterSessaoCaixaAberta(),
         window.pdv.mesas.listarMesas(),
         window.pdv.pedidos.listarPedidosAbertos(),
-        carregarProdutos(termoBuscaProduto),
+        window.pdv.produtos.listarProdutos({ apenasAtivos: true }),
+        window.pdv.produtos.listarCategorias({ apenasAtivas: true }),
       ])
 
       setSessaoCaixa(sessao)
       setMesas(listaMesas)
       setPedidosAbertos(abertos)
       setProdutosAtivos(produtos)
+      setCategoriasAtivas(categorias)
 
       setMesaSelecionada((atual) => {
         if (!atual) {
@@ -109,7 +103,7 @@ export function usePedidos(): UsePedidosResultado {
     } finally {
       setCarregando(false)
     }
-  }, [carregarProdutos, termoBuscaProduto])
+  }, [])
 
   useEffect(() => {
     void carregarDados()
@@ -335,7 +329,7 @@ export function usePedidos(): UsePedidosResultado {
           itemId,
         })
         setResumoPedido(resumo)
-        setSucesso('Item removido do pedido.')
+        setSucesso('Item cancelado do pedido.')
         return true
       } catch (causa) {
         setErro(extrairMensagemErro(causa))
@@ -344,10 +338,6 @@ export function usePedidos(): UsePedidosResultado {
     },
     [resumoPedido],
   )
-
-  const definirTermoBuscaProduto = useCallback((termo: string) => {
-    setTermoBuscaProduto(termo)
-  }, [])
 
   const definirFiltroStatusMesas = useCallback((filtro: FiltroStatusMesa) => {
     setFiltroStatusMesas(filtro)
@@ -383,6 +373,7 @@ export function usePedidos(): UsePedidosResultado {
     pedidosAbertos,
     resumoPedido,
     produtosAtivos,
+    categoriasAtivas,
     sessaoCaixa,
     carregando,
     carregandoPedido,
@@ -390,7 +381,6 @@ export function usePedidos(): UsePedidosResultado {
     exibirCadastroMesas,
     erro,
     sucesso,
-    termoBuscaProduto,
     criarMesasPorIntervalo,
     abrirPedidoMesa,
     abrirPedidoBalcao,
@@ -399,7 +389,6 @@ export function usePedidos(): UsePedidosResultado {
     adicionarItem,
     alterarQuantidadeItem,
     removerItem,
-    definirTermoBuscaProduto,
     definirFiltroStatusMesas,
     abrirFormularioItem,
     fecharFormularioItem,

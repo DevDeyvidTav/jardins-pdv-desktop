@@ -1,28 +1,97 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
+import type { CategoriaProduto } from '@shared/types/categoria-produto'
 import type { PedidoItem } from '@shared/types/pedido'
 import type { ProdutoComCategoria } from '@shared/types/produto'
 import { formatarMoeda } from '@shared/utils/moeda'
 
 interface BuscaProdutosPedidoProps {
   produtos: ProdutoComCategoria[]
-  termo: string
-  onTermoChange: (termo: string) => void
+  categorias: CategoriaProduto[]
   onAdicionar: (produtoId: string, quantidade: number, observacao?: string) => Promise<boolean>
   compacto?: boolean
 }
 
 export function BuscaProdutosPedido({
   produtos,
-  termo,
-  onTermoChange,
+  categorias,
   onAdicionar,
   compacto = false,
 }: BuscaProdutosPedidoProps) {
-  const [produtoSelecionado, setProdutoSelecionado] = useState('')
+  const [categoriaId, setCategoriaId] = useState('')
+  const [produtoSelecionadoId, setProdutoSelecionadoId] = useState('')
+  const [termo, setTermo] = useState('')
+  const [listaAberta, setListaAberta] = useState(false)
   const [quantidade, setQuantidade] = useState('1')
   const [observacao, setObservacao] = useState('')
   const [erroValidacao, setErroValidacao] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
+  const comboboxRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const produtoSelecionado = useMemo(
+    () => produtos.find((produto) => produto.id === produtoSelecionadoId) ?? null,
+    [produtoSelecionadoId, produtos],
+  )
+
+  const produtosFiltrados = useMemo(() => {
+    const termoNormalizado = termo.trim().toLowerCase()
+
+    return produtos.filter((produto) => {
+      if (categoriaId && produto.categoriaId !== categoriaId) {
+        return false
+      }
+
+      if (!termoNormalizado) {
+        return true
+      }
+
+      return (
+        produto.nome.toLowerCase().includes(termoNormalizado) ||
+        produto.categoriaNome.toLowerCase().includes(termoNormalizado)
+      )
+    })
+  }, [categoriaId, produtos, termo])
+
+  useEffect(() => {
+    function fecharAoClicarFora(evento: MouseEvent) {
+      if (!comboboxRef.current?.contains(evento.target as Node)) {
+        setListaAberta(false)
+        if (produtoSelecionado) {
+          setTermo('')
+        }
+      }
+    }
+
+    document.addEventListener('mousedown', fecharAoClicarFora)
+    return () => document.removeEventListener('mousedown', fecharAoClicarFora)
+  }, [produtoSelecionado])
+
+  function abrirLista() {
+    setListaAberta(true)
+    setTermo('')
+  }
+
+  function selecionarProduto(produto: ProdutoComCategoria) {
+    setProdutoSelecionadoId(produto.id)
+    setTermo('')
+    setListaAberta(false)
+    setErroValidacao(null)
+  }
+
+  function handleTeclado(evento: KeyboardEvent<HTMLInputElement>) {
+    if (evento.key === 'Escape') {
+      setListaAberta(false)
+      if (produtoSelecionado) {
+        setTermo('')
+      }
+      return
+    }
+
+    if (evento.key === 'Enter' && listaAberta && produtosFiltrados.length === 1) {
+      evento.preventDefault()
+      selecionarProduto(produtosFiltrados[0]!)
+    }
+  }
 
   async function handleSubmit(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault()
@@ -30,7 +99,7 @@ export function BuscaProdutosPedido({
 
     const quantidadeNumero = Number(quantidade)
 
-    if (!produtoSelecionado) {
+    if (!produtoSelecionadoId) {
       setErroValidacao('Selecione um produto.')
       return
     }
@@ -44,7 +113,7 @@ export function BuscaProdutosPedido({
 
     try {
       const sucesso = await onAdicionar(
-        produtoSelecionado,
+        produtoSelecionadoId,
         quantidadeNumero,
         observacao.trim() || undefined,
       )
@@ -52,51 +121,110 @@ export function BuscaProdutosPedido({
       if (sucesso) {
         setObservacao('')
         setQuantidade('1')
+        setProdutoSelecionadoId('')
+        setTermo('')
       }
     } finally {
       setEnviando(false)
     }
   }
 
+  const valorExibido =
+    listaAberta || !produtoSelecionado ? termo : `${produtoSelecionado.nome} — ${formatarMoeda(produtoSelecionado.precoCentavos)}`
+
   return (
     <section
       className={`busca-produtos-pedido${compacto ? ' busca-produtos-pedido--compacto' : ''}`}
       data-testid="busca-produtos-pedido"
     >
-      <label className="busca-produtos-pedido__campo" htmlFor="busca-produto-pedido">
-        {compacto ? 'Busca' : 'Buscar produto'}
-        <input
-          id="busca-produto-pedido"
-          data-testid="campo-busca-produto-pedido"
-          type="search"
-          value={termo}
-          onChange={(evento) => onTermoChange(evento.target.value)}
-          placeholder="Nome do produto"
-        />
-      </label>
-
       <form
         className="busca-produtos-pedido__formulario"
         data-testid="formulario-adicionar-item"
         onSubmit={(evento) => void handleSubmit(evento)}
       >
-        <label className="busca-produtos-pedido__campo" htmlFor="produto-pedido">
-          Produto
+        <label className="busca-produtos-pedido__campo" htmlFor="categoria-produto-pedido">
+          Categoria
           <select
-            id="produto-pedido"
-            data-testid="campo-produto-pedido"
-            value={produtoSelecionado}
-            onChange={(evento) => setProdutoSelecionado(evento.target.value)}
-            disabled={enviando || produtos.length === 0}
+            id="categoria-produto-pedido"
+            data-testid="campo-categoria-produto-pedido"
+            value={categoriaId}
+            onChange={(evento) => {
+              setCategoriaId(evento.target.value)
+              setProdutoSelecionadoId('')
+              setTermo('')
+            }}
+            disabled={enviando}
           >
-            <option value="">Selecione</option>
-            {produtos.map((produto) => (
-              <option key={produto.id} value={produto.id}>
-                {produto.nome} — {formatarMoeda(produto.precoCentavos)}
+            <option value="">Todas</option>
+            {categorias.map((categoria) => (
+              <option key={categoria.id} value={categoria.id}>
+                {categoria.nome}
               </option>
             ))}
           </select>
         </label>
+
+        <div className="busca-produtos-pedido__campo busca-produtos-pedido__combobox" ref={comboboxRef}>
+          <label htmlFor="produto-pedido">Produto</label>
+          <div className="busca-produtos-pedido__combobox-controle">
+            <input
+              id="produto-pedido"
+              ref={inputRef}
+              data-testid="campo-produto-pedido"
+              type="text"
+              role="combobox"
+              aria-expanded={listaAberta}
+              aria-controls="lista-produtos-pedido"
+              aria-autocomplete="list"
+              autoComplete="off"
+              value={valorExibido}
+              placeholder="Digite para buscar..."
+              onFocus={abrirLista}
+              onClick={abrirLista}
+              onChange={(evento) => {
+                setTermo(evento.target.value)
+                setProdutoSelecionadoId('')
+                setListaAberta(true)
+              }}
+              onKeyDown={handleTeclado}
+              disabled={enviando || produtos.length === 0}
+            />
+
+            {listaAberta ? (
+              <ul
+                id="lista-produtos-pedido"
+                className="busca-produtos-pedido__opcoes"
+                data-testid="lista-opcoes-produto-pedido"
+                role="listbox"
+              >
+                {produtosFiltrados.length === 0 ? (
+                  <li className="busca-produtos-pedido__opcao busca-produtos-pedido__opcao--vazia">
+                    Nenhum produto encontrado.
+                  </li>
+                ) : (
+                  produtosFiltrados.map((produto) => (
+                    <li key={produto.id}>
+                      <button
+                        type="button"
+                        className="busca-produtos-pedido__opcao"
+                        data-testid="opcao-produto-pedido"
+                        role="option"
+                        aria-selected={produto.id === produtoSelecionadoId}
+                        onMouseDown={(evento) => evento.preventDefault()}
+                        onClick={() => selecionarProduto(produto)}
+                      >
+                        <span>{produto.nome}</span>
+                        <span className="busca-produtos-pedido__opcao-meta">
+                          {produto.categoriaNome} · {formatarMoeda(produto.precoCentavos)}
+                        </span>
+                      </button>
+                    </li>
+                  ))
+                )}
+              </ul>
+            ) : null}
+          </div>
+        </div>
 
         <label className="busca-produtos-pedido__campo" htmlFor="quantidade-item">
           Qtd
@@ -204,7 +332,7 @@ export function ListaItensPedido({
                 type="button"
                 data-testid="botao-remover-item"
                 onClick={() => void onRemover(item.id)}
-                aria-label="Remover item"
+                aria-label="Cancelar item"
               >
                 x
               </button>

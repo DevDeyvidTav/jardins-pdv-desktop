@@ -54,9 +54,11 @@ export function criarObterResumoPedido(
       )
     }
 
+    const apenasItensAtivos = !(entrada.incluirItensCancelados ?? false)
+
     return {
       pedido,
-      itens: repositorioItem.listarPorPedido(pedido.id, true),
+      itens: repositorioItem.listarPorPedido(pedido.id, apenasItensAtivos),
     }
   }
 }

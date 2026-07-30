@@ -39,7 +39,12 @@ export interface PedidoItem {
   observacao: string | null
   criadoEm: string
   atualizadoEm: string
+  /** Preenchido quando o item e cancelado (soft delete). */
   canceladoEm: string | null
+}
+
+export function itemPedidoEstaAtivo(item: PedidoItem): boolean {
+  return item.canceladoEm === null
 }
 
 export interface ResumoPedido {
@@ -68,13 +73,18 @@ export interface AlterarQuantidadeItemPedidoEntrada {
   quantidade: number
 }
 
-export interface RemoverItemPedidoEntrada {
+export interface CancelarItemPedidoEntrada {
   pedidoId: string
   itemId: string
 }
 
+/** @deprecated Preferir CancelarItemPedidoEntrada */
+export type RemoverItemPedidoEntrada = CancelarItemPedidoEntrada
+
 export interface ObterResumoPedidoEntrada {
   pedidoId: string
+  /** Inclui itens cancelados — util para cupom detalhado e relatorios. */
+  incluirItensCancelados?: boolean
 }
 
 export interface CancelarPedidoEntrada {

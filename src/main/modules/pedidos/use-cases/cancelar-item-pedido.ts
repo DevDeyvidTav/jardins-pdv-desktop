@@ -1,4 +1,4 @@
-import type { RemoverItemPedidoEntrada, ResumoPedido } from '@shared/types/pedido'
+import type { CancelarItemPedidoEntrada, ResumoPedido } from '@shared/types/pedido'
 import { CODIGOS_ERRO_PEDIDOS, ErroPedidos } from '../errors/erros-pedidos'
 import type { PedidoRepository } from '../repositories/pedido.repository'
 import { criarPedidoRepository } from '../repositories/pedido.repository'
@@ -7,11 +7,11 @@ import { criarPedidoItemRepository } from '../repositories/pedido-item.repositor
 import { recalcularTotaisPedido } from '../services/recalcular-totais-pedido'
 import { garantirPedidoAberto, obterResumoPedido } from './consultas-pedido'
 
-export function criarRemoverItemPedido(
+export function criarCancelarItemPedido(
   repositorioPedido: PedidoRepository = criarPedidoRepository(),
   repositorioItem: PedidoItemRepository = criarPedidoItemRepository(),
 ) {
-  return function removerItemPedido(entrada: RemoverItemPedidoEntrada): ResumoPedido {
+  return function cancelarItemPedido(entrada: CancelarItemPedidoEntrada): ResumoPedido {
     const pedido = repositorioPedido.buscarPorId(entrada.pedidoId)
 
     if (!pedido) {
@@ -26,7 +26,10 @@ export function criarRemoverItemPedido(
     const item = repositorioItem.buscarPorId(entrada.itemId)
 
     if (!item || item.pedidoId !== entrada.pedidoId || item.canceladoEm) {
-      throw new ErroPedidos(CODIGOS_ERRO_PEDIDOS.ITEM_NAO_ENCONTRADO, 'Item nao encontrado.')
+      throw new ErroPedidos(
+        CODIGOS_ERRO_PEDIDOS.ITEM_NAO_ENCONTRADO,
+        'Item nao encontrado ou ja cancelado.',
+      )
     }
 
     repositorioItem.cancelar(entrada.itemId)
@@ -36,4 +39,8 @@ export function criarRemoverItemPedido(
   }
 }
 
-export const removerItemPedido = criarRemoverItemPedido()
+export const cancelarItemPedido = criarCancelarItemPedido()
+
+/** Alias mantido para compatibilidade com IPC e UI existentes. */
+export const removerItemPedido = cancelarItemPedido
+export const criarRemoverItemPedido = criarCancelarItemPedido

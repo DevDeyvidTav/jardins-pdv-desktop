@@ -249,6 +249,23 @@ describe('contrato da API exposta pelo preload', () => {
           },
           itens: [],
         }),
+        cancelarItemPedido: async () => ({
+          pedido: {
+            id: 'ped-1',
+            sessaoCaixaId: '1',
+            mesaId: 'mesa-1',
+            tipo: 'MESA',
+            status: 'ABERTO',
+            subtotalCentavos: 0,
+            descontoCentavos: 0,
+            totalCentavos: 0,
+            criadoEm: new Date().toISOString(),
+            atualizadoEm: new Date().toISOString(),
+            finalizadoEm: null,
+            canceladoEm: null,
+          },
+          itens: [],
+        }),
         removerItemPedido: async () => ({
           pedido: {
             id: 'ped-1',

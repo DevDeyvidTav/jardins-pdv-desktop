@@ -43,6 +43,7 @@ Permitir operacao rapida em ambiente de restaurante:
 
 - Cabecalho compacto (mesa + status) fixo no topo
 - Lista de itens ocupa o espaco central e **so ela rola** se houver muitos itens
+- Linhas densas (~32px), alinhadas ao topo — nao esticar para preencher a altura do painel
 - Rodape fixo: total + botao **Adicionar item**
 - Formulario compacto (busca, produto, qtd, botao **Adicionar**) fixo acima do rodape quando aberto
 

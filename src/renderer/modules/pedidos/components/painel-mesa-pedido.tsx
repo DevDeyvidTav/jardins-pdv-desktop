@@ -2,6 +2,7 @@ import type { Mesa } from '@shared/types/mesa'
 import { STATUS_MESA } from '@shared/types/mesa'
 import type { ResumoPedido } from '@shared/types/pedido'
 import { TIPO_PEDIDO } from '@shared/types/pedido'
+import type { CategoriaProduto } from '@shared/types/categoria-produto'
 import type { ProdutoComCategoria } from '@shared/types/produto'
 import { formatarMoeda } from '@shared/utils/moeda'
 import { ROTULOS_STATUS_MESA } from '../constants/mesa-status-cores'
@@ -11,13 +12,12 @@ interface PainelMesaPedidoProps {
   mesaSelecionada: Mesa | null
   resumoPedido: ResumoPedido | null
   produtosAtivos: ProdutoComCategoria[]
-  termoBuscaProduto: string
+  categoriasAtivas: CategoriaProduto[]
   exibirFormularioItem: boolean
   carregandoPedido: boolean
   onAbrirPedido: () => void
   onAdicionarItem: () => void
   onFecharFormularioItem: () => void
-  onTermoBuscaChange: (termo: string) => void
   onAdicionarItemPedido: (
     produtoId: string,
     quantidade: number,
@@ -31,13 +31,12 @@ export function PainelMesaPedido({
   mesaSelecionada,
   resumoPedido,
   produtosAtivos,
-  termoBuscaProduto,
+  categoriasAtivas,
   exibirFormularioItem,
   carregandoPedido,
   onAbrirPedido,
   onAdicionarItem,
   onFecharFormularioItem,
-  onTermoBuscaChange,
   onAdicionarItemPedido,
   onAlterarQuantidade,
   onRemoverItem,
@@ -137,8 +136,7 @@ export function PainelMesaPedido({
             {exibirFormularioItem ? (
               <BuscaProdutosPedido
                 produtos={produtosAtivos}
-                termo={termoBuscaProduto}
-                onTermoChange={onTermoBuscaChange}
+                categorias={categoriasAtivas}
                 onAdicionar={onAdicionarItemPedido}
                 compacto
               />

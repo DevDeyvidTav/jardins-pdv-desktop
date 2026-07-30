@@ -43,13 +43,12 @@ export function PedidosPage({ pedidos }: PedidosPageProps) {
           mesaSelecionada={pedidos.mesaSelecionada}
           resumoPedido={pedidos.resumoPedido}
           produtosAtivos={pedidos.produtosAtivos}
-          termoBuscaProduto={pedidos.termoBuscaProduto}
+          categoriasAtivas={pedidos.categoriasAtivas}
           exibirFormularioItem={pedidos.exibirFormularioItem}
           carregandoPedido={pedidos.carregandoPedido}
           onAbrirPedido={() => void pedidos.abrirPedidoDaMesaSelecionada()}
           onAdicionarItem={pedidos.abrirFormularioItem}
           onFecharFormularioItem={pedidos.fecharFormularioItem}
-          onTermoBuscaChange={pedidos.definirTermoBuscaProduto}
           onAdicionarItemPedido={pedidos.adicionarItem}
           onAlterarQuantidade={pedidos.alterarQuantidadeItem}
           onRemoverItem={pedidos.removerItem}

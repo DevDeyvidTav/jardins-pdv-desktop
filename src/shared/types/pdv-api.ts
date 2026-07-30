@@ -42,6 +42,7 @@ import type {
   ObterPedidoAbertoPorMesaEntrada,
   ObterResumoPedidoEntrada,
   Pedido,
+  CancelarItemPedidoEntrada,
   RemoverItemPedidoEntrada,
   ResumoPedido,
 } from './pedido'
@@ -102,6 +103,8 @@ export interface PdvApi {
     alterarQuantidadeItemPedido: (
       entrada: AlterarQuantidadeItemPedidoEntrada,
     ) => Promise<ResumoPedido>
+    cancelarItemPedido: (entrada: CancelarItemPedidoEntrada) => Promise<ResumoPedido>
+    /** @deprecated Preferir cancelarItemPedido */
     removerItemPedido: (entrada: RemoverItemPedidoEntrada) => Promise<ResumoPedido>
     obterResumoPedido: (entrada: ObterResumoPedidoEntrada) => Promise<ResumoPedido>
     cancelarPedido: (entrada: CancelarPedidoEntrada) => Promise<Pedido>
