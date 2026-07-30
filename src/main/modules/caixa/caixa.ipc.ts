@@ -6,8 +6,12 @@ import {
   ErroCaixa,
 } from './errors/erros-caixa'
 import { abrirSessaoCaixaSchema } from './schemas/caixa.schema'
+import { registrarMovimentoCaixaSchema } from './schemas/movimento-caixa.schema'
 import { abrirSessaoCaixa } from './use-cases/abrir-sessao-caixa'
+import { listarMovimentosCaixa } from './use-cases/listar-movimentos-caixa'
+import { obterResumoCaixaAtual } from './use-cases/obter-resumo-caixa-atual'
 import { obterSessaoCaixaAberta } from './use-cases/obter-sessao-caixa-aberta'
+import { registrarMovimentoCaixa } from './use-cases/registrar-movimento-caixa'
 
 function tratarErroCaixa(erro: unknown): never {
   if (erro instanceof ErroCaixa) {
@@ -36,5 +40,25 @@ export function registrarHandlersCaixa(): void {
 
   ipcMain.handle(CANAIS_IPC.CAIXA_OBTER_SESSAO_ABERTA, () => {
     return obterSessaoCaixaAberta()
+  })
+
+  ipcMain.handle(
+    CANAIS_IPC.CAIXA_REGISTRAR_MOVIMENTO,
+    (_evento, entradaDesconhecida) => {
+      try {
+        const entrada = registrarMovimentoCaixaSchema.parse(entradaDesconhecida)
+        return registrarMovimentoCaixa(entrada)
+      } catch (erro) {
+        tratarErroCaixa(erro)
+      }
+    },
+  )
+
+  ipcMain.handle(CANAIS_IPC.CAIXA_LISTAR_MOVIMENTOS, () => {
+    return listarMovimentosCaixa()
+  })
+
+  ipcMain.handle(CANAIS_IPC.CAIXA_OBTER_RESUMO_ATUAL, () => {
+    return obterResumoCaixaAtual()
   })
 }

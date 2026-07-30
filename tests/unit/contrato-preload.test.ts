@@ -11,6 +11,9 @@ describe('contrato da API exposta pelo preload', () => {
     expect(CANAIS_IPC.CAIXA_OBTER_SESSAO_ABERTA).toBe(
       'caixa:obter-sessao-aberta',
     )
+    expect(CANAIS_IPC.CAIXA_REGISTRAR_MOVIMENTO).toBe('caixa:registrar-movimento')
+    expect(CANAIS_IPC.CAIXA_LISTAR_MOVIMENTOS).toBe('caixa:listar-movimentos')
+    expect(CANAIS_IPC.CAIXA_OBTER_RESUMO_ATUAL).toBe('caixa:obter-resumo-atual')
   })
 
   it('mantem formato esperado da API window.pdv', () => {
@@ -36,10 +39,23 @@ describe('contrato da API exposta pelo preload', () => {
           atualizadoEm: new Date().toISOString(),
         }),
         obterSessaoCaixaAberta: async () => null,
+        registrarMovimentoCaixa: async () => ({
+          id: 'm1',
+          sessaoCaixaId: '1',
+          tipo: 'SUPRIMENTO',
+          valorCentavos: 5000,
+          descricao: null,
+          origem: 'MANUAL',
+          criadoEm: new Date().toISOString(),
+          atualizadoEm: new Date().toISOString(),
+        }),
+        listarMovimentosCaixa: async () => [],
+        obterResumoCaixaAtual: async () => null,
       },
     }
 
-    expect(typeof api.caixa.abrirSessaoCaixa).toBe('function')
-    expect(typeof api.caixa.obterSessaoCaixaAberta).toBe('function')
+    expect(typeof api.caixa.registrarMovimentoCaixa).toBe('function')
+    expect(typeof api.caixa.listarMovimentosCaixa).toBe('function')
+    expect(typeof api.caixa.obterResumoCaixaAtual).toBe('function')
   })
 })

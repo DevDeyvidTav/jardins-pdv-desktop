@@ -1,4 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
+import type {
+  MovimentoCaixa,
+  RegistrarMovimentoCaixaEntrada,
+  ResumoCaixaAtual,
+} from '@shared/types/movimento-caixa'
 import type { SessaoCaixa } from '@shared/types/sessao-caixa'
 
 const OPERADOR_PADRAO = {
@@ -6,11 +11,19 @@ const OPERADOR_PADRAO = {
   operadorNome: 'Operador Local',
 } as const
 
-interface UseCaixaResultado {
+export interface UseCaixaResultado {
   sessaoAberta: SessaoCaixa | null
+  resumo: ResumoCaixaAtual | null
+  movimentos: MovimentoCaixa[]
   carregando: boolean
   erro: string | null
+  sucesso: string | null
   abrirSessao: (saldoInicialCentavos: number) => Promise<boolean>
+  registrarMovimento: (
+    entrada: RegistrarMovimentoCaixaEntrada,
+  ) => Promise<boolean>
+  recarregar: () => Promise<void>
+  limparFeedback: () => void
 }
 
 function extrairMensagemErro(causa: unknown): string {
@@ -23,16 +36,26 @@ function extrairMensagemErro(causa: unknown): string {
 
 export function useCaixa(): UseCaixaResultado {
   const [sessaoAberta, setSessaoAberta] = useState<SessaoCaixa | null>(null)
+  const [resumo, setResumo] = useState<ResumoCaixaAtual | null>(null)
+  const [movimentos, setMovimentos] = useState<MovimentoCaixa[]>([])
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
+  const [sucesso, setSucesso] = useState<string | null>(null)
 
-  const carregarSessaoAberta = useCallback(async () => {
+  const carregarDados = useCallback(async () => {
     setCarregando(true)
     setErro(null)
 
     try {
-      const sessao = await window.pdv.caixa.obterSessaoCaixaAberta()
+      const [sessao, resumoAtual, listaMovimentos] = await Promise.all([
+        window.pdv.caixa.obterSessaoCaixaAberta(),
+        window.pdv.caixa.obterResumoCaixaAtual(),
+        window.pdv.caixa.listarMovimentosCaixa(),
+      ])
+
       setSessaoAberta(sessao)
+      setResumo(resumoAtual)
+      setMovimentos(listaMovimentos)
     } catch (causa) {
       setErro(extrairMensagemErro(causa))
     } finally {
@@ -41,32 +64,62 @@ export function useCaixa(): UseCaixaResultado {
   }, [])
 
   useEffect(() => {
-    void carregarSessaoAberta()
-  }, [carregarSessaoAberta])
+    void carregarDados()
+  }, [carregarDados])
 
   const abrirSessao = useCallback(
     async (saldoInicialCentavos: number): Promise<boolean> => {
       setErro(null)
+      setSucesso(null)
 
       try {
-        const sessao = await window.pdv.caixa.abrirSessaoCaixa({
+        await window.pdv.caixa.abrirSessaoCaixa({
           ...OPERADOR_PADRAO,
           saldoInicialCentavos,
         })
-        setSessaoAberta(sessao)
+        await carregarDados()
         return true
       } catch (causa) {
         setErro(extrairMensagemErro(causa))
         return false
       }
     },
-    [],
+    [carregarDados],
   )
+
+  const registrarMovimento = useCallback(
+    async (entrada: RegistrarMovimentoCaixaEntrada): Promise<boolean> => {
+      setErro(null)
+      setSucesso(null)
+
+      try {
+        await window.pdv.caixa.registrarMovimentoCaixa(entrada)
+        await carregarDados()
+        setSucesso('Movimento registrado com sucesso.')
+        return true
+      } catch (causa) {
+        setErro(extrairMensagemErro(causa))
+        return false
+      }
+    },
+    [carregarDados],
+  )
+
+  const limparFeedback = useCallback(() => {
+    setErro(null)
+    setSucesso(null)
+  }, [])
 
   return {
     sessaoAberta,
+    resumo,
+    movimentos,
     carregando,
     erro,
+    sucesso,
     abrirSessao,
+    registrarMovimento,
+    recarregar: carregarDados,
+    limparFeedback,
   }
 }
