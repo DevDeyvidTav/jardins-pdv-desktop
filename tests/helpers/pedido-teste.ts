@@ -16,6 +16,8 @@ import { criarAlterarQuantidadeItemPedido } from '../../src/main/modules/pedidos
 import { criarCancelarItemPedido } from '../../src/main/modules/pedidos/use-cases/cancelar-item-pedido'
 import { criarCancelarPedido } from '../../src/main/modules/pedidos/use-cases/cancelar-pedido'
 import { criarInativarProduto } from '../../src/main/modules/produtos/use-cases/inativar-produto'
+import { criarPagamentoPedidoRepository } from '../../src/main/modules/pagamentos/repositories/pagamento-pedido.repository'
+import { criarRegistrarPagamentoPedido } from '../../src/main/modules/pagamentos/use-cases/registrar-pagamento-pedido'
 
 export async function prepararAmbientePedidos() {
   const banco = await prepararBancoTeste()
@@ -26,6 +28,7 @@ export async function prepararAmbientePedidos() {
   const repositorioMesa = criarMesaRepository()
   const repositorioPedido = criarPedidoRepository()
   const repositorioItem = criarPedidoItemRepository()
+  const repositorioPagamento = criarPagamentoPedidoRepository()
 
   const abrirSessaoCaixa = criarAbrirSessaoCaixa(repositorioSessao)
   const criarCategoriaProduto = criarCriarCategoriaProduto(repositorioCategoria)
@@ -49,6 +52,9 @@ export async function prepararAmbientePedidos() {
   )
   const cancelarItemPedido = criarCancelarItemPedido(repositorioPedido, repositorioItem)
   const cancelarPedido = criarCancelarPedido(repositorioPedido, repositorioMesa, repositorioItem)
+  const registrarPagamentoPedido = criarRegistrarPagamentoPedido(
+    repositorioPedido, repositorioItem, repositorioSessao, repositorioMesa, repositorioPagamento,
+  )
 
   const sessao = abrirSessaoCaixa({
     operadorId: 'local',
@@ -74,6 +80,7 @@ export async function prepararAmbientePedidos() {
     repositorioMesa,
     repositorioProduto,
     repositorioItem,
+    repositorioPagamento,
     criarPedidoMesa,
     criarPedidoBalcao,
     adicionarItemPedido,
@@ -81,6 +88,7 @@ export async function prepararAmbientePedidos() {
     cancelarItemPedido,
     removerItemPedido: cancelarItemPedido,
     cancelarPedido,
+    registrarPagamentoPedido,
     inativarProduto,
     criarMesasPorIntervalo,
   }

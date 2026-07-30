@@ -315,6 +315,23 @@ describe('contrato da API exposta pelo preload', () => {
           canceladoEm: new Date().toISOString(),
         }),
       },
+      pagamentos: {
+        registrarPagamentoPedido: async () => ({
+          pedidoId: 'ped-1',
+          totalPedidoCentavos: 0,
+          totalPagoCentavos: 0,
+          valorRestanteCentavos: 0,
+          pagamentos: [],
+        }),
+        listarPagamentosPedido: async () => [],
+        obterResumoPagamentoPedido: async () => ({
+          pedidoId: 'ped-1',
+          totalPedidoCentavos: 0,
+          totalPagoCentavos: 0,
+          valorRestanteCentavos: 0,
+          pagamentos: [],
+        }),
+      },
     }
 
     expect(typeof api.caixa.fecharSessaoCaixa).toBe('function')
@@ -322,5 +339,6 @@ describe('contrato da API exposta pelo preload', () => {
     expect(typeof api.mesas.listarMesas).toBe('function')
     expect(typeof api.pedidos.criarPedidoMesa).toBe('function')
     expect(typeof api.pedidos.adicionarItemPedido).toBe('function')
+    expect(typeof api.pagamentos.registrarPagamentoPedido).toBe('function')
   })
 })

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { Mesa } from '@shared/types/mesa'
 import { STATUS_MESA } from '@shared/types/mesa'
 import type { ResumoPedido } from '@shared/types/pedido'
@@ -7,6 +8,8 @@ import type { ProdutoComCategoria } from '@shared/types/produto'
 import { formatarMoeda } from '@shared/utils/moeda'
 import { ROTULOS_STATUS_MESA } from '../constants/mesa-status-cores'
 import { BuscaProdutosPedido, ListaItensPedido } from './pedido-itens'
+import { FormularioPagamentoPedido } from '../../pagamentos/components/formulario-pagamento-pedido'
+import type { PagamentoInformado } from '@shared/types/pagamento-pedido'
 
 interface PainelMesaPedidoProps {
   mesaSelecionada: Mesa | null
@@ -25,6 +28,7 @@ interface PainelMesaPedidoProps {
   ) => Promise<boolean>
   onAlterarQuantidade: (itemId: string, quantidade: number) => Promise<boolean>
   onRemoverItem: (itemId: string) => Promise<boolean>
+  onRegistrarPagamento: (pagamentos: PagamentoInformado[]) => Promise<boolean>
 }
 
 export function PainelMesaPedido({
@@ -40,9 +44,11 @@ export function PainelMesaPedido({
   onAdicionarItemPedido,
   onAlterarQuantidade,
   onRemoverItem,
+  onRegistrarPagamento,
 }: PainelMesaPedidoProps) {
   const pedidoAtivo = resumoPedido !== null
   const pedidoBalcao = resumoPedido?.pedido.tipo === TIPO_PEDIDO.BALCAO
+  const [mostrarPagamento, setMostrarPagamento] = useState(false)
 
   if (!mesaSelecionada && !pedidoAtivo) {
     return (
@@ -172,10 +178,55 @@ export function PainelMesaPedido({
                     Adicionar item
                   </button>
                 )}
+                {resumoPedido.pedido.status === 'ABERTO' ? (
+                  <button
+                    type="button"
+                    className="painel-mesa-pedido__acao-secundaria"
+                    data-testid="botao-abrir-pagamento"
+                    onClick={() => setMostrarPagamento(true)}
+                  >
+                    Receber pagamento
+                  </button>
+                ) : (
+                  <span data-testid="pedido-finalizado">Pedido finalizado</span>
+                )}
               </div>
             </footer>
           </div>
         </>
+      ) : null}
+      {pedidoAtivo && resumoPedido && mostrarPagamento ? (
+        <div className="modal-pagamento" data-testid="modal-pagamento">
+          <div
+            className="modal-pagamento__backdrop"
+            onClick={() => setMostrarPagamento(false)}
+          />
+          <div className="modal-pagamento__conteudo" role="dialog" aria-modal="true">
+            <header className="modal-pagamento__cabecalho">
+              <div>
+                <h2>Pagamento do pedido</h2>
+                <p className="modal-pagamento__total">
+                  Total: {formatarMoeda(resumoPedido.pedido.totalCentavos)}
+                </p>
+              </div>
+              <button
+                type="button"
+                className="modal-pagamento__fechar"
+                onClick={() => setMostrarPagamento(false)}
+              >
+                Fechar
+              </button>
+            </header>
+            <FormularioPagamentoPedido
+              totalCentavos={resumoPedido.pedido.totalCentavos}
+              onConfirmar={async (pagamentos) => {
+                const ok = await onRegistrarPagamento(pagamentos)
+                if (ok) setMostrarPagamento(false)
+                return ok
+              }}
+            />
+          </div>
+        </div>
       ) : null}
     </aside>
   )

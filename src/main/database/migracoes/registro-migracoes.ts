@@ -153,4 +153,26 @@ CREATE TABLE IF NOT EXISTS pedido_item (
 CREATE INDEX IF NOT EXISTS idx_pedido_item_pedido ON pedido_item (pedido_id);
 `.trim(),
   },
+  {
+    versao: 7,
+    nome: '0007-criar-pagamento-pedido',
+    sql: `
+CREATE TABLE IF NOT EXISTS pagamento_pedido (
+  id TEXT PRIMARY KEY NOT NULL,
+  pedido_id TEXT NOT NULL,
+  sessao_caixa_id TEXT NOT NULL,
+  forma_pagamento TEXT NOT NULL,
+  valor_centavos INTEGER NOT NULL,
+  status TEXT NOT NULL,
+  criado_em TEXT NOT NULL,
+  atualizado_em TEXT NOT NULL,
+  cancelado_em TEXT,
+  FOREIGN KEY (pedido_id) REFERENCES pedido (id),
+  FOREIGN KEY (sessao_caixa_id) REFERENCES sessao_caixa (id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_pagamento_pedido_pedido ON pagamento_pedido (pedido_id);
+CREATE INDEX IF NOT EXISTS idx_pagamento_pedido_sessao ON pagamento_pedido (sessao_caixa_id);
+`.trim(),
+  },
 ]

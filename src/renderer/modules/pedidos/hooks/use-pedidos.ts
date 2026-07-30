@@ -3,6 +3,7 @@ import type { Mesa } from '@shared/types/mesa'
 import type { Pedido, ResumoPedido } from '@shared/types/pedido'
 import type { ProdutoComCategoria } from '@shared/types/produto'
 import type { CategoriaProduto } from '@shared/types/categoria-produto'
+import type { PagamentoInformado } from '@shared/types/pagamento-pedido'
 import type { SessaoCaixa } from '@shared/types/sessao-caixa'
 import { STATUS_MESA } from '@shared/types/mesa'
 import {
@@ -37,6 +38,7 @@ export interface UsePedidosResultado {
   ) => Promise<boolean>
   alterarQuantidadeItem: (itemId: string, quantidade: number) => Promise<boolean>
   removerItem: (itemId: string) => Promise<boolean>
+  registrarPagamento: (pagamentos: PagamentoInformado[]) => Promise<boolean>
   definirFiltroStatusMesas: (filtro: FiltroStatusMesa) => void
   abrirFormularioItem: () => void
   fecharFormularioItem: () => void
@@ -339,6 +341,28 @@ export function usePedidos(): UsePedidosResultado {
     [resumoPedido],
   )
 
+  const registrarPagamento = useCallback(
+    async (pagamentos: PagamentoInformado[]): Promise<boolean> => {
+      if (!resumoPedido) return false
+      setErro(null)
+      setSucesso(null)
+      try {
+        await window.pdv.pagamentos.registrarPagamentoPedido({
+          pedidoId: resumoPedido.pedido.id,
+          pagamentos,
+        })
+        await carregarDados()
+        await atualizarResumo(resumoPedido.pedido.id)
+        setSucesso('Pagamento confirmado e pedido finalizado.')
+        return true
+      } catch (causa) {
+        setErro(extrairMensagemErro(causa))
+        return false
+      }
+    },
+    [atualizarResumo, carregarDados, resumoPedido],
+  )
+
   const definirFiltroStatusMesas = useCallback((filtro: FiltroStatusMesa) => {
     setFiltroStatusMesas(filtro)
   }, [])
@@ -389,6 +413,7 @@ export function usePedidos(): UsePedidosResultado {
     adicionarItem,
     alterarQuantidadeItem,
     removerItem,
+    registrarPagamento,
     definirFiltroStatusMesas,
     abrirFormularioItem,
     fecharFormularioItem,

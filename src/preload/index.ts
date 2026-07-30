@@ -76,6 +76,14 @@ const apiPdv: PdvApi = {
       ipcRenderer.invoke(CANAIS_IPC.PEDIDOS_OBTER_RESUMO, entrada),
     cancelarPedido: (entrada) => ipcRenderer.invoke(CANAIS_IPC.PEDIDOS_CANCELAR, entrada),
   },
+  pagamentos: {
+    registrarPagamentoPedido: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.PAGAMENTOS_REGISTRAR_PEDIDO, entrada),
+    listarPagamentosPedido: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.PAGAMENTOS_LISTAR_PEDIDO, entrada),
+    obterResumoPagamentoPedido: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.PAGAMENTOS_OBTER_RESUMO_PEDIDO, entrada),
+  },
 }
 
 contextBridge.exposeInMainWorld('pdv', apiPdv)

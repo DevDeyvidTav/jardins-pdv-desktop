@@ -178,6 +178,33 @@ export class PedidoRepository {
       atualizadoEm: agora,
     }
   }
+
+  finalizar(pedidoId: string, persistir = true): Pedido {
+    const existente = this.buscarPorId(pedidoId)
+
+    if (!existente) {
+      throw new Error('Pedido nao encontrado.')
+    }
+
+    const conexao = this.obterConexao()
+    const agora = agoraEmIsoUtc()
+
+    conexao.instancia.run(
+      `UPDATE pedido
+       SET status = ?, finalizado_em = ?, atualizado_em = ?
+       WHERE id = ?`,
+      [STATUS_PEDIDO.FINALIZADO, agora, agora, pedidoId],
+    )
+
+    if (persistir) persistirConexaoBanco(conexao)
+
+    return {
+      ...existente,
+      status: STATUS_PEDIDO.FINALIZADO,
+      finalizadoEm: agora,
+      atualizadoEm: agora,
+    }
+  }
 }
 
 export function criarPedidoRepository(conexao?: ConexaoSqlite): PedidoRepository {

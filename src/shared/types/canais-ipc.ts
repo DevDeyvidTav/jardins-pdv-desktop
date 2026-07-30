@@ -32,6 +32,9 @@ export const CANAIS_IPC = {
   PEDIDOS_REMOVER_ITEM: 'pedidos:remover-item',
   PEDIDOS_OBTER_RESUMO: 'pedidos:obter-resumo',
   PEDIDOS_CANCELAR: 'pedidos:cancelar',
+  PAGAMENTOS_REGISTRAR_PEDIDO: 'pagamentos:registrar-pedido',
+  PAGAMENTOS_LISTAR_PEDIDO: 'pagamentos:listar-pedido',
+  PAGAMENTOS_OBTER_RESUMO_PEDIDO: 'pagamentos:obter-resumo-pedido',
 } as const
 
 export type CanalIpc = (typeof CANAIS_IPC)[keyof typeof CANAIS_IPC]

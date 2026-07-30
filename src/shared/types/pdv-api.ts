@@ -46,6 +46,12 @@ import type {
   RemoverItemPedidoEntrada,
   ResumoPedido,
 } from './pedido'
+import type {
+  ListarPagamentosPedidoEntrada,
+  PagamentoPedido,
+  RegistrarPagamentoPedidoEntrada,
+  ResumoPagamentoPedido,
+} from './pagamento-pedido'
 
 export interface PdvApi {
   sistema: {
@@ -108,6 +114,17 @@ export interface PdvApi {
     removerItemPedido: (entrada: RemoverItemPedidoEntrada) => Promise<ResumoPedido>
     obterResumoPedido: (entrada: ObterResumoPedidoEntrada) => Promise<ResumoPedido>
     cancelarPedido: (entrada: CancelarPedidoEntrada) => Promise<Pedido>
+  }
+  pagamentos: {
+    registrarPagamentoPedido: (
+      entrada: RegistrarPagamentoPedidoEntrada,
+    ) => Promise<ResumoPagamentoPedido>
+    listarPagamentosPedido: (
+      entrada: ListarPagamentosPedidoEntrada,
+    ) => Promise<PagamentoPedido[]>
+    obterResumoPagamentoPedido: (
+      entrada: ListarPagamentosPedidoEntrada,
+    ) => Promise<ResumoPagamentoPedido>
   }
 }
 

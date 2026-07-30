@@ -34,7 +34,7 @@ describe('conexao SQLite', () => {
     executarMigracoes(conexao)
 
     expect(bancoEstaInicializado(conexao)).toBe(true)
-    expect(consultarValorMetadata(conexao, 'schema_version')).toBe('6')
+    expect(consultarValorMetadata(conexao, 'schema_version')).toBe('7')
 
     fecharConexaoSqlite(conexao)
   })

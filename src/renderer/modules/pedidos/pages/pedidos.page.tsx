@@ -52,6 +52,7 @@ export function PedidosPage({ pedidos }: PedidosPageProps) {
           onAdicionarItemPedido={pedidos.adicionarItem}
           onAlterarQuantidade={pedidos.alterarQuantidadeItem}
           onRemoverItem={pedidos.removerItem}
+          onRegistrarPagamento={pedidos.registrarPagamento}
         />
 
         <section className="pedidos-operacao__grade-area">
