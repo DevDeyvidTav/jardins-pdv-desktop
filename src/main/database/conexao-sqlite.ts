@@ -73,6 +73,10 @@ export function fecharConexaoSqlite(conexao: ConexaoSqlite): void {
   conexao.instancia.close()
 }
 
+export function persistirConexaoBanco(conexao: ConexaoSqlite): void {
+  persistirBanco(conexao)
+}
+
 function tabelaAppMetadataExiste(conexao: ConexaoSqlite): boolean {
   const consulta = conexao.instancia.prepare(
     "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'app_metadata'",

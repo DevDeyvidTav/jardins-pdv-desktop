@@ -1,11 +1,17 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { CANAIS_IPC } from '@shared/types/canais-ipc'
-import type { InformacoesSistema, PdvApi } from '@shared/types/informacoes-sistema'
+import type { PdvApi } from '@shared/types/pdv-api'
 
 const apiPdv: PdvApi = {
   sistema: {
-    obterInformacoes: (): Promise<InformacoesSistema> =>
+    obterInformacoes: () =>
       ipcRenderer.invoke(CANAIS_IPC.SISTEMA_OBTER_INFORMACOES),
+  },
+  caixa: {
+    abrirSessaoCaixa: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.CAIXA_ABRIR_SESSAO, entrada),
+    obterSessaoCaixaAberta: () =>
+      ipcRenderer.invoke(CANAIS_IPC.CAIXA_OBTER_SESSAO_ABERTA),
   },
 }
 

@@ -7,17 +7,3 @@ export interface InformacoesSistema {
   bancoLocalInicializado: boolean
   electronAtivo: boolean
 }
-
-export interface PdvApi {
-  sistema: {
-    obterInformacoes: () => Promise<InformacoesSistema>
-  }
-}
-
-declare global {
-  interface Window {
-    pdv: PdvApi
-  }
-}
-
-export {}
