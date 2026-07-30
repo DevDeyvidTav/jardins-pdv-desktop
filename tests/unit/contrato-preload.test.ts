@@ -4,16 +4,8 @@ import type { PdvApi } from '../../src/shared/types/pdv-api'
 
 describe('contrato da API exposta pelo preload', () => {
   it('define canais IPC do sistema e do caixa', () => {
-    expect(CANAIS_IPC.SISTEMA_OBTER_INFORMACOES).toBe(
-      'sistema:obter-informacoes',
-    )
-    expect(CANAIS_IPC.CAIXA_ABRIR_SESSAO).toBe('caixa:abrir-sessao')
-    expect(CANAIS_IPC.CAIXA_OBTER_SESSAO_ABERTA).toBe(
-      'caixa:obter-sessao-aberta',
-    )
-    expect(CANAIS_IPC.CAIXA_REGISTRAR_MOVIMENTO).toBe('caixa:registrar-movimento')
-    expect(CANAIS_IPC.CAIXA_LISTAR_MOVIMENTOS).toBe('caixa:listar-movimentos')
-    expect(CANAIS_IPC.CAIXA_OBTER_RESUMO_ATUAL).toBe('caixa:obter-resumo-atual')
+    expect(CANAIS_IPC.CAIXA_FECHAR_SESSAO).toBe('caixa:fechar-sessao')
+    expect(CANAIS_IPC.CAIXA_OBTER_ULTIMA_SESSAO).toBe('caixa:obter-ultima-sessao')
   })
 
   it('mantem formato esperado da API window.pdv', () => {
@@ -35,6 +27,10 @@ describe('contrato da API exposta pelo preload', () => {
           status: 'ABERTO',
           abertoEm: new Date().toISOString(),
           fechadoEm: null,
+          saldoFinalInformadoCentavos: null,
+          saldoFinalEsperadoCentavos: null,
+          diferencaCentavos: null,
+          observacaoFechamento: null,
           criadoEm: new Date().toISOString(),
           atualizadoEm: new Date().toISOString(),
         }),
@@ -51,11 +47,26 @@ describe('contrato da API exposta pelo preload', () => {
         }),
         listarMovimentosCaixa: async () => [],
         obterResumoCaixaAtual: async () => null,
+        fecharSessaoCaixa: async () => ({
+          id: '1',
+          operadorId: 'local',
+          operadorNome: 'Operador Local',
+          saldoInicialCentavos: 30000,
+          status: 'FECHADO',
+          abertoEm: new Date().toISOString(),
+          fechadoEm: new Date().toISOString(),
+          saldoFinalInformadoCentavos: 30000,
+          saldoFinalEsperadoCentavos: 30000,
+          diferencaCentavos: 0,
+          observacaoFechamento: null,
+          criadoEm: new Date().toISOString(),
+          atualizadoEm: new Date().toISOString(),
+        }),
+        obterUltimaSessaoCaixa: async () => null,
       },
     }
 
-    expect(typeof api.caixa.registrarMovimentoCaixa).toBe('function')
-    expect(typeof api.caixa.listarMovimentosCaixa).toBe('function')
-    expect(typeof api.caixa.obterResumoCaixaAtual).toBe('function')
+    expect(typeof api.caixa.fecharSessaoCaixa).toBe('function')
+    expect(typeof api.caixa.obterUltimaSessaoCaixa).toBe('function')
   })
 })

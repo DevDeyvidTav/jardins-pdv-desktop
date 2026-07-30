@@ -58,4 +58,14 @@ CREATE INDEX IF NOT EXISTS idx_movimento_caixa_sessao
   ON movimento_caixa (sessao_caixa_id, criado_em);
 `.trim(),
   },
+  {
+    versao: 4,
+    nome: '0004-adicionar-fechamento-sessao-caixa',
+    sql: `
+ALTER TABLE sessao_caixa ADD COLUMN saldo_final_informado_centavos INTEGER;
+ALTER TABLE sessao_caixa ADD COLUMN saldo_final_esperado_centavos INTEGER;
+ALTER TABLE sessao_caixa ADD COLUMN diferenca_centavos INTEGER;
+ALTER TABLE sessao_caixa ADD COLUMN observacao_fechamento TEXT;
+`.trim(),
+  },
 ]

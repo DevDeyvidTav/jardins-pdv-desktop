@@ -1,0 +1,127 @@
+.fechamento-caixa {
+  min-height: 100vh;
+  padding: 2rem;
+}
+
+.fechamento-caixa__cartao {
+  width: min(100%, 760px);
+  margin: 0 auto;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  display: grid;
+  gap: 1.5rem;
+}
+
+.fechamento-caixa h1 {
+  margin: 0;
+  font-size: 1.75rem;
+  color: #111827;
+}
+
+.fechamento-caixa__erro {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.fechamento-caixa__sucesso {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: #ecfdf5;
+  color: #047857;
+  font-weight: 600;
+}
+
+.fechamento-caixa__movimentos {
+  margin: 0;
+  color: #4b5563;
+}
+
+.formulario-fechamento-caixa {
+  display: grid;
+  gap: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.formulario-fechamento-caixa__campo {
+  display: grid;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.formulario-fechamento-caixa__campo input {
+  padding: 0.75rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+.formulario-fechamento-caixa__preview {
+  margin: 0;
+  color: #2563eb;
+  font-weight: 600;
+}
+
+.formulario-fechamento-caixa__erro {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.formulario-fechamento-caixa button,
+.fechamento-caixa__botao-principal {
+  padding: 0.875rem 1rem;
+  border: none;
+  border-radius: 8px;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.formulario-fechamento-caixa button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.resumo-fechamento-caixa__status {
+  margin: 0 0 0.75rem;
+  font-weight: 700;
+  color: #1d4ed8;
+}
+
+.resumo-fechamento-caixa__lista {
+  margin: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.resumo-fechamento-caixa__lista div {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 1rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #f3f4f6;
+}
+
+.resumo-fechamento-caixa__lista dt {
+  margin: 0;
+  font-weight: 600;
+  color: #374151;
+}
+
+.resumo-fechamento-caixa__lista dd {
+  margin: 0;
+  color: #111827;
+}

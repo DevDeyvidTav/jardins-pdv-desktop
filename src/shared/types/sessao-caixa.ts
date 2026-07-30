@@ -15,6 +15,10 @@ export interface SessaoCaixa {
   status: StatusSessaoCaixa
   abertoEm: string
   fechadoEm: string | null
+  saldoFinalInformadoCentavos: number | null
+  saldoFinalEsperadoCentavos: number | null
+  diferencaCentavos: number | null
+  observacaoFechamento: string | null
   criadoEm: string
   atualizadoEm: string
 }
@@ -23,4 +27,9 @@ export interface AbrirSessaoCaixaEntrada {
   operadorId: string
   operadorNome: string
   saldoInicialCentavos: number
+}
+
+export interface FecharSessaoCaixaEntrada {
+  saldoFinalInformadoCentavos: number
+  observacaoFechamento?: string
 }

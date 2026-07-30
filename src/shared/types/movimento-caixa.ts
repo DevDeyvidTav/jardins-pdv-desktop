@@ -37,5 +37,5 @@ export interface ResumoCaixaAtual {
   totalSuprimentosCentavos: number
   totalSangriasCentavos: number
   totalRetiradasCentavos: number
-  saldoAtualCentavos: number
+  saldoAtualEsperadoCentavos: number
 }

@@ -24,7 +24,17 @@ export function CaixaAtualPage({ caixa }: CaixaAtualPageProps) {
   return (
     <main className="caixa-atual" data-testid="pagina-caixa-atual">
       <section className="caixa-atual__cartao">
-        <h1>Movimentos de Caixa</h1>
+        <div className="caixa-atual__cabecalho">
+          <h1>Movimentos de Caixa</h1>
+          <button
+            type="button"
+            className="caixa-atual__botao-secundario"
+            data-testid="botao-ir-fechamento"
+            onClick={caixa.irParaFechamento}
+          >
+            Fechar caixa
+          </button>
+        </div>
 
         <ResumoCaixa resumo={caixa.resumo} />
 

@@ -21,6 +21,25 @@
   color: #111827;
 }
 
+.caixa-atual__cabecalho,
+.fechamento-caixa__cabecalho {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.caixa-atual__botao-secundario,
+.fechamento-caixa__botao-secundario {
+  padding: 0.625rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #111827;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 .caixa-atual__carregando {
   text-align: center;
   color: #6b7280;

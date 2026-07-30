@@ -18,6 +18,10 @@ const apiPdv: PdvApi = {
       ipcRenderer.invoke(CANAIS_IPC.CAIXA_LISTAR_MOVIMENTOS),
     obterResumoCaixaAtual: () =>
       ipcRenderer.invoke(CANAIS_IPC.CAIXA_OBTER_RESUMO_ATUAL),
+    fecharSessaoCaixa: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.CAIXA_FECHAR_SESSAO, entrada),
+    obterUltimaSessaoCaixa: () =>
+      ipcRenderer.invoke(CANAIS_IPC.CAIXA_OBTER_ULTIMA_SESSAO),
   },
 }
 

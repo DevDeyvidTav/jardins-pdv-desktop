@@ -39,9 +39,9 @@ export function ResumoCaixa({ resumo }: ResumoCaixaProps) {
           </dd>
         </div>
         <div>
-          <dt>Saldo atual estimado</dt>
+          <dt>Saldo esperado</dt>
           <dd data-testid="caixa-saldo-atual">
-            {formatarMoeda(resumo.saldoAtualCentavos)}
+            {formatarMoeda(resumo.saldoAtualEsperadoCentavos)}
           </dd>
         </div>
       </dl>

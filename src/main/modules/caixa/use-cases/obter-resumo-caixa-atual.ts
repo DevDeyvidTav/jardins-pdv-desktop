@@ -7,6 +7,7 @@ import {
   criarSessaoCaixaRepository,
   type SessaoCaixaRepository,
 } from '../repositories/sessao-caixa.repository'
+import { calcularSaldoEsperadoCentavos } from '../types/fechamento-caixa.types'
 
 export function criarObterResumoCaixaAtual(
   repositorioSessao: SessaoCaixaRepository = criarSessaoCaixaRepository(),
@@ -20,12 +21,10 @@ export function criarObterResumoCaixaAtual(
     }
 
     const totais = repositorioMovimento.calcularTotaisPorSessao(sessaoAberta.id)
-
-    const saldoAtualCentavos =
-      sessaoAberta.saldoInicialCentavos +
-      totais.totalSuprimentosCentavos -
-      totais.totalSangriasCentavos -
-      totais.totalRetiradasCentavos
+    const saldoAtualEsperadoCentavos = calcularSaldoEsperadoCentavos(
+      sessaoAberta.saldoInicialCentavos,
+      totais,
+    )
 
     return {
       sessao: sessaoAberta,
@@ -33,7 +32,7 @@ export function criarObterResumoCaixaAtual(
       totalSuprimentosCentavos: totais.totalSuprimentosCentavos,
       totalSangriasCentavos: totais.totalSangriasCentavos,
       totalRetiradasCentavos: totais.totalRetiradasCentavos,
-      saldoAtualCentavos,
+      saldoAtualEsperadoCentavos,
     }
   }
 }

@@ -131,7 +131,7 @@ export function executarMigracoes(conexao: ConexaoSqlite): void {
 
   try {
     for (const migracao of migracoesPendentes) {
-      conexao.instancia.run(migracao.sql)
+      conexao.instancia.exec(migracao.sql)
       registrarVersaoMigracao(conexao, migracao.versao)
     }
 

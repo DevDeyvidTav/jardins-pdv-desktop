@@ -9,23 +9,20 @@ import { STATUS_SESSAO_CAIXA } from '@shared/types/sessao-caixa'
 import type { SessaoCaixa } from '@shared/types/sessao-caixa'
 import {
   mapearLinhaSessaoCaixa,
+  obterColunasSessaoCaixa,
   type LinhaSessaoCaixaSql,
 } from '../types/caixa.types'
 
 export class SessaoCaixaRepository {
   constructor(private readonly obterConexao = obterConexaoBancoLocal) {}
 
-  buscarSessaoAberta(): SessaoCaixa | null {
+  private buscarPorConsulta(
+    sql: string,
+    parametros: (string | number | null)[] = [],
+  ): SessaoCaixa | null {
     const conexao = this.obterConexao()
-    const consulta = conexao.instancia.prepare(
-      `SELECT id, operador_id, operador_nome, saldo_inicial_centavos, status,
-              aberto_em, fechado_em, criado_em, atualizado_em
-       FROM sessao_caixa
-       WHERE status = ?
-       LIMIT 1`,
-    )
-
-    consulta.bind([STATUS_SESSAO_CAIXA.ABERTO])
+    const consulta = conexao.instancia.prepare(sql)
+    consulta.bind(parametros)
 
     if (!consulta.step()) {
       consulta.free()
@@ -36,6 +33,35 @@ export class SessaoCaixaRepository {
     consulta.free()
 
     return mapearLinhaSessaoCaixa(linha)
+  }
+
+  buscarSessaoAberta(): SessaoCaixa | null {
+    return this.buscarPorConsulta(
+      `SELECT ${obterColunasSessaoCaixa()}
+       FROM sessao_caixa
+       WHERE status = ?
+       LIMIT 1`,
+      [STATUS_SESSAO_CAIXA.ABERTO],
+    )
+  }
+
+  buscarUltimaSessao(): SessaoCaixa | null {
+    return this.buscarPorConsulta(
+      `SELECT ${obterColunasSessaoCaixa()}
+       FROM sessao_caixa
+       ORDER BY criado_em DESC
+       LIMIT 1`,
+    )
+  }
+
+  buscarPorId(sessaoCaixaId: string): SessaoCaixa | null {
+    return this.buscarPorConsulta(
+      `SELECT ${obterColunasSessaoCaixa()}
+       FROM sessao_caixa
+       WHERE id = ?
+       LIMIT 1`,
+      [sessaoCaixaId],
+    )
   }
 
   inserirSessaoAberta(dados: {
@@ -53,6 +79,10 @@ export class SessaoCaixaRepository {
       status: STATUS_SESSAO_CAIXA.ABERTO,
       abertoEm: agora,
       fechadoEm: null,
+      saldoFinalInformadoCentavos: null,
+      saldoFinalEsperadoCentavos: null,
+      diferencaCentavos: null,
+      observacaoFechamento: null,
       criadoEm: agora,
       atualizadoEm: agora,
     }
@@ -60,8 +90,10 @@ export class SessaoCaixaRepository {
     conexao.instancia.run(
       `INSERT INTO sessao_caixa (
          id, operador_id, operador_nome, saldo_inicial_centavos, status,
-         aberto_em, fechado_em, criado_em, atualizado_em
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         aberto_em, fechado_em, saldo_final_informado_centavos,
+         saldo_final_esperado_centavos, diferenca_centavos, observacao_fechamento,
+         criado_em, atualizado_em
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         sessao.id,
         sessao.operadorId,
@@ -70,6 +102,10 @@ export class SessaoCaixaRepository {
         sessao.status,
         sessao.abertoEm,
         sessao.fechadoEm,
+        sessao.saldoFinalInformadoCentavos,
+        sessao.saldoFinalEsperadoCentavos,
+        sessao.diferencaCentavos,
+        sessao.observacaoFechamento,
         sessao.criadoEm,
         sessao.atualizadoEm,
       ],
@@ -78,6 +114,56 @@ export class SessaoCaixaRepository {
     persistirConexaoBanco(conexao)
 
     return sessao
+  }
+
+  fecharSessao(dados: {
+    sessaoCaixaId: string
+    saldoFinalInformadoCentavos: number
+    saldoFinalEsperadoCentavos: number
+    diferencaCentavos: number
+    observacaoFechamento: string | null
+  }): SessaoCaixa {
+    const conexao = this.obterConexao()
+    const agora = agoraEmIsoUtc()
+
+    conexao.instancia.run(
+      `UPDATE sessao_caixa
+       SET status = ?,
+           fechado_em = ?,
+           saldo_final_informado_centavos = ?,
+           saldo_final_esperado_centavos = ?,
+           diferenca_centavos = ?,
+           observacao_fechamento = ?,
+           atualizado_em = ?
+       WHERE id = ? AND status = ?`,
+      [
+        STATUS_SESSAO_CAIXA.FECHADO,
+        agora,
+        dados.saldoFinalInformadoCentavos,
+        dados.saldoFinalEsperadoCentavos,
+        dados.diferencaCentavos,
+        dados.observacaoFechamento,
+        agora,
+        dados.sessaoCaixaId,
+        STATUS_SESSAO_CAIXA.ABERTO,
+      ],
+    )
+
+    const alteracoes = conexao.instancia.getRowsModified()
+
+    if (alteracoes === 0) {
+      throw new Error('Sessao de caixa nao encontrada ou ja fechada.')
+    }
+
+    persistirConexaoBanco(conexao)
+
+    const sessaoFechada = this.buscarPorId(dados.sessaoCaixaId)
+
+    if (!sessaoFechada) {
+      throw new Error('Sessao de caixa nao encontrada apos fechamento.')
+    }
+
+    return sessaoFechada
   }
 }
 

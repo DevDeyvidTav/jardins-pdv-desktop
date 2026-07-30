@@ -6,6 +6,7 @@ import type {
 } from './movimento-caixa'
 import type {
   AbrirSessaoCaixaEntrada,
+  FecharSessaoCaixaEntrada,
   SessaoCaixa,
 } from './sessao-caixa'
 
@@ -21,6 +22,8 @@ export interface PdvApi {
     ) => Promise<MovimentoCaixa>
     listarMovimentosCaixa: () => Promise<MovimentoCaixa[]>
     obterResumoCaixaAtual: () => Promise<ResumoCaixaAtual | null>
+    fecharSessaoCaixa: (entrada: FecharSessaoCaixaEntrada) => Promise<SessaoCaixa>
+    obterUltimaSessaoCaixa: () => Promise<SessaoCaixa | null>
   }
 }
 

@@ -25,3 +25,10 @@ export function converterReaisParaCentavos(valorEmReais: string): number | null 
 export function centavosSaoValidos(valorEmCentavos: number): boolean {
   return Number.isInteger(valorEmCentavos) && valorEmCentavos >= 0
 }
+
+export function calcularDiferencaCentavos(
+  saldoFinalInformadoCentavos: number,
+  saldoFinalEsperadoCentavos: number,
+): number {
+  return saldoFinalInformadoCentavos - saldoFinalEsperadoCentavos
+}
