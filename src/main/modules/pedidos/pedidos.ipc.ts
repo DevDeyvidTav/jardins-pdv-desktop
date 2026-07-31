@@ -5,6 +5,7 @@ import { CODIGOS_ERRO_PEDIDOS, ErroPedidos } from './errors/erros-pedidos'
 import {
   adicionarItemPedidoSchema,
   alterarQuantidadeItemPedidoSchema,
+  aplicarDescontoPedidoSchema,
   cancelarPedidoSchema,
   criarPedidoMesaSchema,
   obterPedidoAbertoPorMesaSchema,
@@ -14,6 +15,7 @@ import {
 } from './schemas/pedido.schema'
 import { adicionarItemPedido } from './use-cases/adicionar-item-pedido'
 import { alterarQuantidadeItemPedido } from './use-cases/alterar-quantidade-item-pedido'
+import { aplicarDescontoPedido } from './use-cases/aplicar-desconto-pedido'
 import { cancelarPedido } from './use-cases/cancelar-pedido'
 import { criarPedidoBalcao } from './use-cases/criar-pedido-balcao'
 import { criarPedidoMesa } from './use-cases/criar-pedido-mesa'
@@ -99,6 +101,19 @@ export function registrarHandlersPedidos(): void {
       tratarErroPedidos(erro)
     }
   })
+
+  ipcMain.handle(
+    CANAIS_IPC.PEDIDOS_APLICAR_DESCONTO,
+    (_evento, entradaDesconhecida) => {
+      try {
+        return aplicarDescontoPedido(
+          aplicarDescontoPedidoSchema.parse(entradaDesconhecida),
+        )
+      } catch (erro) {
+        tratarErroPedidos(erro)
+      }
+    },
+  )
 
   ipcMain.handle(CANAIS_IPC.PEDIDOS_OBTER_RESUMO, (_evento, entradaDesconhecida) => {
     try {

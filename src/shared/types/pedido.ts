@@ -20,8 +20,19 @@ export interface Pedido {
   tipo: TipoPedido
   status: StatusPedido
   subtotalCentavos: number
+  /** @deprecated Use descontoPedidoCentavos + descontoItensCentavos. */
   descontoCentavos: number
+  /** Soma dos subtotais brutos dos itens ativos. */
+  descontoItensCentavos: number
+  /** Desconto geral aplicado sobre o pedido. */
+  descontoPedidoCentavos: number
   totalCentavos: number
+  /** Soma dos pagamentos financeiros (dinheiro, cartao, pix). */
+  valorPagoCentavos: number
+  /** Soma das cortesias concedidas para o pedido. */
+  valorCortesiaCentavos: number
+  /** Valor restante a pagar considerando descontos, pagamentos e cortesias. */
+  valorRestanteCentavos: number
   criadoEm: string
   atualizadoEm: string
   finalizadoEm: string | null
@@ -35,6 +46,8 @@ export interface PedidoItem {
   produtoNome: string
   quantidade: number
   precoUnitarioCentavos: number
+  subtotalCentavos: number
+  descontoCentavos: number
   totalCentavos: number
   observacao: string | null
   criadoEm: string
@@ -64,6 +77,8 @@ export interface AdicionarItemPedidoEntrada {
   pedidoId: string
   produtoId: string
   quantidade: number
+  /** Desconto em centavos aplicado apenas neste item. */
+  descontoCentavos?: number
   observacao?: string
 }
 
@@ -80,6 +95,12 @@ export interface CancelarItemPedidoEntrada {
 
 /** @deprecated Preferir CancelarItemPedidoEntrada */
 export type RemoverItemPedidoEntrada = CancelarItemPedidoEntrada
+
+export interface AplicarDescontoPedidoEntrada {
+  pedidoId: string
+  descontoCentavos: number
+  motivoDesconto?: string
+}
 
 export interface ObterResumoPedidoEntrada {
   pedidoId: string

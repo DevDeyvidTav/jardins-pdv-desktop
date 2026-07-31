@@ -88,7 +88,12 @@ export class PedidoRepository {
       status: STATUS_PEDIDO.ABERTO,
       subtotalCentavos: 0,
       descontoCentavos: 0,
+      descontoItensCentavos: 0,
+      descontoPedidoCentavos: 0,
       totalCentavos: 0,
+      valorPagoCentavos: 0,
+      valorCortesiaCentavos: 0,
+      valorRestanteCentavos: 0,
       criadoEm: agora,
       atualizadoEm: agora,
       finalizadoEm: null,
@@ -99,8 +104,10 @@ export class PedidoRepository {
       `INSERT INTO pedido (
          id, sessao_caixa_id, mesa_id, tipo, status,
          subtotal_centavos, desconto_centavos, total_centavos,
+         desconto_itens_centavos, desconto_pedido_centavos,
+         valor_pago_centavos, valor_cortesia_centavos, valor_restante_centavos,
          criado_em, atualizado_em, finalizado_em, cancelado_em
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         pedido.id,
         pedido.sessaoCaixaId,
@@ -108,8 +115,13 @@ export class PedidoRepository {
         pedido.tipo,
         pedido.status,
         pedido.subtotalCentavos,
-        pedido.descontoCentavos,
+        pedido.descontoPedidoCentavos,
         pedido.totalCentavos,
+        pedido.descontoItensCentavos,
+        pedido.descontoPedidoCentavos,
+        pedido.valorPagoCentavos,
+        pedido.valorCortesiaCentavos,
+        pedido.valorRestanteCentavos,
         pedido.criadoEm,
         pedido.atualizadoEm,
         pedido.finalizadoEm,
@@ -124,7 +136,10 @@ export class PedidoRepository {
   atualizarTotais(dados: {
     pedidoId: string
     subtotalCentavos: number
+    descontoItensCentavos: number
+    descontoPedidoCentavos: number
     totalCentavos: number
+    valorRestanteCentavos: number
   }): Pedido {
     const existente = this.buscarPorId(dados.pedidoId)
 
@@ -137,9 +152,22 @@ export class PedidoRepository {
 
     conexao.instancia.run(
       `UPDATE pedido
-       SET subtotal_centavos = ?, total_centavos = ?, atualizado_em = ?
+       SET subtotal_centavos = ?,
+           desconto_itens_centavos = ?,
+           desconto_pedido_centavos = ?,
+           total_centavos = ?,
+           valor_restante_centavos = ?,
+           atualizado_em = ?
        WHERE id = ?`,
-      [dados.subtotalCentavos, dados.totalCentavos, agora, dados.pedidoId],
+      [
+        dados.subtotalCentavos,
+        dados.descontoItensCentavos,
+        dados.descontoPedidoCentavos,
+        dados.totalCentavos,
+        dados.valorRestanteCentavos,
+        agora,
+        dados.pedidoId,
+      ],
     )
 
     persistirConexaoBanco(conexao)
@@ -147,7 +175,48 @@ export class PedidoRepository {
     return {
       ...existente,
       subtotalCentavos: dados.subtotalCentavos,
+      descontoItensCentavos: dados.descontoItensCentavos,
+      descontoPedidoCentavos: dados.descontoPedidoCentavos,
       totalCentavos: dados.totalCentavos,
+      valorRestanteCentavos: dados.valorRestanteCentavos,
+      atualizadoEm: agora,
+    }
+  }
+
+  atualizarValoresPagamento(dados: {
+    pedidoId: string
+    valorPagoCentavos: number
+    valorCortesiaCentavos: number
+  }): Pedido {
+    const existente = this.buscarPorId(dados.pedidoId)
+
+    if (!existente) {
+      throw new Error('Pedido nao encontrado.')
+    }
+
+    const conexao = this.obterConexao()
+    const agora = agoraEmIsoUtc()
+
+    conexao.instancia.run(
+      `UPDATE pedido
+       SET valor_pago_centavos = ?,
+           valor_cortesia_centavos = ?,
+           atualizado_em = ?
+       WHERE id = ?`,
+      [
+        dados.valorPagoCentavos,
+        dados.valorCortesiaCentavos,
+        agora,
+        dados.pedidoId,
+      ],
+    )
+
+    persistirConexaoBanco(conexao)
+
+    return {
+      ...existente,
+      valorPagoCentavos: dados.valorPagoCentavos,
+      valorCortesiaCentavos: dados.valorCortesiaCentavos,
       atualizadoEm: agora,
     }
   }

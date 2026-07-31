@@ -1,4 +1,8 @@
-import type { RegistrarPagamentoPedidoEntrada, ResumoPagamentoPedido } from '@shared/types/pagamento-pedido'
+import type {
+  RegistrarPagamentoPedidoEntrada,
+  ResumoPagamentoPedido,
+} from '@shared/types/pagamento-pedido'
+import { FORMA_PAGAMENTO } from '@shared/types/pagamento-pedido'
 import { STATUS_PEDIDO, TIPO_PEDIDO } from '@shared/types/pedido'
 import { STATUS_SESSAO_CAIXA } from '@shared/types/sessao-caixa'
 import { STATUS_MESA } from '@shared/types/mesa'
@@ -40,29 +44,90 @@ export function criarRegistrarPagamentoPedido(
       throw new ErroPedidos(CODIGOS_ERRO_PEDIDOS.ITEM_NAO_ENCONTRADO, 'Pedido precisa possuir ao menos um item ativo.')
     }
 
-    const totalInformado = entrada.pagamentos.reduce((total, pagamento) => total + pagamento.valorCentavos, 0)
-    if (totalInformado !== pedido.totalCentavos) {
+    if (entrada.valorCentavos <= 0) {
       throw new ErroPedidos(
         CODIGOS_ERRO_PEDIDOS.ENTRADA_INVALIDA,
-        totalInformado < pedido.totalCentavos
-          ? 'A soma dos pagamentos e menor que o total do pedido.'
-          : 'A soma dos pagamentos e maior que o total do pedido.',
+        'Valor do pagamento deve ser maior que zero.',
       )
     }
 
-    const pagamentos = repositorioPagamento.inserirEmLote(pedido.id, sessao.id, entrada.pagamentos)
-    repositorioPedido.finalizar(pedido.id)
+    if (
+      entrada.formaPagamento === FORMA_PAGAMENTO.CORTESIA &&
+      (!entrada.motivoCortesia || entrada.motivoCortesia.trim().length === 0)
+    ) {
+      throw new ErroPedidos(
+        CODIGOS_ERRO_PEDIDOS.ENTRADA_INVALIDA,
+        'Motivo da cortesia e obrigatorio.',
+      )
+    }
 
-    if (pedido.tipo === TIPO_PEDIDO.MESA && pedido.mesaId) {
+    const valorAtualQuitado =
+      pedido.valorPagoCentavos + pedido.valorCortesiaCentavos
+    const valorRestanteAntes = pedido.totalCentavos - valorAtualQuitado
+
+    if (entrada.valorCentavos > valorRestanteAntes) {
+      throw new ErroPedidos(
+        CODIGOS_ERRO_PEDIDOS.ENTRADA_INVALIDA,
+        'Pagamento nao pode ser maior que o valor restante.',
+      )
+    }
+
+    const pagamentoInformado = {
+      formaPagamento: entrada.formaPagamento,
+      valorCentavos: entrada.valorCentavos,
+      motivoCortesia: entrada.motivoCortesia,
+    }
+
+    const pagamento = repositorioPagamento.inserir(
+      pedido.id,
+      sessao.id,
+      pagamentoInformado,
+    )
+
+    const valorPagoCentavos =
+      pedido.valorPagoCentavos +
+      (entrada.formaPagamento === FORMA_PAGAMENTO.CORTESIA
+        ? 0
+        : entrada.valorCentavos)
+    const valorCortesiaCentavos =
+      pedido.valorCortesiaCentavos +
+      (entrada.formaPagamento === FORMA_PAGAMENTO.CORTESIA
+        ? entrada.valorCentavos
+        : 0)
+
+    const valorQuitadoCentavos =
+      valorPagoCentavos + valorCortesiaCentavos
+    const valorRestanteCentavos = pedido.totalCentavos - valorQuitadoCentavos
+
+    const pedidoComPagamentos = repositorioPedido.atualizarValoresPagamento({
+      pedidoId: pedido.id,
+      valorPagoCentavos,
+      valorCortesiaCentavos,
+    })
+
+    const pedidoAtualizado = repositorioPedido.atualizarTotais({
+      pedidoId: pedido.id,
+      subtotalCentavos: pedido.subtotalCentavos,
+      descontoItensCentavos: pedido.descontoItensCentavos,
+      descontoPedidoCentavos: pedido.descontoPedidoCentavos,
+      totalCentavos: pedido.totalCentavos,
+      valorRestanteCentavos,
+    })
+
+    if (valorRestanteCentavos === 0) {
+      repositorioPedido.finalizar(pedido.id)
+    }
+
+    if (pedido.tipo === TIPO_PEDIDO.MESA && pedido.mesaId && valorRestanteCentavos === 0) {
       repositorioMesa.atualizarStatus(pedido.mesaId, STATUS_MESA.LIVRE)
     }
 
     return {
       pedidoId: pedido.id,
       totalPedidoCentavos: pedido.totalCentavos,
-      totalPagoCentavos: totalInformado,
-      valorRestanteCentavos: 0,
-      pagamentos,
+      totalPagoCentavos: valorPagoCentavos,
+      valorRestanteCentavos,
+      pagamentos: [pagamento],
     }
   }
 }

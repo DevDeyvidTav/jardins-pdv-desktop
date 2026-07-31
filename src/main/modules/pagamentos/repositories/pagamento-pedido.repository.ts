@@ -18,6 +18,7 @@ type LinhaPagamentoPedido = {
   forma_pagamento: PagamentoPedido['formaPagamento']
   valor_centavos: number
   status: PagamentoPedido['status']
+  motivo_cortesia: string | null
   criado_em: string
   atualizado_em: string
   cancelado_em: string | null
@@ -31,6 +32,7 @@ function mapear(linha: LinhaPagamentoPedido): PagamentoPedido {
     formaPagamento: linha.forma_pagamento,
     valorCentavos: linha.valor_centavos,
     status: linha.status,
+    motivoCortesia: linha.motivo_cortesia,
     criadoEm: linha.criado_em,
     atualizadoEm: linha.atualizado_em,
     canceladoEm: linha.cancelado_em,
@@ -43,7 +45,7 @@ export class PagamentoPedidoRepository {
   listarPorPedido(pedidoId: string): PagamentoPedido[] {
     const consulta = this.obterConexao().instancia.prepare(
       `SELECT id, pedido_id, sessao_caixa_id, forma_pagamento, valor_centavos, status,
-              criado_em, atualizado_em, cancelado_em
+              motivo_cortesia, criado_em, atualizado_em, cancelado_em
        FROM pagamento_pedido
        WHERE pedido_id = ?
        ORDER BY criado_em ASC`,
@@ -55,46 +57,58 @@ export class PagamentoPedidoRepository {
     return pagamentos
   }
 
-  inserirEmLote(
+  inserir(
     pedidoId: string,
     sessaoCaixaId: string,
-    pagamentos: PagamentoInformado[],
+    pagamento: PagamentoInformado,
     persistir = true,
-  ): PagamentoPedido[] {
+  ): PagamentoPedido {
     const conexao = this.obterConexao()
     const agora = agoraEmIsoUtc()
-    const registros = pagamentos.map((pagamento) => ({
+    const registro: PagamentoPedido = {
       id: randomUUID(),
       pedidoId,
       sessaoCaixaId,
       formaPagamento: pagamento.formaPagamento,
       valorCentavos: pagamento.valorCentavos,
       status: STATUS_PAGAMENTO_PEDIDO.CONFIRMADO,
+      motivoCortesia: pagamento.motivoCortesia ?? null,
       criadoEm: agora,
       atualizadoEm: agora,
       canceladoEm: null,
-    }))
-
-    for (const pagamento of registros) {
-      conexao.instancia.run(
-        `INSERT INTO pagamento_pedido (
-          id, pedido_id, sessao_caixa_id, forma_pagamento, valor_centavos, status,
-          criado_em, atualizado_em, cancelado_em
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          pagamento.id, pagamento.pedidoId, pagamento.sessaoCaixaId,
-          pagamento.formaPagamento, pagamento.valorCentavos, pagamento.status,
-          pagamento.criadoEm, pagamento.atualizadoEm, pagamento.canceladoEm,
-        ],
-      )
     }
 
+    conexao.instancia.run(
+      `INSERT INTO pagamento_pedido (
+        id, pedido_id, sessao_caixa_id, forma_pagamento, valor_centavos, status,
+        motivo_cortesia, criado_em, atualizado_em, cancelado_em
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        registro.id,
+        registro.pedidoId,
+        registro.sessaoCaixaId,
+        registro.formaPagamento,
+        registro.valorCentavos,
+        registro.status,
+        registro.motivoCortesia,
+        registro.criadoEm,
+        registro.atualizadoEm,
+        registro.canceladoEm,
+      ],
+    )
+
     if (persistir) persistirConexaoBanco(conexao)
-    return registros
+    return registro
   }
 
   calcularTotaisPorSessao(sessaoCaixaId: string): Record<PagamentoPedido['formaPagamento'], number> {
-    const totais = { DINHEIRO: 0, CARTAO_CREDITO: 0, CARTAO_DEBITO: 0, PIX: 0 }
+    const totais = {
+      DINHEIRO: 0,
+      CARTAO_CREDITO: 0,
+      CARTAO_DEBITO: 0,
+      PIX: 0,
+      CORTESIA: 0,
+    }
     const consulta = this.obterConexao().instancia.prepare(
       `SELECT forma_pagamento, COALESCE(SUM(valor_centavos), 0) AS total
        FROM pagamento_pedido

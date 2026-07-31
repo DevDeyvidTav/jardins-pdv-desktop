@@ -52,6 +52,8 @@ export function PedidosPage({ pedidos }: PedidosPageProps) {
           onAdicionarItemPedido={pedidos.adicionarItem}
           onAlterarQuantidade={pedidos.alterarQuantidadeItem}
           onRemoverItem={pedidos.removerItem}
+          onAplicarDesconto={pedidos.aplicarDescontoPedido}
+          onCancelarPedido={pedidos.cancelarPedido}
           onRegistrarPagamento={pedidos.registrarPagamento}
         />
 

@@ -29,7 +29,8 @@ describe('pagamentos de pedido', () => {
     const { ambiente, pedido } = await criarPedidoComItem()
     const resumo = ambiente.registrarPagamentoPedido({
       pedidoId: pedido.id,
-      pagamentos: [{ formaPagamento, valorCentavos: 1200 }],
+      formaPagamento,
+      valorCentavos: 1200,
     })
 
     expect(resumo.valorRestanteCentavos).toBe(0)
@@ -42,10 +43,13 @@ describe('pagamentos de pedido', () => {
     const { ambiente, pedido } = await criarPedidoComItem()
     ambiente.registrarPagamentoPedido({
       pedidoId: pedido.id,
-      pagamentos: [
-        { formaPagamento: FORMA_PAGAMENTO.DINHEIRO, valorCentavos: 400 },
-        { formaPagamento: FORMA_PAGAMENTO.PIX, valorCentavos: 800 },
-      ],
+      formaPagamento: FORMA_PAGAMENTO.DINHEIRO,
+      valorCentavos: 400,
+    })
+    ambiente.registrarPagamentoPedido({
+      pedidoId: pedido.id,
+      formaPagamento: FORMA_PAGAMENTO.PIX,
+      valorCentavos: 800,
     })
     const caixa = criarObterResumoCaixaAtual()()!
     expect(caixa.totalVendasDinheiroCentavos).toBe(400)
@@ -57,11 +61,8 @@ describe('pagamentos de pedido', () => {
     const { ambiente, pedido } = await criarPedidoComItem()
     expect(() => ambiente.registrarPagamentoPedido({
       pedidoId: pedido.id,
-      pagamentos: [{ formaPagamento: FORMA_PAGAMENTO.PIX, valorCentavos: 1199 }],
-    })).toThrow(/menor/)
-    expect(() => ambiente.registrarPagamentoPedido({
-      pedidoId: pedido.id,
-      pagamentos: [{ formaPagamento: FORMA_PAGAMENTO.PIX, valorCentavos: 1201 }],
+      formaPagamento: FORMA_PAGAMENTO.PIX,
+      valorCentavos: 1300,
     })).toThrow(/maior/)
   })
 
@@ -69,7 +70,8 @@ describe('pagamentos de pedido', () => {
     const { ambiente, pedido } = await criarPedidoComItem()
     ambiente.registrarPagamentoPedido({
       pedidoId: pedido.id,
-      pagamentos: [{ formaPagamento: FORMA_PAGAMENTO.DINHEIRO, valorCentavos: 1200 }],
+      formaPagamento: FORMA_PAGAMENTO.DINHEIRO,
+      valorCentavos: 1200,
     })
     const resumo = criarObterResumoPagamentoPedido(
       undefined,
@@ -79,7 +81,8 @@ describe('pagamentos de pedido', () => {
     expect(ambiente.repositorioPagamento.listarPorPedido(pedido.id)[0]?.canceladoEm).toBeNull()
     expect(() => ambiente.registrarPagamentoPedido({
       pedidoId: pedido.id,
-      pagamentos: [{ formaPagamento: FORMA_PAGAMENTO.DINHEIRO, valorCentavos: 1200 }],
+      formaPagamento: FORMA_PAGAMENTO.DINHEIRO,
+      valorCentavos: 1200,
     })).toThrow()
     expect(ambiente.repositorioMesa.buscarPorId(ambiente.mesa.id)?.status).toBe('LIVRE')
     expect(ambiente.repositorioPagamento.listarPorPedido(pedido.id)).toHaveLength(1)

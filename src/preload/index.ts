@@ -72,6 +72,8 @@ const apiPdv: PdvApi = {
       ipcRenderer.invoke(CANAIS_IPC.PEDIDOS_REMOVER_ITEM, entrada),
     removerItemPedido: (entrada) =>
       ipcRenderer.invoke(CANAIS_IPC.PEDIDOS_REMOVER_ITEM, entrada),
+    aplicarDescontoPedido: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.PEDIDOS_APLICAR_DESCONTO, entrada),
     obterResumoPedido: (entrada) =>
       ipcRenderer.invoke(CANAIS_IPC.PEDIDOS_OBTER_RESUMO, entrada),
     cancelarPedido: (entrada) => ipcRenderer.invoke(CANAIS_IPC.PEDIDOS_CANCELAR, entrada),

@@ -155,6 +155,10 @@
 
 .painel-mesa-pedido__cabecalho {
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
   padding-bottom: 0.625rem;
   border-bottom: 1px solid #e5e7eb;
 }
@@ -164,6 +168,7 @@
   align-items: center;
   gap: 0.5rem;
   flex-wrap: wrap;
+  min-width: 0;
 }
 
 .painel-mesa-pedido__rotulo {
@@ -201,6 +206,45 @@
   color: #c62828;
 }
 
+.painel-mesa-pedido__botao-receber {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.85rem !important;
+  border: none !important;
+  border-radius: 8px !important;
+  background: #00c853 !important;
+  color: #ffffff !important;
+  font-size: 0.875rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.02em;
+  box-shadow: 0 2px 0 #00a844;
+}
+
+.painel-mesa-pedido__botao-receber:hover {
+  background: #00e676 !important;
+}
+
+.painel-mesa-pedido__botao-receber-icone {
+  display: inline-grid;
+  place-items: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+  font-size: 0.75rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.painel-mesa-pedido__finalizado {
+  flex-shrink: 0;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #16a34a;
+}
+
 .busca-produtos-pedido__botao-adicionar {
   align-self: end;
   white-space: nowrap;
@@ -219,16 +263,37 @@
   margin-top: 0.625rem;
 }
 
+.painel-mesa-pedido__acoes-pedido {
+  flex-wrap: wrap;
+}
+
 .painel-mesa-pedido__acao-principal {
   flex: 1;
-  padding: 0.625rem 0.75rem !important;
-  font-size: 0.875rem;
+  min-width: 0;
+  padding: 0.5rem 0.75rem !important;
+  font-size: 0.8125rem;
 }
 
 .painel-mesa-pedido__acao-secundaria {
+  flex: 0 0 auto;
+  padding: 0.5rem 0.75rem !important;
+  font-size: 0.8125rem !important;
   background: #ffffff !important;
   color: #111827 !important;
   border: 1px solid #d1d5db !important;
+}
+
+.painel-mesa-pedido__acao-cancelar {
+  flex: 0 0 auto;
+  padding: 0.5rem 0.75rem !important;
+  font-size: 0.8125rem !important;
+  background: #ffffff !important;
+  color: #b91c1c !important;
+  border: 1px solid #fecaca !important;
+}
+
+.painel-mesa-pedido__acao-cancelar:hover {
+  background: #fef2f2 !important;
 }
 
 .formulario-pagamento {
@@ -358,10 +423,51 @@
 }
 
 .painel-mesa-pedido__rodape {
+  display: grid;
+  gap: 0.625rem;
+}
+
+.painel-mesa-pedido__cupom {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.5rem 0.625rem;
+  border: 1px dashed #d1d5db;
+  border-radius: 8px;
+  background: #fafafa;
+  font-family: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', Menlo, Consolas, monospace;
+  font-size: 0.75rem;
+  color: #374151;
+}
+
+.painel-mesa-pedido__cupom-linha {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
   gap: 0.75rem;
+  margin: 0;
+}
+
+.painel-mesa-pedido__cupom-linha span:last-child {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.painel-mesa-pedido__cupom-linha--total {
+  margin-top: 0.25rem;
+  padding-top: 0.35rem;
+  border-top: 1px dashed #d1d5db;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #14532d;
+}
+
+.painel-mesa-pedido__cupom-linha--restante {
+  margin-top: 0.2rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid #e5e7eb;
+  font-weight: 700;
+  color: #111827;
 }
 
 .painel-mesa-pedido__totais {

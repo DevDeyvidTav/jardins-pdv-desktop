@@ -58,7 +58,11 @@ test.describe('sessao de caixa local', () => {
 
       await aplicativoReaberto.close()
     } finally {
-      rmSync(diretorioDados, { recursive: true, force: true })
+      try {
+        rmSync(diretorioDados, { recursive: true, force: true })
+      } catch {
+        // Electron pode manter lock temporario no userData durante o cleanup.
+      }
     }
   })
 })

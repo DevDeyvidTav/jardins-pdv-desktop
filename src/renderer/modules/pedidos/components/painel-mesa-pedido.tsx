@@ -5,7 +5,7 @@ import type { ResumoPedido } from '@shared/types/pedido'
 import { TIPO_PEDIDO } from '@shared/types/pedido'
 import type { CategoriaProduto } from '@shared/types/categoria-produto'
 import type { ProdutoComCategoria } from '@shared/types/produto'
-import { formatarMoeda } from '@shared/utils/moeda'
+import { formatarMoeda, converterReaisParaCentavos } from '@shared/utils/moeda'
 import { ROTULOS_STATUS_MESA } from '../constants/mesa-status-cores'
 import { BuscaProdutosPedido, ListaItensPedido } from './pedido-itens'
 import { FormularioPagamentoPedido } from '../../pagamentos/components/formulario-pagamento-pedido'
@@ -28,7 +28,12 @@ interface PainelMesaPedidoProps {
   ) => Promise<boolean>
   onAlterarQuantidade: (itemId: string, quantidade: number) => Promise<boolean>
   onRemoverItem: (itemId: string) => Promise<boolean>
-  onRegistrarPagamento: (pagamentos: PagamentoInformado[]) => Promise<boolean>
+  onAplicarDesconto?: (
+    descontoCentavos: number,
+    motivoDesconto?: string,
+  ) => Promise<boolean>
+  onCancelarPedido: () => Promise<boolean>
+  onRegistrarPagamento: (pagamento: PagamentoInformado) => Promise<boolean>
 }
 
 export function PainelMesaPedido({
@@ -44,11 +49,17 @@ export function PainelMesaPedido({
   onAdicionarItemPedido,
   onAlterarQuantidade,
   onRemoverItem,
+  onAplicarDesconto,
+  onCancelarPedido,
   onRegistrarPagamento,
 }: PainelMesaPedidoProps) {
   const pedidoAtivo = resumoPedido !== null
   const pedidoBalcao = resumoPedido?.pedido.tipo === TIPO_PEDIDO.BALCAO
   const [mostrarPagamento, setMostrarPagamento] = useState(false)
+  const [mostrarDesconto, setMostrarDesconto] = useState(false)
+  const [valorDescontoReais, setValorDescontoReais] = useState('')
+  const [motivoDesconto, setMotivoDesconto] = useState('')
+  const [erroDesconto, setErroDesconto] = useState<string | null>(null)
 
   if (!mesaSelecionada && !pedidoAtivo) {
     return (
@@ -67,6 +78,24 @@ export function PainelMesaPedido({
     : pedidoAtivo
       ? 'Ocupada'
       : ''
+
+  const handleConfirmarDesconto = async () => {
+    setErroDesconto(null)
+    const centavos = converterReaisParaCentavos(valorDescontoReais)
+    if (centavos === null) {
+      setErroDesconto('Informe um valor valido de desconto em reais.')
+      return
+    }
+
+    if (onAplicarDesconto) {
+      const ok = await onAplicarDesconto(centavos, motivoDesconto.trim() || undefined)
+      if (ok) {
+        setMostrarDesconto(false)
+        setValorDescontoReais('')
+        setMotivoDesconto('')
+      }
+    }
+  }
 
   return (
     <aside
@@ -90,6 +119,26 @@ export function PainelMesaPedido({
             </span>
           ) : null}
         </div>
+
+        {pedidoAtivo && resumoPedido?.pedido.status === 'ABERTO' ? (
+          <button
+            type="button"
+            className="painel-mesa-pedido__botao-receber"
+            data-testid="botao-abrir-pagamento"
+            onClick={() => setMostrarPagamento(true)}
+          >
+            <span className="painel-mesa-pedido__botao-receber-icone" aria-hidden>
+              $
+            </span>
+            Receber
+          </button>
+        ) : null}
+
+        {pedidoAtivo && resumoPedido?.pedido.status === 'FINALIZADO' ? (
+          <span data-testid="pedido-finalizado" className="painel-mesa-pedido__finalizado">
+            Finalizado
+          </span>
+        ) : null}
       </header>
 
       {mesaSelecionada && !pedidoAtivo && mesaSelecionada.ativo ? (
@@ -139,7 +188,7 @@ export function PainelMesaPedido({
           </div>
 
           <div className="painel-mesa-pedido__inferior">
-            {exibirFormularioItem ? (
+            {exibirFormularioItem && resumoPedido.pedido.status === 'ABERTO' ? (
               <BuscaProdutosPedido
                 produtos={produtosAtivos}
                 categorias={categoriasAtivas}
@@ -149,52 +198,162 @@ export function PainelMesaPedido({
             ) : null}
 
             <footer className="painel-mesa-pedido__rodape">
-              <div className="painel-mesa-pedido__totais" data-testid="pedido-totais">
-                <span data-testid="pedido-subtotal">
-                  Sub: {formatarMoeda(resumoPedido.pedido.subtotalCentavos)}
-                </span>
-                <span className="painel-mesa-pedido__total" data-testid="pedido-total">
-                  {formatarMoeda(resumoPedido.pedido.totalCentavos)}
-                </span>
-              </div>
+              {resumoPedido.pedido.status === 'ABERTO' ? (
+                <div className="painel-mesa-pedido__acoes-pedido">
+                  {exibirFormularioItem ? (
+                    <button
+                      type="button"
+                      className="painel-mesa-pedido__acao-secundaria"
+                      data-testid="botao-fechar-adicionar-item"
+                      onClick={onFecharFormularioItem}
+                    >
+                      Fechar busca
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="painel-mesa-pedido__acao-principal"
+                      data-testid="botao-adicionar-item-painel"
+                      onClick={onAdicionarItem}
+                    >
+                      Adicionar item
+                    </button>
+                  )}
 
-              <div className="painel-mesa-pedido__acoes-pedido">
-                {exibirFormularioItem ? (
                   <button
                     type="button"
                     className="painel-mesa-pedido__acao-secundaria"
-                    data-testid="botao-fechar-adicionar-item"
-                    onClick={onFecharFormularioItem}
+                    data-testid="botao-abrir-desconto"
+                    onClick={() => setMostrarDesconto(true)}
                   >
-                    Fechar
+                    Desconto
                   </button>
-                ) : (
+
                   <button
                     type="button"
-                    className="painel-mesa-pedido__acao-principal"
-                    data-testid="botao-adicionar-item-painel"
-                    onClick={onAdicionarItem}
+                    className="painel-mesa-pedido__acao-cancelar"
+                    data-testid="botao-cancelar-pedido"
+                    onClick={() => {
+                      const confirmar = window.confirm(
+                        'Cancelar este pedido? Essa acao nao pode ser desfeita.',
+                      )
+                      if (confirmar) void onCancelarPedido()
+                    }}
                   >
-                    Adicionar item
+                    Cancelar pedido
                   </button>
-                )}
-                {resumoPedido.pedido.status === 'ABERTO' ? (
-                  <button
-                    type="button"
-                    className="painel-mesa-pedido__acao-secundaria"
-                    data-testid="botao-abrir-pagamento"
-                    onClick={() => setMostrarPagamento(true)}
-                  >
-                    Receber pagamento
-                  </button>
-                ) : (
-                  <span data-testid="pedido-finalizado">Pedido finalizado</span>
-                )}
+                </div>
+              ) : null}
+
+              <div className="painel-mesa-pedido__cupom" data-testid="pedido-totais">
+                <div className="painel-mesa-pedido__cupom-linha">
+                  <span>Subtotal</span>
+                  <span data-testid="pedido-subtotal">
+                    {formatarMoeda(resumoPedido.pedido.subtotalCentavos)}
+                  </span>
+                </div>
+                <div className="painel-mesa-pedido__cupom-linha">
+                  <span>Desc. itens</span>
+                  <span data-testid="pedido-desconto-itens">
+                    {formatarMoeda(resumoPedido.pedido.descontoItensCentavos)}
+                  </span>
+                </div>
+                <div className="painel-mesa-pedido__cupom-linha">
+                  <span>Desc. pedido</span>
+                  <span data-testid="pedido-desconto-geral">
+                    {formatarMoeda(resumoPedido.pedido.descontoPedidoCentavos)}
+                  </span>
+                </div>
+                <div className="painel-mesa-pedido__cupom-linha painel-mesa-pedido__cupom-linha--total">
+                  <span>Total</span>
+                  <span data-testid="pedido-total">
+                    {formatarMoeda(resumoPedido.pedido.totalCentavos)}
+                  </span>
+                </div>
+                <div className="painel-mesa-pedido__cupom-linha">
+                  <span>Pago</span>
+                  <span data-testid="pedido-valor-pago">
+                    {formatarMoeda(resumoPedido.pedido.valorPagoCentavos)}
+                  </span>
+                </div>
+                <div className="painel-mesa-pedido__cupom-linha">
+                  <span>Cortesia</span>
+                  <span data-testid="pedido-valor-cortesia">
+                    {formatarMoeda(resumoPedido.pedido.valorCortesiaCentavos)}
+                  </span>
+                </div>
+                <div className="painel-mesa-pedido__cupom-linha painel-mesa-pedido__cupom-linha--restante">
+                  <span>Restante</span>
+                  <span data-testid="pedido-valor-restante">
+                    {formatarMoeda(resumoPedido.pedido.valorRestanteCentavos)}
+                  </span>
+                </div>
               </div>
             </footer>
           </div>
         </>
       ) : null}
+
+      {pedidoAtivo && resumoPedido && mostrarDesconto ? (
+        <div className="modal-pagamento" data-testid="modal-desconto-pedido">
+          <div
+            className="modal-pagamento__backdrop"
+            onClick={() => setMostrarDesconto(false)}
+          />
+          <div className="modal-pagamento__conteudo" role="dialog" aria-modal="true">
+            <header className="modal-pagamento__cabecalho">
+              <h2>Desconto geral no pedido</h2>
+              <button
+                type="button"
+                className="modal-pagamento__fechar"
+                onClick={() => setMostrarDesconto(false)}
+              >
+                Fechar
+              </button>
+            </header>
+            <div style={{ padding: '16px 0', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '14px', marginBottom: '4px' }}>
+                  Valor do Desconto (R$):
+                </label>
+                <input
+                  type="text"
+                  placeholder="0,00"
+                  value={valorDescontoReais}
+                  onChange={(e) => setValorDescontoReais(e.target.value)}
+                  data-testid="input-desconto-pedido"
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '14px', marginBottom: '4px' }}>
+                  Motivo (opcional):
+                </label>
+                <input
+                  type="text"
+                  placeholder="Motivo do desconto"
+                  value={motivoDesconto}
+                  onChange={(e) => setMotivoDesconto(e.target.value)}
+                  data-testid="input-motivo-desconto"
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                />
+              </div>
+              {erroDesconto ? (
+                <p style={{ color: '#dc2626', fontSize: '13px' }}>{erroDesconto}</p>
+              ) : null}
+              <button
+                type="button"
+                className="painel-mesa-pedido__acao-principal"
+                data-testid="botao-confirmar-desconto"
+                onClick={() => void handleConfirmarDesconto()}
+              >
+                Aplicar Desconto
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {pedidoAtivo && resumoPedido && mostrarPagamento ? (
         <div className="modal-pagamento" data-testid="modal-pagamento">
           <div
@@ -206,7 +365,10 @@ export function PainelMesaPedido({
               <div>
                 <h2>Pagamento do pedido</h2>
                 <p className="modal-pagamento__total">
-                  Total: {formatarMoeda(resumoPedido.pedido.totalCentavos)}
+                  Total do Pedido: {formatarMoeda(resumoPedido.pedido.totalCentavos)}
+                </p>
+                <p className="modal-pagamento__total" style={{ fontSize: '14px', color: '#4b5563' }}>
+                  Restante: {formatarMoeda(resumoPedido.pedido.valorRestanteCentavos)}
                 </p>
               </div>
               <button
@@ -218,9 +380,9 @@ export function PainelMesaPedido({
               </button>
             </header>
             <FormularioPagamentoPedido
-              totalCentavos={resumoPedido.pedido.totalCentavos}
-              onConfirmar={async (pagamentos) => {
-                const ok = await onRegistrarPagamento(pagamentos)
+              totalCentavos={resumoPedido.pedido.valorRestanteCentavos}
+              onConfirmar={async (pagamento) => {
+                const ok = await onRegistrarPagamento(pagamento)
                 if (ok) setMostrarPagamento(false)
                 return ok
               }}

@@ -17,6 +17,11 @@ export const adicionarItemPedidoSchema = z.object({
   pedidoId: z.string().trim().min(1, 'Pedido e obrigatorio.'),
   produtoId: z.string().trim().min(1, 'Produto e obrigatorio.'),
   quantidade: quantidadeSchema,
+  descontoCentavos: z
+    .number()
+    .int('Desconto deve ser inteiro.')
+    .min(0, 'Desconto do item deve ser maior ou igual a zero.')
+    .optional(),
   observacao: z.string().trim().optional(),
 })
 
@@ -32,6 +37,15 @@ export const cancelarItemPedidoSchema = z.object({
 })
 
 export const removerItemPedidoSchema = cancelarItemPedidoSchema
+
+export const aplicarDescontoPedidoSchema = z.object({
+  pedidoId: z.string().trim().min(1, 'Pedido e obrigatorio.'),
+  descontoCentavos: z
+    .number()
+    .int('Desconto deve ser inteiro.')
+    .min(0, 'Desconto deve ser maior ou igual a zero.'),
+  motivoDesconto: z.string().trim().optional(),
+})
 
 export const obterResumoPedidoSchema = z.object({
   pedidoId: z.string().trim().min(1, 'Pedido e obrigatorio.'),

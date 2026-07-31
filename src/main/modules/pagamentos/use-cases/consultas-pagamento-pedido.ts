@@ -39,7 +39,7 @@ export function criarObterResumoPagamentoPedido(
       pedidoId: pedido.id,
       totalPedidoCentavos: pedido.totalCentavos,
       totalPagoCentavos,
-      valorRestanteCentavos: pedido.totalCentavos - totalPagoCentavos,
+      valorRestanteCentavos: pedido.valorRestanteCentavos,
       pagamentos,
     }
   }

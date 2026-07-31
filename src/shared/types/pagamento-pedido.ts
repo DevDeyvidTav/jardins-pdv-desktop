@@ -3,6 +3,7 @@ export const FORMA_PAGAMENTO = {
   CARTAO_CREDITO: 'CARTAO_CREDITO',
   CARTAO_DEBITO: 'CARTAO_DEBITO',
   PIX: 'PIX',
+  CORTESIA: 'CORTESIA',
 } as const
 
 export type FormaPagamento = (typeof FORMA_PAGAMENTO)[keyof typeof FORMA_PAGAMENTO]
@@ -22,6 +23,7 @@ export interface PagamentoPedido {
   formaPagamento: FormaPagamento
   valorCentavos: number
   status: StatusPagamentoPedido
+  motivoCortesia?: string | null
   criadoEm: string
   atualizadoEm: string
   canceladoEm: string | null
@@ -30,11 +32,15 @@ export interface PagamentoPedido {
 export interface PagamentoInformado {
   formaPagamento: FormaPagamento
   valorCentavos: number
+  /** Motivo obrigatorio quando formaPagamento for CORTESIA. */
+  motivoCortesia?: string
 }
 
 export interface RegistrarPagamentoPedidoEntrada {
   pedidoId: string
-  pagamentos: PagamentoInformado[]
+  formaPagamento: FormaPagamento
+  valorCentavos: number
+  motivoCortesia?: string
 }
 
 export interface ListarPagamentosPedidoEntrada {

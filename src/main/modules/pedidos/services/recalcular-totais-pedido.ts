@@ -13,15 +13,36 @@ export function recalcularTotaisPedido(
     throw new Error('Pedido nao encontrado.')
   }
 
-  const subtotalCentavos = repositorioItem.somarTotaisAtivos(pedidoId)
-  const { totalCentavos } = calcularTotaisPedido(
+  const itens = repositorioItem.listarPorPedido(pedidoId, true)
+  const subtotalCentavos = itens.reduce(
+    (total, item) => total + item.subtotalCentavos,
+    0,
+  )
+  const descontoItensCentavos = itens.reduce(
+    (total, item) => total + item.descontoCentavos,
+    0,
+  )
+
+  const {
+    subtotalCentavos: subtotal,
+    descontoItensCentavos: descontoItens,
+    descontoPedidoCentavos: descontoPedido,
+    totalCentavos,
+    valorRestanteCentavos,
+  } = calcularTotaisPedido(
     subtotalCentavos,
-    pedido.descontoCentavos,
+    descontoItensCentavos,
+    pedido.descontoPedidoCentavos,
+    pedido.valorPagoCentavos,
+    pedido.valorCortesiaCentavos,
   )
 
   repositorioPedido.atualizarTotais({
     pedidoId,
-    subtotalCentavos,
+    subtotalCentavos: subtotal,
+    descontoItensCentavos: descontoItens,
+    descontoPedidoCentavos: descontoPedido,
     totalCentavos,
+    valorRestanteCentavos,
   })
 }

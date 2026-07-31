@@ -11,7 +11,7 @@ import {
   obterColunasPedidoItem,
   type LinhaPedidoItemSql,
 } from '../types/pedido.types'
-import { calcularTotalItemCentavos } from '../types/pedido-calculos.types'
+import { calcularTotaisItemCentavos } from '../types/pedido-calculos.types'
 
 export class PedidoItemRepository {
   constructor(private readonly obterConexao = obterConexaoBancoLocal) {}
@@ -82,13 +82,15 @@ export class PedidoItemRepository {
     produtoNome: string
     quantidade: number
     precoUnitarioCentavos: number
+    descontoCentavos: number
     observacao: string | null
   }): PedidoItem {
     const conexao = this.obterConexao()
     const agora = agoraEmIsoUtc()
-    const totalCentavos = calcularTotalItemCentavos(
+    const { subtotalCentavos, totalCentavos } = calcularTotaisItemCentavos(
       dados.quantidade,
       dados.precoUnitarioCentavos,
+      dados.descontoCentavos,
     )
 
     const item: PedidoItem = {
@@ -98,6 +100,8 @@ export class PedidoItemRepository {
       produtoNome: dados.produtoNome,
       quantidade: dados.quantidade,
       precoUnitarioCentavos: dados.precoUnitarioCentavos,
+      subtotalCentavos,
+      descontoCentavos: dados.descontoCentavos,
       totalCentavos,
       observacao: dados.observacao,
       criadoEm: agora,
@@ -108,9 +112,9 @@ export class PedidoItemRepository {
     conexao.instancia.run(
       `INSERT INTO pedido_item (
          id, pedido_id, produto_id, produto_nome, quantidade,
-         preco_unitario_centavos, total_centavos, observacao,
-         criado_em, atualizado_em, cancelado_em
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         preco_unitario_centavos, subtotal_centavos, desconto_centavos,
+         total_centavos, observacao, criado_em, atualizado_em, cancelado_em
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         item.id,
         item.pedidoId,
@@ -118,6 +122,8 @@ export class PedidoItemRepository {
         item.produtoNome,
         item.quantidade,
         item.precoUnitarioCentavos,
+        item.subtotalCentavos,
+        item.descontoCentavos,
         item.totalCentavos,
         item.observacao,
         item.criadoEm,
@@ -139,16 +145,17 @@ export class PedidoItemRepository {
 
     const conexao = this.obterConexao()
     const agora = agoraEmIsoUtc()
-    const totalCentavos = calcularTotalItemCentavos(
+    const { subtotalCentavos, totalCentavos } = calcularTotaisItemCentavos(
       quantidade,
       existente.precoUnitarioCentavos,
+      existente.descontoCentavos,
     )
 
     conexao.instancia.run(
       `UPDATE pedido_item
-       SET quantidade = ?, total_centavos = ?, atualizado_em = ?
+       SET quantidade = ?, subtotal_centavos = ?, total_centavos = ?, atualizado_em = ?
        WHERE id = ?`,
-      [quantidade, totalCentavos, agora, itemId],
+      [quantidade, subtotalCentavos, totalCentavos, agora, itemId],
     )
 
     persistirConexaoBanco(conexao)
@@ -156,6 +163,7 @@ export class PedidoItemRepository {
     return {
       ...existente,
       quantidade,
+      subtotalCentavos,
       totalCentavos,
       atualizadoEm: agora,
     }

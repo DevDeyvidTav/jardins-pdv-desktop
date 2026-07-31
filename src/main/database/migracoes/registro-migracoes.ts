@@ -175,4 +175,35 @@ CREATE INDEX IF NOT EXISTS idx_pagamento_pedido_pedido ON pagamento_pedido (pedi
 CREATE INDEX IF NOT EXISTS idx_pagamento_pedido_sessao ON pagamento_pedido (sessao_caixa_id);
 `.trim(),
   },
+  {
+    versao: 8,
+    nome: '0008-ajustar-descontos-e-valores-pedido',
+    sql: `
+ALTER TABLE pedido_item ADD COLUMN subtotal_centavos INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE pedido_item ADD COLUMN desconto_centavos INTEGER NOT NULL DEFAULT 0;
+
+UPDATE pedido_item
+SET subtotal_centavos = total_centavos,
+    desconto_centavos = 0
+WHERE subtotal_centavos = 0;
+
+ALTER TABLE pedido ADD COLUMN desconto_itens_centavos INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE pedido ADD COLUMN desconto_pedido_centavos INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE pedido ADD COLUMN valor_pago_centavos INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE pedido ADD COLUMN valor_cortesia_centavos INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE pedido ADD COLUMN valor_restante_centavos INTEGER NOT NULL DEFAULT 0;
+
+UPDATE pedido
+SET desconto_pedido_centavos = desconto_centavos,
+    valor_restante_centavos = total_centavos
+WHERE valor_restante_centavos = 0;
+`.trim(),
+  },
+  {
+    versao: 9,
+    nome: '0009-adicionar-motivo-cortesia-pagamento',
+    sql: `
+ALTER TABLE pagamento_pedido ADD COLUMN motivo_cortesia TEXT;
+`.trim(),
+  },
 ]

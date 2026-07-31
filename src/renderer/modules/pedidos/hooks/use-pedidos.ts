@@ -38,7 +38,9 @@ export interface UsePedidosResultado {
   ) => Promise<boolean>
   alterarQuantidadeItem: (itemId: string, quantidade: number) => Promise<boolean>
   removerItem: (itemId: string) => Promise<boolean>
-  registrarPagamento: (pagamentos: PagamentoInformado[]) => Promise<boolean>
+  aplicarDescontoPedido: (descontoCentavos: number, motivoDesconto?: string) => Promise<boolean>
+  cancelarPedido: () => Promise<boolean>
+  registrarPagamento: (pagamento: PagamentoInformado) => Promise<boolean>
   definirFiltroStatusMesas: (filtro: FiltroStatusMesa) => void
   abrirFormularioItem: () => void
   fecharFormularioItem: () => void
@@ -341,19 +343,63 @@ export function usePedidos(): UsePedidosResultado {
     [resumoPedido],
   )
 
+  const aplicarDescontoPedido = useCallback(
+    async (descontoCentavos: number, motivoDesconto?: string): Promise<boolean> => {
+      if (!resumoPedido) return false
+      setErro(null)
+      setSucesso(null)
+      try {
+        const resumo = await window.pdv.pedidos.aplicarDescontoPedido({
+          pedidoId: resumoPedido.pedido.id,
+          descontoCentavos,
+          motivoDesconto,
+        })
+        setResumoPedido(resumo)
+        await carregarDados()
+        setSucesso('Desconto do pedido aplicado.')
+        return true
+      } catch (causa) {
+        setErro(extrairMensagemErro(causa))
+        return false
+      }
+    },
+    [carregarDados, resumoPedido],
+  )
+
+  const cancelarPedido = useCallback(async (): Promise<boolean> => {
+    if (!resumoPedido) return false
+    setErro(null)
+    setSucesso(null)
+    try {
+      await window.pdv.pedidos.cancelarPedido({
+        pedidoId: resumoPedido.pedido.id,
+      })
+      setResumoPedido(null)
+      setExibirFormularioItem(false)
+      await carregarDados()
+      setSucesso('Pedido cancelado.')
+      return true
+    } catch (causa) {
+      setErro(extrairMensagemErro(causa))
+      return false
+    }
+  }, [carregarDados, resumoPedido])
+
   const registrarPagamento = useCallback(
-    async (pagamentos: PagamentoInformado[]): Promise<boolean> => {
+    async (pagamento: PagamentoInformado): Promise<boolean> => {
       if (!resumoPedido) return false
       setErro(null)
       setSucesso(null)
       try {
         await window.pdv.pagamentos.registrarPagamentoPedido({
           pedidoId: resumoPedido.pedido.id,
-          pagamentos,
+          formaPagamento: pagamento.formaPagamento,
+          valorCentavos: pagamento.valorCentavos,
+          motivoCortesia: pagamento.motivoCortesia,
         })
         await carregarDados()
         await atualizarResumo(resumoPedido.pedido.id)
-        setSucesso('Pagamento confirmado e pedido finalizado.')
+        setSucesso('Pagamento registrado.')
         return true
       } catch (causa) {
         setErro(extrairMensagemErro(causa))
@@ -413,6 +459,8 @@ export function usePedidos(): UsePedidosResultado {
     adicionarItem,
     alterarQuantidadeItem,
     removerItem,
+    aplicarDescontoPedido,
+    cancelarPedido,
     registrarPagamento,
     definirFiltroStatusMesas,
     abrirFormularioItem,

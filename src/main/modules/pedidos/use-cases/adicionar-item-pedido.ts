@@ -50,12 +50,22 @@ export function criarAdicionarItemPedido(
       )
     }
 
+    const descontoItemCentavos = entrada.descontoCentavos ?? 0
+
+    if (descontoItemCentavos < 0) {
+      throw new ErroPedidos(
+        CODIGOS_ERRO_PEDIDOS.ENTRADA_INVALIDA,
+        'Desconto do item deve ser maior ou igual a zero.',
+      )
+    }
+
     repositorioItem.inserir({
       pedidoId: entrada.pedidoId,
       produtoId: produto.id,
       produtoNome: produto.nome,
       quantidade: entrada.quantidade,
       precoUnitarioCentavos: produto.precoCentavos,
+      descontoCentavos: descontoItemCentavos,
       observacao: entrada.observacao?.trim() || null,
     })
 

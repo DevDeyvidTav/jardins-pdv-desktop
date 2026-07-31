@@ -30,7 +30,11 @@ test.describe('aplicativo desktop', () => {
       await expect(janela.getByTestId('formulario-abertura-caixa')).toBeVisible()
     } finally {
       await aplicativo.close()
-      rmSync(diretorioDados, { recursive: true, force: true })
+      try {
+        rmSync(diretorioDados, { recursive: true, force: true })
+      } catch {
+        // Electron pode manter lock temporario no userData durante o cleanup.
+      }
     }
   })
 })
