@@ -61,9 +61,19 @@ export function criarRegistrarPagamentoPedido(
       )
     }
 
-    const valorAtualQuitado =
-      pedido.valorPagoCentavos + pedido.valorCortesiaCentavos
-    const valorRestanteAntes = pedido.totalCentavos - valorAtualQuitado
+    const valorPagoAtual = Number(pedido.valorPagoCentavos) || 0
+    const valorCortesiaAtual = Number(pedido.valorCortesiaCentavos) || 0
+    const totalPedidoCentavos = Number(pedido.totalCentavos) || 0
+
+    const valorAtualQuitado = valorPagoAtual + valorCortesiaAtual
+    const valorRestanteAntes = totalPedidoCentavos - valorAtualQuitado
+
+    if (valorRestanteAntes <= 0) {
+      throw new ErroPedidos(
+        CODIGOS_ERRO_PEDIDOS.ENTRADA_INVALIDA,
+        'Pedido ja esta quitado.',
+      )
+    }
 
     if (entrada.valorCentavos > valorRestanteAntes) {
       throw new ErroPedidos(
@@ -78,39 +88,38 @@ export function criarRegistrarPagamentoPedido(
       motivoCortesia: entrada.motivoCortesia,
     }
 
-    const pagamento = repositorioPagamento.inserir(
+    repositorioPagamento.inserir(
       pedido.id,
       sessao.id,
       pagamentoInformado,
     )
 
     const valorPagoCentavos =
-      pedido.valorPagoCentavos +
+      valorPagoAtual +
       (entrada.formaPagamento === FORMA_PAGAMENTO.CORTESIA
         ? 0
         : entrada.valorCentavos)
     const valorCortesiaCentavos =
-      pedido.valorCortesiaCentavos +
+      valorCortesiaAtual +
       (entrada.formaPagamento === FORMA_PAGAMENTO.CORTESIA
         ? entrada.valorCentavos
         : 0)
 
-    const valorQuitadoCentavos =
-      valorPagoCentavos + valorCortesiaCentavos
-    const valorRestanteCentavos = pedido.totalCentavos - valorQuitadoCentavos
+    const valorQuitadoCentavos = valorPagoCentavos + valorCortesiaCentavos
+    const valorRestanteCentavos = totalPedidoCentavos - valorQuitadoCentavos
 
-    const pedidoComPagamentos = repositorioPedido.atualizarValoresPagamento({
+    repositorioPedido.atualizarValoresPagamento({
       pedidoId: pedido.id,
       valorPagoCentavos,
       valorCortesiaCentavos,
     })
 
-    const pedidoAtualizado = repositorioPedido.atualizarTotais({
+    repositorioPedido.atualizarTotais({
       pedidoId: pedido.id,
-      subtotalCentavos: pedido.subtotalCentavos,
-      descontoItensCentavos: pedido.descontoItensCentavos,
-      descontoPedidoCentavos: pedido.descontoPedidoCentavos,
-      totalCentavos: pedido.totalCentavos,
+      subtotalCentavos: Number(pedido.subtotalCentavos) || 0,
+      descontoItensCentavos: Number(pedido.descontoItensCentavos) || 0,
+      descontoPedidoCentavos: Number(pedido.descontoPedidoCentavos) || 0,
+      totalCentavos: totalPedidoCentavos,
       valorRestanteCentavos,
     })
 
@@ -124,10 +133,10 @@ export function criarRegistrarPagamentoPedido(
 
     return {
       pedidoId: pedido.id,
-      totalPedidoCentavos: pedido.totalCentavos,
+      totalPedidoCentavos,
       totalPagoCentavos: valorPagoCentavos,
       valorRestanteCentavos,
-      pagamentos: [pagamento],
+      pagamentos: repositorioPagamento.listarPorPedido(pedido.id),
     }
   }
 }

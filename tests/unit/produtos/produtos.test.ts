@@ -5,13 +5,18 @@ import {
 } from '../../../src/main/modules/produtos/errors/erros-produtos'
 import { criarCategoriaProdutoRepository } from '../../../src/main/modules/produtos/repositories/categoria-produto.repository'
 import { criarProdutoRepository } from '../../../src/main/modules/produtos/repositories/produto.repository'
+import { criarAtualizarCategoriaProduto } from '../../../src/main/modules/produtos/use-cases/atualizar-categoria-produto'
+import { criarAtualizarProduto } from '../../../src/main/modules/produtos/use-cases/atualizar-produto'
 import { criarCriarCategoriaProduto } from '../../../src/main/modules/produtos/use-cases/criar-categoria-produto'
+import { criarExcluirCategoriaProduto } from '../../../src/main/modules/produtos/use-cases/excluir-categoria-produto'
+import { criarExcluirProduto } from '../../../src/main/modules/produtos/use-cases/excluir-produto'
 import { criarInativarCategoriaProduto } from '../../../src/main/modules/produtos/use-cases/inativar-categoria-produto'
 import { criarBuscarProdutos } from '../../../src/main/modules/produtos/use-cases/buscar-produtos'
 import { criarCriarProduto } from '../../../src/main/modules/produtos/use-cases/criar-produto'
 import { criarInativarProduto } from '../../../src/main/modules/produtos/use-cases/inativar-produto'
 import { criarReativarProduto } from '../../../src/main/modules/produtos/use-cases/reativar-produto'
 import { criarListarProdutos } from '../../../src/main/modules/produtos/use-cases/listar-produtos'
+import { prepararAmbientePedidos } from '../../helpers/pedido-teste'
 import { prepararBancoTeste } from '../../helpers/banco-teste'
 
 describe('produtos', () => {
@@ -226,6 +231,133 @@ describe('produtos', () => {
       reativarProduto({ produtoId: produto.id })
     } catch (erro) {
       expect((erro as ErroProdutos).codigo).toBe(CODIGOS_ERRO_PRODUTOS.CATEGORIA_INATIVA)
+    }
+  })
+
+  it('atualiza produto e categoria', async () => {
+    const banco = await prepararBancoTeste()
+    encerrarBanco = banco.encerrar
+
+    const repositorioCategoria = criarCategoriaProdutoRepository()
+    const repositorioProduto = criarProdutoRepository()
+    const criarCategoriaProduto = criarCriarCategoriaProduto(repositorioCategoria)
+    const atualizarCategoriaProduto = criarAtualizarCategoriaProduto(repositorioCategoria)
+    const criarProduto = criarCriarProduto(repositorioProduto, repositorioCategoria)
+    const atualizarProduto = criarAtualizarProduto(repositorioProduto, repositorioCategoria)
+
+    const categoria = criarCategoriaProduto({ nome: 'Bebidas' })
+    const produto = criarProduto({
+      categoriaId: categoria.id,
+      nome: 'Coca-Cola lata',
+      precoCentavos: 600,
+    })
+
+    const categoriaAtualizada = atualizarCategoriaProduto({
+      categoriaId: categoria.id,
+      nome: 'Refrigerantes',
+      descricao: 'Gelados',
+    })
+    const produtoAtualizado = atualizarProduto({
+      produtoId: produto.id,
+      nome: 'Coca-Cola 350ml',
+      precoCentavos: 650,
+      descricao: 'Lata',
+    })
+
+    expect(categoriaAtualizada.nome).toBe('Refrigerantes')
+    expect(categoriaAtualizada.descricao).toBe('Gelados')
+    expect(produtoAtualizado.nome).toBe('Coca-Cola 350ml')
+    expect(produtoAtualizado.precoCentavos).toBe(650)
+    expect(produtoAtualizado.descricao).toBe('Lata')
+  })
+
+  it('exclui produto sem historico de pedidos', async () => {
+    const banco = await prepararBancoTeste()
+    encerrarBanco = banco.encerrar
+
+    const repositorioCategoria = criarCategoriaProdutoRepository()
+    const repositorioProduto = criarProdutoRepository()
+    const criarCategoriaProduto = criarCriarCategoriaProduto(repositorioCategoria)
+    const criarProduto = criarCriarProduto(repositorioProduto, repositorioCategoria)
+    const excluirProduto = criarExcluirProduto(repositorioProduto)
+    const listarProdutos = criarListarProdutos(repositorioProduto)
+
+    const categoria = criarCategoriaProduto({ nome: 'Bebidas' })
+    const produto = criarProduto({
+      categoriaId: categoria.id,
+      nome: 'Suco',
+      precoCentavos: 800,
+    })
+
+    excluirProduto({ produtoId: produto.id })
+
+    expect(listarProdutos({ apenasAtivos: false })).toHaveLength(0)
+  })
+
+  it('impede excluir categoria com produtos', async () => {
+    const banco = await prepararBancoTeste()
+    encerrarBanco = banco.encerrar
+
+    const repositorioCategoria = criarCategoriaProdutoRepository()
+    const repositorioProduto = criarProdutoRepository()
+    const criarCategoriaProduto = criarCriarCategoriaProduto(repositorioCategoria)
+    const criarProduto = criarCriarProduto(repositorioProduto, repositorioCategoria)
+    const excluirCategoriaProduto = criarExcluirCategoriaProduto(
+      repositorioCategoria,
+      repositorioProduto,
+    )
+
+    const categoria = criarCategoriaProduto({ nome: 'Bebidas' })
+    criarProduto({
+      categoriaId: categoria.id,
+      nome: 'Suco',
+      precoCentavos: 800,
+    })
+
+    try {
+      excluirCategoriaProduto({ categoriaId: categoria.id })
+      expect.fail('deveria ter lancado erro')
+    } catch (erro) {
+      expect((erro as ErroProdutos).codigo).toBe(CODIGOS_ERRO_PRODUTOS.CATEGORIA_COM_PRODUTOS)
+    }
+  })
+
+  it('exclui categoria vazia', async () => {
+    const banco = await prepararBancoTeste()
+    encerrarBanco = banco.encerrar
+
+    const repositorioCategoria = criarCategoriaProdutoRepository()
+    const repositorioProduto = criarProdutoRepository()
+    const criarCategoriaProduto = criarCriarCategoriaProduto(repositorioCategoria)
+    const excluirCategoriaProduto = criarExcluirCategoriaProduto(
+      repositorioCategoria,
+      repositorioProduto,
+    )
+
+    const categoria = criarCategoriaProduto({ nome: 'Vazia' })
+    excluirCategoriaProduto({ categoriaId: categoria.id })
+
+    expect(repositorioCategoria.buscarPorId(categoria.id)).toBeNull()
+  })
+
+  it('impede excluir produto usado em pedido', async () => {
+    const ambiente = await prepararAmbientePedidos()
+    encerrarBanco = ambiente.encerrar
+
+    const pedido = ambiente.criarPedidoMesa({ mesaId: ambiente.mesa.id })
+    ambiente.adicionarItemPedido({
+      pedidoId: pedido.id,
+      produtoId: ambiente.produto.id,
+      quantidade: 1,
+    })
+
+    const excluirProduto = criarExcluirProduto(ambiente.repositorioProduto)
+
+    try {
+      excluirProduto({ produtoId: ambiente.produto.id })
+      expect.fail('deveria ter lancado erro')
+    } catch (erro) {
+      expect((erro as ErroProdutos).codigo).toBe(CODIGOS_ERRO_PRODUTOS.PRODUTO_EM_USO)
     }
   })
 })

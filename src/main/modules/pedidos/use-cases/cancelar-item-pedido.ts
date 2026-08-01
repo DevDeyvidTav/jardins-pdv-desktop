@@ -32,7 +32,7 @@ export function criarCancelarItemPedido(
       )
     }
 
-    repositorioItem.cancelar(entrada.itemId)
+    repositorioItem.cancelar(entrada.itemId, entrada.motivoCancelamento)
     recalcularTotaisPedido(entrada.pedidoId, repositorioPedido, repositorioItem)
 
     return obterResumoPedido({ pedidoId: entrada.pedidoId })

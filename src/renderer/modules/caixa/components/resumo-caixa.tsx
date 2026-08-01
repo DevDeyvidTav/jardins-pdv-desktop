@@ -3,12 +3,17 @@ import type { ResumoCaixaAtual } from '@shared/types/movimento-caixa'
 
 interface ResumoCaixaProps {
   resumo: ResumoCaixaAtual
+  compacto?: boolean
 }
 
-export function ResumoCaixa({ resumo }: ResumoCaixaProps) {
+export function ResumoCaixa({ resumo, compacto = false }: ResumoCaixaProps) {
   return (
-    <section className="resumo-caixa" data-testid="resumo-caixa">
-      <p className="resumo-caixa__status">Caixa aberto</p>
+    <section
+      className={compacto ? 'resumo-caixa resumo-caixa--cupom' : 'resumo-caixa'}
+      data-testid="resumo-caixa"
+    >
+      {!compacto ? <p className="resumo-caixa__status">Caixa aberto</p> : null}
+
       <dl className="resumo-caixa__lista">
         <div>
           <dt>Operador</dt>
@@ -21,24 +26,54 @@ export function ResumoCaixa({ resumo }: ResumoCaixaProps) {
           </dd>
         </div>
         <div>
-          <dt>Total suprimentos</dt>
+          <dt>Suprimentos</dt>
           <dd data-testid="caixa-total-suprimentos">
             {formatarMoeda(resumo.totalSuprimentosCentavos)}
           </dd>
         </div>
         <div>
-          <dt>Total sangrias</dt>
+          <dt>Sangrias</dt>
           <dd data-testid="caixa-total-sangrias">
             {formatarMoeda(resumo.totalSangriasCentavos)}
           </dd>
         </div>
         <div>
-          <dt>Total retiradas</dt>
+          <dt>Retiradas</dt>
           <dd data-testid="caixa-total-retiradas">
             {formatarMoeda(resumo.totalRetiradasCentavos)}
           </dd>
         </div>
         <div>
+          <dt>Vendas dinheiro</dt>
+          <dd data-testid="caixa-vendas-dinheiro">
+            {formatarMoeda(resumo.totalVendasDinheiroCentavos)}
+          </dd>
+        </div>
+        <div>
+          <dt>Vendas credito</dt>
+          <dd data-testid="caixa-vendas-credito">
+            {formatarMoeda(resumo.totalVendasCartaoCreditoCentavos)}
+          </dd>
+        </div>
+        <div>
+          <dt>Vendas debito</dt>
+          <dd data-testid="caixa-vendas-debito">
+            {formatarMoeda(resumo.totalVendasCartaoDebitoCentavos)}
+          </dd>
+        </div>
+        <div>
+          <dt>Vendas Pix</dt>
+          <dd data-testid="caixa-vendas-pix">
+            {formatarMoeda(resumo.totalVendasPixCentavos)}
+          </dd>
+        </div>
+        <div className="resumo-caixa__linha--destaque">
+          <dt>Total vendas</dt>
+          <dd data-testid="caixa-total-vendas">
+            {formatarMoeda(resumo.totalVendasCentavos)}
+          </dd>
+        </div>
+        <div className="resumo-caixa__linha--saldo">
           <dt>Saldo esperado</dt>
           <dd data-testid="caixa-saldo-atual">
             {formatarMoeda(resumo.saldoAtualEsperadoCentavos)}

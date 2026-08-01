@@ -12,9 +12,22 @@ export interface UseProdutosResultado {
   termoBusca: string
   categoriaFiltroId: string
   criarCategoria: (nome: string, descricao?: string) => Promise<boolean>
+  atualizarCategoria: (
+    categoriaId: string,
+    nome: string,
+    descricao?: string,
+  ) => Promise<boolean>
   inativarCategoria: (categoriaId: string) => Promise<boolean>
   reativarCategoria: (categoriaId: string) => Promise<boolean>
+  excluirCategoria: (categoriaId: string) => Promise<boolean>
   criarProduto: (
+    categoriaId: string,
+    nome: string,
+    precoCentavos: number,
+    descricao?: string,
+  ) => Promise<boolean>
+  atualizarProduto: (
+    produtoId: string,
     categoriaId: string,
     nome: string,
     precoCentavos: number,
@@ -22,6 +35,7 @@ export interface UseProdutosResultado {
   ) => Promise<boolean>
   inativarProduto: (produtoId: string) => Promise<boolean>
   reativarProduto: (produtoId: string) => Promise<boolean>
+  excluirProduto: (produtoId: string) => Promise<boolean>
   definirTermoBusca: (termo: string) => void
   definirCategoriaFiltro: (categoriaId: string) => void
   recarregar: () => Promise<void>
@@ -110,6 +124,28 @@ export function useProdutos(): UseProdutosResultado {
     [carregarDados],
   )
 
+  const atualizarCategoria = useCallback(
+    async (categoriaId: string, nome: string, descricao?: string): Promise<boolean> => {
+      setErro(null)
+      setSucesso(null)
+
+      try {
+        await window.pdv.produtos.atualizarCategoria({
+          categoriaId,
+          nome,
+          descricao: descricao ?? null,
+        })
+        await carregarDados()
+        setSucesso('Categoria atualizada com sucesso.')
+        return true
+      } catch (causa) {
+        setErro(extrairMensagemErro(causa))
+        return false
+      }
+    },
+    [carregarDados],
+  )
+
   const inativarCategoriaHandler = useCallback(
     async (categoriaId: string): Promise<boolean> => {
       setErro(null)
@@ -146,6 +182,27 @@ export function useProdutos(): UseProdutosResultado {
     [carregarDados],
   )
 
+  const excluirCategoriaHandler = useCallback(
+    async (categoriaId: string): Promise<boolean> => {
+      setErro(null)
+      setSucesso(null)
+
+      try {
+        await window.pdv.produtos.excluirCategoria({ categoriaId })
+        if (categoriaFiltroId === categoriaId) {
+          setCategoriaFiltroId('')
+        }
+        await carregarDados()
+        setSucesso('Categoria excluida com sucesso.')
+        return true
+      } catch (causa) {
+        setErro(extrairMensagemErro(causa))
+        return false
+      }
+    },
+    [carregarDados, categoriaFiltroId],
+  )
+
   const criarProdutoHandler = useCallback(
     async (
       categoriaId: string,
@@ -165,6 +222,36 @@ export function useProdutos(): UseProdutosResultado {
         })
         await carregarDados()
         setSucesso('Produto criado com sucesso.')
+        return true
+      } catch (causa) {
+        setErro(extrairMensagemErro(causa))
+        return false
+      }
+    },
+    [carregarDados],
+  )
+
+  const atualizarProdutoHandler = useCallback(
+    async (
+      produtoId: string,
+      categoriaId: string,
+      nome: string,
+      precoCentavos: number,
+      descricao?: string,
+    ): Promise<boolean> => {
+      setErro(null)
+      setSucesso(null)
+
+      try {
+        await window.pdv.produtos.atualizarProduto({
+          produtoId,
+          categoriaId,
+          nome,
+          precoCentavos,
+          descricao: descricao ?? null,
+        })
+        await carregarDados()
+        setSucesso('Produto atualizado com sucesso.')
         return true
       } catch (causa) {
         setErro(extrairMensagemErro(causa))
@@ -210,6 +297,24 @@ export function useProdutos(): UseProdutosResultado {
     [carregarDados],
   )
 
+  const excluirProdutoHandler = useCallback(
+    async (produtoId: string): Promise<boolean> => {
+      setErro(null)
+      setSucesso(null)
+
+      try {
+        await window.pdv.produtos.excluirProduto({ produtoId })
+        await carregarDados()
+        setSucesso('Produto excluido com sucesso.')
+        return true
+      } catch (causa) {
+        setErro(extrairMensagemErro(causa))
+        return false
+      }
+    },
+    [carregarDados],
+  )
+
   const definirTermoBusca = useCallback((termo: string) => {
     setTermoBusca(termo)
   }, [])
@@ -233,11 +338,15 @@ export function useProdutos(): UseProdutosResultado {
     termoBusca,
     categoriaFiltroId,
     criarCategoria,
+    atualizarCategoria,
     inativarCategoria: inativarCategoriaHandler,
     reativarCategoria: reativarCategoriaHandler,
+    excluirCategoria: excluirCategoriaHandler,
     criarProduto: criarProdutoHandler,
+    atualizarProduto: atualizarProdutoHandler,
     inativarProduto: inativarProdutoHandler,
     reativarProduto: reativarProdutoHandler,
+    excluirProduto: excluirProdutoHandler,
     definirTermoBusca,
     definirCategoriaFiltro,
     recarregar: carregarDados,

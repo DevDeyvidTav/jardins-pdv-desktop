@@ -26,6 +26,7 @@ export interface LinhaPedidoSql {
   atualizado_em: string
   finalizado_em: string | null
   cancelado_em: string | null
+  motivo_cancelamento: string | null
 }
 
 export interface LinhaPedidoItemSql {
@@ -42,6 +43,7 @@ export interface LinhaPedidoItemSql {
   criado_em: string
   atualizado_em: string
   cancelado_em: string | null
+  motivo_cancelamento: string | null
 }
 
 const COLUNAS_PEDIDO = `
@@ -49,13 +51,14 @@ const COLUNAS_PEDIDO = `
   subtotal_centavos, desconto_centavos, total_centavos,
   desconto_itens_centavos, desconto_pedido_centavos,
   valor_pago_centavos, valor_cortesia_centavos, valor_restante_centavos,
-  criado_em, atualizado_em, finalizado_em, cancelado_em
+  criado_em, atualizado_em, finalizado_em, cancelado_em, motivo_cancelamento
 `.trim()
 
 const COLUNAS_PEDIDO_ITEM = `
   id, pedido_id, produto_id, produto_nome, quantidade,
   preco_unitario_centavos, subtotal_centavos, desconto_centavos,
-  total_centavos, observacao, criado_em, atualizado_em, cancelado_em
+  total_centavos, observacao, criado_em, atualizado_em, cancelado_em,
+  motivo_cancelamento
 `.trim()
 
 export function obterColunasPedido(): string {
@@ -75,19 +78,21 @@ export function mapearLinhaPedido(
     mesaId: linha.mesa_id,
     tipo: linha.tipo as import('@shared/types/pedido').TipoPedido,
     status: linha.status as import('@shared/types/pedido').StatusPedido,
-    subtotalCentavos: linha.subtotal_centavos,
+    subtotalCentavos: Number(linha.subtotal_centavos) || 0,
     // Mantem campo legado como alias para o desconto geral.
-    descontoCentavos: linha.desconto_pedido_centavos ?? linha.desconto_centavos,
-    descontoItensCentavos: linha.desconto_itens_centavos,
-    descontoPedidoCentavos: linha.desconto_pedido_centavos,
-    totalCentavos: linha.total_centavos,
-    valorPagoCentavos: linha.valor_pago_centavos,
-    valorCortesiaCentavos: linha.valor_cortesia_centavos,
-    valorRestanteCentavos: linha.valor_restante_centavos,
+    descontoCentavos:
+      Number(linha.desconto_pedido_centavos ?? linha.desconto_centavos) || 0,
+    descontoItensCentavos: Number(linha.desconto_itens_centavos) || 0,
+    descontoPedidoCentavos: Number(linha.desconto_pedido_centavos) || 0,
+    totalCentavos: Number(linha.total_centavos) || 0,
+    valorPagoCentavos: Number(linha.valor_pago_centavos) || 0,
+    valorCortesiaCentavos: Number(linha.valor_cortesia_centavos) || 0,
+    valorRestanteCentavos: Number(linha.valor_restante_centavos) || 0,
     criadoEm: linha.criado_em,
     atualizadoEm: linha.atualizado_em,
     finalizadoEm: linha.finalizado_em,
     canceladoEm: linha.cancelado_em,
+    motivoCancelamento: linha.motivo_cancelamento ?? null,
   }
 }
 
@@ -101,12 +106,13 @@ export function mapearLinhaPedidoItem(
     produtoNome: linha.produto_nome,
     quantidade: linha.quantidade,
     precoUnitarioCentavos: linha.preco_unitario_centavos,
-    subtotalCentavos: linha.subtotal_centavos,
-    descontoCentavos: linha.desconto_centavos,
-    totalCentavos: linha.total_centavos,
+    subtotalCentavos: Number(linha.subtotal_centavos) || 0,
+    descontoCentavos: Number(linha.desconto_centavos) || 0,
+    totalCentavos: Number(linha.total_centavos) || 0,
     observacao: linha.observacao,
     criadoEm: linha.criado_em,
     atualizadoEm: linha.atualizado_em,
     canceladoEm: linha.cancelado_em,
+    motivoCancelamento: linha.motivo_cancelamento ?? null,
   }
 }

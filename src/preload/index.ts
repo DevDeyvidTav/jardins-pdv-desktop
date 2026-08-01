@@ -34,6 +34,8 @@ const apiPdv: PdvApi = {
       ipcRenderer.invoke(CANAIS_IPC.PRODUTOS_INATIVAR_CATEGORIA, entrada),
     reativarCategoria: (entrada) =>
       ipcRenderer.invoke(CANAIS_IPC.PRODUTOS_REATIVAR_CATEGORIA, entrada),
+    excluirCategoria: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.PRODUTOS_EXCLUIR_CATEGORIA, entrada),
     criarProduto: (entrada) =>
       ipcRenderer.invoke(CANAIS_IPC.PRODUTOS_CRIAR_PRODUTO, entrada),
     listarProdutos: (entrada) =>
@@ -46,6 +48,8 @@ const apiPdv: PdvApi = {
       ipcRenderer.invoke(CANAIS_IPC.PRODUTOS_INATIVAR_PRODUTO, entrada),
     reativarProduto: (entrada) =>
       ipcRenderer.invoke(CANAIS_IPC.PRODUTOS_REATIVAR_PRODUTO, entrada),
+    excluirProduto: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.PRODUTOS_EXCLUIR_PRODUTO, entrada),
     obterProdutoPorId: (entrada) =>
       ipcRenderer.invoke(CANAIS_IPC.PRODUTOS_OBTER_PRODUTO_POR_ID, entrada),
   },
@@ -77,6 +81,8 @@ const apiPdv: PdvApi = {
     obterResumoPedido: (entrada) =>
       ipcRenderer.invoke(CANAIS_IPC.PEDIDOS_OBTER_RESUMO, entrada),
     cancelarPedido: (entrada) => ipcRenderer.invoke(CANAIS_IPC.PEDIDOS_CANCELAR, entrada),
+    listarHistoricoPedidos: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.PEDIDOS_LISTAR_HISTORICO, entrada ?? {}),
   },
   pagamentos: {
     registrarPagamentoPedido: (entrada) =>

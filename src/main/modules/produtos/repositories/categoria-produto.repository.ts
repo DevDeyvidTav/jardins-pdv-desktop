@@ -186,6 +186,18 @@ export class CategoriaProdutoRepository {
       atualizadoEm: agora,
     }
   }
+
+  excluir(categoriaId: string): void {
+    const existente = this.buscarPorId(categoriaId)
+
+    if (!existente) {
+      throw new Error('Categoria nao encontrada.')
+    }
+
+    const conexao = this.obterConexao()
+    conexao.instancia.run(`DELETE FROM categoria_produto WHERE id = ?`, [categoriaId])
+    persistirConexaoBanco(conexao)
+  }
 }
 
 export function criarCategoriaProdutoRepository(

@@ -2,6 +2,8 @@ import { useEffect } from 'react'
 import { FormularioMesa } from '../components/formulario-mesa'
 import { GradeMesas } from '../components/grade-mesas'
 import { FiltrosStatusMesas } from '../components/filtros-status-mesas'
+import { FiltrosHistoricoPedidos } from '../components/filtros-historico-pedidos'
+import { HistoricoPedidosLista } from '../components/historico-pedidos-lista'
 import { PainelMesaPedido } from '../components/painel-mesa-pedido'
 import type { UsePedidosResultado } from '../hooks/use-pedidos'
 import './pedidos.css'
@@ -36,6 +38,8 @@ export function PedidosPage({ pedidos }: PedidosPageProps) {
     )
   }
 
+  const naAbaHistorico = pedidos.abaAtiva === 'historico'
+
   return (
     <main className="pedidos pedidos--operacao" data-testid="pagina-pedidos">
       <div className="pedidos-operacao">
@@ -55,28 +59,54 @@ export function PedidosPage({ pedidos }: PedidosPageProps) {
           onAplicarDesconto={pedidos.aplicarDescontoPedido}
           onCancelarPedido={pedidos.cancelarPedido}
           onRegistrarPagamento={pedidos.registrarPagamento}
+          erroPagamento={pedidos.erro}
         />
 
         <section className="pedidos-operacao__grade-area">
           <header className="pedidos-operacao__toolbar">
-            <h1>Pedidos</h1>
-            <div className="pedidos-operacao__acoes-toolbar">
-              <button
-                type="button"
-                className="pedidos__botao-secundario"
-                data-testid="botao-cadastrar-mesas"
-                onClick={pedidos.alternarCadastroMesas}
-              >
-                Cadastrar mesas
-              </button>
-              <button
-                type="button"
-                data-testid="botao-pedido-balcao"
-                onClick={() => void pedidos.abrirPedidoBalcao()}
-              >
-                Pedido balcao
-              </button>
+            <div className="pedidos-operacao__titulo-abas">
+              <h1>Pedidos</h1>
+              <div className="pedidos-operacao__abas" data-testid="abas-pedidos">
+                <button
+                  type="button"
+                  className="pedidos-operacao__aba"
+                  data-ativo={pedidos.abaAtiva === 'mesas'}
+                  data-testid="aba-pedidos-mesas"
+                  onClick={() => pedidos.definirAbaAtiva('mesas')}
+                >
+                  Mesas
+                </button>
+                <button
+                  type="button"
+                  className="pedidos-operacao__aba"
+                  data-ativo={naAbaHistorico}
+                  data-testid="aba-pedidos-historico"
+                  onClick={() => pedidos.definirAbaAtiva('historico')}
+                >
+                  Historico
+                </button>
+              </div>
             </div>
+
+            {!naAbaHistorico ? (
+              <div className="pedidos-operacao__acoes-toolbar">
+                <button
+                  type="button"
+                  className="pedidos__botao-secundario"
+                  data-testid="botao-cadastrar-mesas"
+                  onClick={pedidos.alternarCadastroMesas}
+                >
+                  Cadastrar mesas
+                </button>
+                <button
+                  type="button"
+                  data-testid="botao-pedido-balcao"
+                  onClick={() => void pedidos.abrirPedidoBalcao()}
+                >
+                  Pedido balcao
+                </button>
+              </div>
+            ) : null}
           </header>
 
           {pedidos.sucesso ? (
@@ -91,28 +121,48 @@ export function PedidosPage({ pedidos }: PedidosPageProps) {
             </p>
           ) : null}
 
-          {pedidos.exibirCadastroMesas ? (
-            <section className="pedidos-operacao__cadastro-mesas">
-              <FormularioMesa
-                carregando={pedidos.carregando}
-                onCriarIntervalo={pedidos.criarMesasPorIntervalo}
+          {naAbaHistorico ? (
+            <>
+              <FiltrosHistoricoPedidos
+                status={pedidos.filtroHistoricoStatus}
+                formaPagamento={pedidos.filtroHistoricoFormaPagamento}
+                onAlterarStatus={pedidos.definirFiltroHistoricoStatus}
+                onAlterarFormaPagamento={pedidos.definirFiltroHistoricoFormaPagamento}
               />
-            </section>
-          ) : null}
+              <div className="pedidos-operacao__grade-scroll">
+                <HistoricoPedidosLista
+                  itens={pedidos.historicoPedidos}
+                  pedidoSelecionadoId={pedidos.historicoPedidoSelecionadoId}
+                  onSelecionar={(item) => void pedidos.selecionarHistoricoPedido(item)}
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              {pedidos.exibirCadastroMesas ? (
+                <section className="pedidos-operacao__cadastro-mesas">
+                  <FormularioMesa
+                    carregando={pedidos.carregando}
+                    onCriarIntervalo={pedidos.criarMesasPorIntervalo}
+                  />
+                </section>
+              ) : null}
 
-          <div className="pedidos-operacao__grade-scroll">
-            <GradeMesas
-              mesas={pedidos.mesas}
-              mesaSelecionadaId={pedidos.mesaSelecionada?.id ?? null}
-              filtroStatus={pedidos.filtroStatusMesas}
-              onSelecionar={(mesa) => void pedidos.selecionarMesaNoGrid(mesa)}
-            />
-          </div>
+              <div className="pedidos-operacao__grade-scroll">
+                <GradeMesas
+                  mesas={pedidos.mesas}
+                  mesaSelecionadaId={pedidos.mesaSelecionada?.id ?? null}
+                  filtroStatus={pedidos.filtroStatusMesas}
+                  onSelecionar={(mesa) => void pedidos.selecionarMesaNoGrid(mesa)}
+                />
+              </div>
 
-          <FiltrosStatusMesas
-            filtroAtivo={pedidos.filtroStatusMesas}
-            onAlterarFiltro={pedidos.definirFiltroStatusMesas}
-          />
+              <FiltrosStatusMesas
+                filtroAtivo={pedidos.filtroStatusMesas}
+                onAlterarFiltro={pedidos.definirFiltroStatusMesas}
+              />
+            </>
+          )}
         </section>
       </div>
     </main>

@@ -3,6 +3,7 @@ import type { CategoriaProduto } from '@shared/types/categoria-produto'
 import type { PedidoItem } from '@shared/types/pedido'
 import type { ProdutoComCategoria } from '@shared/types/produto'
 import { formatarMoeda } from '@shared/utils/moeda'
+import { ModalMotivoCancelamento } from './modal-motivo-cancelamento'
 
 interface BuscaProdutosPedidoProps {
   produtos: ProdutoComCategoria[]
@@ -276,7 +277,7 @@ export function BuscaProdutosPedido({
 interface ListaItensPedidoProps {
   itens: PedidoItem[]
   onAlterarQuantidade: (itemId: string, quantidade: number) => Promise<boolean>
-  onRemover: (itemId: string) => Promise<boolean>
+  onRemover: (itemId: string, motivoCancelamento: string) => Promise<boolean>
   variant?: 'lista' | 'tabela'
 }
 
@@ -286,6 +287,21 @@ export function ListaItensPedido({
   onRemover,
   variant = 'lista',
 }: ListaItensPedidoProps) {
+  const [itemParaCancelar, setItemParaCancelar] = useState<PedidoItem | null>(null)
+  const [cancelandoItem, setCancelandoItem] = useState(false)
+
+  const handleConfirmarCancelamentoItem = async (motivoCancelamento: string) => {
+    if (!itemParaCancelar) return
+
+    setCancelandoItem(true)
+    try {
+      const ok = await onRemover(itemParaCancelar.id, motivoCancelamento)
+      if (ok) setItemParaCancelar(null)
+    } finally {
+      setCancelandoItem(false)
+    }
+  }
+
   if (itens.length === 0) {
     return (
       <p className="lista-itens-pedido__vazio" data-testid="estado-vazio-itens-pedido">
@@ -294,18 +310,89 @@ export function ListaItensPedido({
     )
   }
 
+  const modalCancelamento = itemParaCancelar ? (
+    <ModalMotivoCancelamento
+      titulo="Cancelar item"
+      descricao={`Deseja cancelar o item "${itemParaCancelar.produtoNome}"?`}
+      testId="modal-confirmar-cancelamento-item"
+      confirmando={cancelandoItem}
+      onFechar={() => {
+        if (!cancelandoItem) setItemParaCancelar(null)
+      }}
+      onConfirmar={handleConfirmarCancelamentoItem}
+    />
+  ) : null
+
   if (variant === 'tabela') {
     return (
-      <ul className="lista-itens-pedido lista-itens-pedido--tabela" data-testid="lista-itens-pedido">
+      <>
+        <ul className="lista-itens-pedido lista-itens-pedido--tabela" data-testid="lista-itens-pedido">
+          {itens.map((item) => (
+            <li key={item.id} className="lista-itens-pedido__linha" data-testid="item-pedido">
+              <div className="lista-itens-pedido__quantidade">
+                <button
+                  type="button"
+                  data-testid="botao-diminuir-quantidade"
+                  onClick={() => void onAlterarQuantidade(item.id, item.quantidade - 1)}
+                  disabled={item.quantidade <= 1}
+                  aria-label="Diminuir quantidade"
+                >
+                  -
+                </button>
+                <span data-testid="item-pedido-quantidade">{item.quantidade}</span>
+                <button
+                  type="button"
+                  data-testid="botao-aumentar-quantidade"
+                  onClick={() => void onAlterarQuantidade(item.id, item.quantidade + 1)}
+                  aria-label="Aumentar quantidade"
+                >
+                  +
+                </button>
+              </div>
+              <div className="lista-itens-pedido__produto">
+                <strong data-testid="item-pedido-nome">{item.produtoNome}</strong>
+                {item.observacao ? <p data-testid="item-pedido-obs">{item.observacao}</p> : null}
+              </div>
+              <span data-testid="item-pedido-preco-unitario">
+                {formatarMoeda(item.precoUnitarioCentavos)}
+              </span>
+              <div className="lista-itens-pedido__total-acoes">
+                <span data-testid="item-pedido-total">{formatarMoeda(item.totalCentavos)}</span>
+                <button
+                  type="button"
+                  data-testid="botao-remover-item"
+                  onClick={() => setItemParaCancelar(item)}
+                  aria-label="Cancelar item"
+                >
+                  x
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+        {modalCancelamento}
+      </>
+    )
+  }
+
+  return (
+    <>
+      <ul className="lista-itens-pedido" data-testid="lista-itens-pedido">
         {itens.map((item) => (
-          <li key={item.id} className="lista-itens-pedido__linha" data-testid="item-pedido">
+          <li key={item.id} className="lista-itens-pedido__item" data-testid="item-pedido">
+            <div>
+              <strong data-testid="item-pedido-nome">{item.produtoNome}</strong>
+              {item.observacao ? <p data-testid="item-pedido-obs">{item.observacao}</p> : null}
+            </div>
+            <span data-testid="item-pedido-preco-unitario">
+              {formatarMoeda(item.precoUnitarioCentavos)}
+            </span>
             <div className="lista-itens-pedido__quantidade">
               <button
                 type="button"
                 data-testid="botao-diminuir-quantidade"
                 onClick={() => void onAlterarQuantidade(item.id, item.quantidade - 1)}
                 disabled={item.quantidade <= 1}
-                aria-label="Diminuir quantidade"
               >
                 -
               </button>
@@ -314,74 +401,22 @@ export function ListaItensPedido({
                 type="button"
                 data-testid="botao-aumentar-quantidade"
                 onClick={() => void onAlterarQuantidade(item.id, item.quantidade + 1)}
-                aria-label="Aumentar quantidade"
               >
                 +
               </button>
             </div>
-            <div className="lista-itens-pedido__produto">
-              <strong data-testid="item-pedido-nome">{item.produtoNome}</strong>
-              {item.observacao ? <p data-testid="item-pedido-obs">{item.observacao}</p> : null}
-            </div>
-            <span data-testid="item-pedido-preco-unitario">
-              {formatarMoeda(item.precoUnitarioCentavos)}
-            </span>
-            <div className="lista-itens-pedido__total-acoes">
-              <span data-testid="item-pedido-total">{formatarMoeda(item.totalCentavos)}</span>
-              <button
-                type="button"
-                data-testid="botao-remover-item"
-                onClick={() => void onRemover(item.id)}
-                aria-label="Cancelar item"
-              >
-                x
-              </button>
-            </div>
+            <span data-testid="item-pedido-total">{formatarMoeda(item.totalCentavos)}</span>
+            <button
+              type="button"
+              data-testid="botao-remover-item"
+              onClick={() => setItemParaCancelar(item)}
+            >
+              Remover
+            </button>
           </li>
         ))}
       </ul>
-    )
-  }
-
-  return (
-    <ul className="lista-itens-pedido" data-testid="lista-itens-pedido">
-      {itens.map((item) => (
-        <li key={item.id} className="lista-itens-pedido__item" data-testid="item-pedido">
-          <div>
-            <strong data-testid="item-pedido-nome">{item.produtoNome}</strong>
-            {item.observacao ? <p data-testid="item-pedido-obs">{item.observacao}</p> : null}
-          </div>
-          <span data-testid="item-pedido-preco-unitario">
-            {formatarMoeda(item.precoUnitarioCentavos)}
-          </span>
-          <div className="lista-itens-pedido__quantidade">
-            <button
-              type="button"
-              data-testid="botao-diminuir-quantidade"
-              onClick={() => void onAlterarQuantidade(item.id, item.quantidade - 1)}
-              disabled={item.quantidade <= 1}
-            >
-              -
-            </button>
-            <span data-testid="item-pedido-quantidade">{item.quantidade}</span>
-            <button
-              type="button"
-              data-testid="botao-aumentar-quantidade"
-              onClick={() => void onAlterarQuantidade(item.id, item.quantidade + 1)}
-            >
-              +
-            </button>
-          </div>
-          <span data-testid="item-pedido-total">{formatarMoeda(item.totalCentavos)}</span>
-          <button
-            type="button"
-            data-testid="botao-remover-item"
-            onClick={() => void onRemover(item.id)}
-          >
-            Remover
-          </button>
-        </li>
-      ))}
-    </ul>
+      {modalCancelamento}
+    </>
   )
 }

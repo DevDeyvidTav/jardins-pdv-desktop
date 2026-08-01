@@ -70,6 +70,7 @@ describe('pedidos', () => {
 
     expect(pedido.tipo).toBe('BALCAO')
     expect(pedido.mesaId).toBeNull()
+    expect(ambiente.criarPedidoBalcao().id).toBe(pedido.id)
   })
 
   it('adiciona produto ativo ao pedido', async () => {
@@ -157,6 +158,7 @@ describe('pedidos', () => {
     const resumoFinal = ambiente.cancelarItemPedido({
       pedidoId: pedido.id,
       itemId: resumo.itens[0]!.id,
+      motivoCancelamento: 'Cliente desistiu',
     })
 
     expect(resumoFinal.itens).toHaveLength(0)
@@ -177,12 +179,14 @@ describe('pedidos', () => {
     ambiente.cancelarItemPedido({
       pedidoId: pedido.id,
       itemId: resumo.itens[0]!.id,
+      motivoCancelamento: 'Erro de lancamento',
     })
 
     const itensPersistidos = ambiente.repositorioItem.listarPorPedido(pedido.id, false)
 
     expect(itensPersistidos).toHaveLength(1)
     expect(itensPersistidos[0]?.canceladoEm).not.toBeNull()
+    expect(itensPersistidos[0]?.motivoCancelamento).toBe('Erro de lancamento')
     expect(itemPedidoEstaAtivo(itensPersistidos[0]!)).toBe(false)
   })
 
@@ -201,6 +205,7 @@ describe('pedidos', () => {
     ambiente.cancelarItemPedido({
       pedidoId: pedido.id,
       itemId: resumo.itens[0]!.id,
+      motivoCancelamento: 'Troca de produto',
     })
 
     const resumoDetalhado = obterResumo({
@@ -228,12 +233,21 @@ describe('pedidos', () => {
       quantidade: 2,
     })
 
-    ambiente.cancelarPedido({ pedidoId: pedido.id })
+    const pedidoCancelado = ambiente.cancelarPedido({
+      pedidoId: pedido.id,
+      motivoCancelamento: 'Mesa fechou sem consumo',
+    })
 
     const itensPersistidos = ambiente.repositorioItem.listarPorPedido(pedido.id, false)
 
     expect(itensPersistidos).toHaveLength(2)
     expect(itensPersistidos.every((item) => item.canceladoEm !== null)).toBe(true)
+    expect(
+      itensPersistidos.every(
+        (item) => item.motivoCancelamento === 'Mesa fechou sem consumo',
+      ),
+    ).toBe(true)
+    expect(pedidoCancelado.motivoCancelamento).toBe('Mesa fechou sem consumo')
   })
 
   it('impede alteracao em pedido cancelado', async () => {
@@ -247,7 +261,10 @@ describe('pedidos', () => {
       quantidade: 1,
     })
 
-    ambiente.cancelarPedido({ pedidoId: pedido.id })
+    ambiente.cancelarPedido({
+      pedidoId: pedido.id,
+      motivoCancelamento: 'Pedido duplicado',
+    })
 
     try {
       ambiente.alterarQuantidadeItemPedido({
@@ -269,7 +286,10 @@ describe('pedidos', () => {
 
     expect(mesa?.status).toBe(STATUS_MESA.OCUPADA)
 
-    ambiente.cancelarPedido({ pedidoId: pedido.id })
+    ambiente.cancelarPedido({
+      pedidoId: pedido.id,
+      motivoCancelamento: 'Cliente saiu',
+    })
     mesa = ambiente.repositorioMesa.buscarPorId(ambiente.mesa.id)
 
     expect(mesa?.status).toBe(STATUS_MESA.LIVRE)

@@ -50,3 +50,7 @@ export interface ReativarProdutoEntrada {
 export interface ObterProdutoPorIdEntrada {
   produtoId: string
 }
+
+export interface ExcluirProdutoEntrada {
+  produtoId: string
+}

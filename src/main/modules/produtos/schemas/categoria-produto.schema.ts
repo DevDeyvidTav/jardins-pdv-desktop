@@ -19,6 +19,10 @@ export const reativarCategoriaProdutoSchema = z.object({
   categoriaId: z.string().trim().min(1, 'Categoria e obrigatoria.'),
 })
 
+export const excluirCategoriaProdutoSchema = z.object({
+  categoriaId: z.string().trim().min(1, 'Categoria e obrigatoria.'),
+})
+
 export const listarCategoriasProdutoSchema = z
   .object({
     apenasAtivas: z.boolean().optional(),

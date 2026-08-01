@@ -1,38 +1,82 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import type { CategoriaProduto } from '@shared/types/categoria-produto'
+import type { ProdutoComCategoria } from '@shared/types/produto'
 import { converterReaisParaCentavos, formatarMoeda } from '@shared/utils/moeda'
+
+function formatarCentavosParaInput(centavos: number): string {
+  return (centavos / 100).toFixed(2).replace('.', ',')
+}
 
 interface FormularioProdutoProps {
   categorias: CategoriaProduto[]
+  categoriaPadraoId?: string
+  produtoInicial?: ProdutoComCategoria | null
   carregando: boolean
-  onCriar: (
+  onSalvar: (
     categoriaId: string,
     nome: string,
     precoCentavos: number,
     descricao?: string,
   ) => Promise<boolean>
   onLimparFeedback: () => void
+  onCancelar?: () => void
 }
 
 export function FormularioProduto({
   categorias,
+  categoriaPadraoId,
+  produtoInicial = null,
   carregando,
-  onCriar,
+  onSalvar,
   onLimparFeedback,
+  onCancelar,
 }: FormularioProdutoProps) {
+  const editando = produtoInicial !== null
   const categoriasAtivas = categorias.filter((categoria) => categoria.ativo)
-  const [categoriaId, setCategoriaId] = useState(categoriasAtivas[0]?.id ?? '')
-  const [nome, setNome] = useState('')
-  const [descricao, setDescricao] = useState('')
-  const [preco, setPreco] = useState('')
+  const categoriasDisponiveis =
+    editando && produtoInicial
+      ? categorias.filter(
+          (categoria) =>
+            categoria.ativo || categoria.id === produtoInicial.categoriaId,
+        )
+      : categoriasAtivas
+
+  const [categoriaId, setCategoriaId] = useState(
+    produtoInicial?.categoriaId ??
+      (categoriaPadraoId && categoriasAtivas.some((c) => c.id === categoriaPadraoId)
+        ? categoriaPadraoId
+        : (categoriasAtivas[0]?.id ?? '')),
+  )
+  const [nome, setNome] = useState(produtoInicial?.nome ?? '')
+  const [descricao, setDescricao] = useState(produtoInicial?.descricao ?? '')
+  const [preco, setPreco] = useState(
+    produtoInicial ? formatarCentavosParaInput(produtoInicial.precoCentavos) : '',
+  )
   const [erroValidacao, setErroValidacao] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
 
   useEffect(() => {
+    if (produtoInicial) {
+      setCategoriaId(produtoInicial.categoriaId)
+      setNome(produtoInicial.nome)
+      setDescricao(produtoInicial.descricao ?? '')
+      setPreco(formatarCentavosParaInput(produtoInicial.precoCentavos))
+      setErroValidacao(null)
+      return
+    }
+
+    if (
+      categoriaPadraoId &&
+      categoriasAtivas.some((categoria) => categoria.id === categoriaPadraoId)
+    ) {
+      setCategoriaId(categoriaPadraoId)
+      return
+    }
+
     if (categoriaId === '' && categoriasAtivas[0]) {
       setCategoriaId(categoriasAtivas[0].id)
     }
-  }, [categoriaId, categoriasAtivas])
+  }, [produtoInicial, categoriaPadraoId, categoriasAtivas, categoriaId])
 
   async function handleSubmit(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault()
@@ -59,14 +103,14 @@ export function FormularioProduto({
     setEnviando(true)
 
     try {
-      const sucesso = await onCriar(
+      const sucesso = await onSalvar(
         categoriaId,
         nome,
         precoCentavos,
         descricao.trim() || undefined,
       )
 
-      if (sucesso) {
+      if (sucesso && !editando) {
         setNome('')
         setDescricao('')
         setPreco('')
@@ -81,7 +125,7 @@ export function FormularioProduto({
   return (
     <form
       className="formulario-produto"
-      data-testid="formulario-produto"
+      data-testid={editando ? 'formulario-editar-produto' : 'formulario-produto'}
       onSubmit={(evento) => void handleSubmit(evento)}
     >
       <label className="formulario-produto__campo" htmlFor="categoria-produto">
@@ -91,14 +135,15 @@ export function FormularioProduto({
           data-testid="campo-categoria-produto"
           value={categoriaId}
           onChange={(evento) => setCategoriaId(evento.target.value)}
-          disabled={carregando || enviando || categoriasAtivas.length === 0}
+          disabled={carregando || enviando || categoriasDisponiveis.length === 0}
         >
-          {categoriasAtivas.length === 0 ? (
+          {categoriasDisponiveis.length === 0 ? (
             <option value="">Nenhuma categoria ativa</option>
           ) : (
-            categoriasAtivas.map((categoria) => (
+            categoriasDisponiveis.map((categoria) => (
               <option key={categoria.id} value={categoria.id}>
                 {categoria.nome}
+                {!categoria.ativo ? ' (inativa)' : ''}
               </option>
             ))
           )}
@@ -156,13 +201,26 @@ export function FormularioProduto({
         </p>
       ) : null}
 
-      <button
-        type="submit"
-        data-testid="botao-criar-produto"
-        disabled={carregando || enviando || categoriasAtivas.length === 0}
-      >
-        Criar produto
-      </button>
+      <div className="formulario-produto__acoes">
+        {onCancelar ? (
+          <button
+            type="button"
+            className="produtos__botao-secundario"
+            data-testid="botao-cancelar-edicao-produto"
+            disabled={carregando || enviando}
+            onClick={onCancelar}
+          >
+            Cancelar
+          </button>
+        ) : null}
+        <button
+          type="submit"
+          data-testid={editando ? 'botao-salvar-produto' : 'botao-criar-produto'}
+          disabled={carregando || enviando || categoriasDisponiveis.length === 0}
+        >
+          {editando ? 'Salvar produto' : 'Criar produto'}
+        </button>
+      </div>
     </form>
   )
 }

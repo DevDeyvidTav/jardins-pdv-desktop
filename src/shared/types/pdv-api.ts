@@ -3,6 +3,7 @@ import type {
   AtualizarCategoriaProdutoEntrada,
   CategoriaProduto,
   CriarCategoriaProdutoEntrada,
+  ExcluirCategoriaProdutoEntrada,
   InativarCategoriaProdutoEntrada,
   ListarCategoriasProdutoEntrada,
   ReativarCategoriaProdutoEntrada,
@@ -21,6 +22,7 @@ import type {
   AtualizarProdutoEntrada,
   BuscarProdutosEntrada,
   CriarProdutoEntrada,
+  ExcluirProdutoEntrada,
   InativarProdutoEntrada,
   ListarProdutosEntrada,
   ObterProdutoPorIdEntrada,
@@ -40,6 +42,8 @@ import type {
   AplicarDescontoPedidoEntrada,
   CancelarPedidoEntrada,
   CriarPedidoMesaEntrada,
+  ItemHistoricoPedido,
+  ListarHistoricoPedidosEntrada,
   ObterPedidoAbertoPorMesaEntrada,
   ObterResumoPedidoEntrada,
   Pedido,
@@ -83,12 +87,14 @@ export interface PdvApi {
     reativarCategoria: (
       entrada: ReativarCategoriaProdutoEntrada,
     ) => Promise<CategoriaProduto>
+    excluirCategoria: (entrada: ExcluirCategoriaProdutoEntrada) => Promise<void>
     criarProduto: (entrada: CriarProdutoEntrada) => Promise<Produto>
     listarProdutos: (entrada?: ListarProdutosEntrada) => Promise<ProdutoComCategoria[]>
     buscarProdutos: (entrada: BuscarProdutosEntrada) => Promise<ProdutoComCategoria[]>
     atualizarProduto: (entrada: AtualizarProdutoEntrada) => Promise<Produto>
     inativarProduto: (entrada: InativarProdutoEntrada) => Promise<Produto>
     reativarProduto: (entrada: ReativarProdutoEntrada) => Promise<Produto>
+    excluirProduto: (entrada: ExcluirProdutoEntrada) => Promise<void>
     obterProdutoPorId: (entrada: ObterProdutoPorIdEntrada) => Promise<Produto>
   }
   mesas: {
@@ -118,6 +124,9 @@ export interface PdvApi {
     ) => Promise<ResumoPedido>
     obterResumoPedido: (entrada: ObterResumoPedidoEntrada) => Promise<ResumoPedido>
     cancelarPedido: (entrada: CancelarPedidoEntrada) => Promise<Pedido>
+    listarHistoricoPedidos: (
+      entrada?: ListarHistoricoPedidosEntrada,
+    ) => Promise<ItemHistoricoPedido[]>
   }
   pagamentos: {
     registrarPagamentoPedido: (

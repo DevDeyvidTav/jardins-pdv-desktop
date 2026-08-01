@@ -107,6 +107,7 @@ export class PedidoItemRepository {
       criadoEm: agora,
       atualizadoEm: agora,
       canceladoEm: null,
+      motivoCancelamento: null,
     }
 
     conexao.instancia.run(
@@ -169,7 +170,7 @@ export class PedidoItemRepository {
     }
   }
 
-  cancelar(itemId: string): PedidoItem {
+  cancelar(itemId: string, motivoCancelamento: string): PedidoItem {
     const existente = this.buscarPorId(itemId)
 
     if (!existente) {
@@ -184,24 +185,31 @@ export class PedidoItemRepository {
     const agora = agoraEmIsoUtc()
 
     conexao.instancia.run(
-      `UPDATE pedido_item SET cancelado_em = ?, atualizado_em = ? WHERE id = ?`,
-      [agora, agora, itemId],
+      `UPDATE pedido_item
+       SET cancelado_em = ?, motivo_cancelamento = ?, atualizado_em = ?
+       WHERE id = ?`,
+      [agora, motivoCancelamento, agora, itemId],
     )
 
     persistirConexaoBanco(conexao)
 
-    return { ...existente, canceladoEm: agora, atualizadoEm: agora }
+    return {
+      ...existente,
+      canceladoEm: agora,
+      motivoCancelamento,
+      atualizadoEm: agora,
+    }
   }
 
-  cancelarItensAtivosPorPedido(pedidoId: string): void {
+  cancelarItensAtivosPorPedido(pedidoId: string, motivoCancelamento: string): void {
     const conexao = this.obterConexao()
     const agora = agoraEmIsoUtc()
 
     conexao.instancia.run(
       `UPDATE pedido_item
-       SET cancelado_em = ?, atualizado_em = ?
+       SET cancelado_em = ?, motivo_cancelamento = ?, atualizado_em = ?
        WHERE pedido_id = ? AND cancelado_em IS NULL`,
-      [agora, agora, pedidoId],
+      [agora, motivoCancelamento, agora, pedidoId],
     )
 
     persistirConexaoBanco(conexao)

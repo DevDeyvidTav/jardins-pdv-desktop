@@ -12,6 +12,7 @@ import {
   obterResumoPedidoSchema,
   cancelarItemPedidoSchema,
   removerItemPedidoSchema,
+  listarHistoricoPedidosSchema,
 } from './schemas/pedido.schema'
 import { adicionarItemPedido } from './use-cases/adicionar-item-pedido'
 import { alterarQuantidadeItemPedido } from './use-cases/alterar-quantidade-item-pedido'
@@ -25,6 +26,7 @@ import {
   obterResumoPedido,
 } from './use-cases/consultas-pedido'
 import { cancelarItemPedido } from './use-cases/cancelar-item-pedido'
+import { listarHistoricoPedidos } from './use-cases/listar-historico-pedidos'
 
 function tratarErroPedidos(erro: unknown): never {
   if (erro instanceof ErroPedidos) {
@@ -126,6 +128,16 @@ export function registrarHandlersPedidos(): void {
   ipcMain.handle(CANAIS_IPC.PEDIDOS_CANCELAR, (_evento, entradaDesconhecida) => {
     try {
       return cancelarPedido(cancelarPedidoSchema.parse(entradaDesconhecida))
+    } catch (erro) {
+      tratarErroPedidos(erro)
+    }
+  })
+
+  ipcMain.handle(CANAIS_IPC.PEDIDOS_LISTAR_HISTORICO, (_evento, entradaDesconhecida) => {
+    try {
+      return listarHistoricoPedidos(
+        listarHistoricoPedidosSchema.parse(entradaDesconhecida ?? {}),
+      )
     } catch (erro) {
       tratarErroPedidos(erro)
     }

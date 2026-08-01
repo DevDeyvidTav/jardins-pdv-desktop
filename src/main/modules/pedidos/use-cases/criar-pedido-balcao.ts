@@ -20,6 +20,11 @@ export function criarCriarPedidoBalcao(
       )
     }
 
+    const pedidoAbertoExistente = repositorioPedido.buscarPedidoAbertoBalcao()
+    if (pedidoAbertoExistente) {
+      return pedidoAbertoExistente
+    }
+
     return repositorioPedido.inserir({
       sessaoCaixaId: sessaoAberta.id,
       mesaId: null,

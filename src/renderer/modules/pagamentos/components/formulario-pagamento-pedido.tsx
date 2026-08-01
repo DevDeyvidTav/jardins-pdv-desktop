@@ -1,67 +1,135 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import {
   FORMA_PAGAMENTO,
   type PagamentoInformado,
 } from '@shared/types/pagamento-pedido'
-import { formatarMoeda } from '@shared/utils/moeda'
+import { converterReaisParaCentavos, formatarMoeda } from '@shared/utils/moeda'
 
 interface Props {
   totalCentavos: number
+  erroExterno?: string | null
   onConfirmar: (pagamento: PagamentoInformado) => Promise<boolean>
 }
 
-export function FormularioPagamentoPedido({ totalCentavos, onConfirmar }: Props) {
+function formatarCentavosParaInput(centavos: number): string {
+  return (centavos / 100).toFixed(2).replace('.', ',')
+}
+
+export function FormularioPagamentoPedido({
+  totalCentavos,
+  erroExterno = null,
+  onConfirmar,
+}: Props) {
   const [formaPagamento, setFormaPagamento] = useState<PagamentoInformado['formaPagamento']>(
     FORMA_PAGAMENTO.DINHEIRO,
   )
-  const [valor, setValor] = useState('')
+  const [valor, setValor] = useState(formatarCentavosParaInput(totalCentavos))
   const [motivoCortesia, setMotivoCortesia] = useState('')
   const [erro, setErro] = useState<string | null>(null)
+  const [enviando, setEnviando] = useState(false)
 
-  const restante = totalCentavos
+  useEffect(() => {
+    setValor(formatarCentavosParaInput(totalCentavos))
+  }, [totalCentavos])
 
   async function confirmar(evento: FormEvent) {
     evento.preventDefault()
-    const valorCentavos = Math.round(Number(valor.replace(',', '.')) * 100)
-    if (!Number.isInteger(valorCentavos) || valorCentavos <= 0) {
+    const valorCentavos = converterReaisParaCentavos(valor)
+
+    if (valorCentavos === null || valorCentavos <= 0) {
       setErro('Informe um valor maior que zero.')
       return
     }
 
-    setErro(null)
+    if (valorCentavos > totalCentavos) {
+      setErro('Pagamento nao pode ser maior que o valor restante.')
+      return
+    }
 
-    await onConfirmar({
-      formaPagamento,
-      valorCentavos,
-      motivoCortesia:
-        formaPagamento === FORMA_PAGAMENTO.CORTESIA ? motivoCortesia.trim() : undefined,
-    })
+    if (
+      formaPagamento === FORMA_PAGAMENTO.CORTESIA &&
+      motivoCortesia.trim().length === 0
+    ) {
+      setErro('Informe o motivo da cortesia.')
+      return
+    }
+
+    setErro(null)
+    setEnviando(true)
+
+    try {
+      const ok = await onConfirmar({
+        formaPagamento,
+        valorCentavos,
+        motivoCortesia:
+          formaPagamento === FORMA_PAGAMENTO.CORTESIA
+            ? motivoCortesia.trim()
+            : undefined,
+      })
+
+      if (!ok && !erroExterno) {
+        setErro('Nao foi possivel registrar o pagamento.')
+      }
+    } finally {
+      setEnviando(false)
+    }
   }
 
+  const mensagemErro = erro ?? erroExterno
+
   return (
-    <form className="formulario-pagamento" data-testid="formulario-pagamento" onSubmit={(evento) => void confirmar(evento)}>
+    <form
+      className="formulario-pagamento"
+      data-testid="formulario-pagamento"
+      onSubmit={(evento) => void confirmar(evento)}
+    >
       <strong>Pagamento</strong>
       <div className="formulario-pagamento__campos">
-        <select data-testid="campo-forma-pagamento" value={formaPagamento} onChange={(evento) => setFormaPagamento(evento.target.value as PagamentoInformado['formaPagamento'])}>
+        <select
+          data-testid="campo-forma-pagamento"
+          value={formaPagamento}
+          onChange={(evento) =>
+            setFormaPagamento(evento.target.value as PagamentoInformado['formaPagamento'])
+          }
+          disabled={enviando}
+        >
           <option value={FORMA_PAGAMENTO.DINHEIRO}>Dinheiro</option>
           <option value={FORMA_PAGAMENTO.CARTAO_CREDITO}>Cartão crédito</option>
           <option value={FORMA_PAGAMENTO.CARTAO_DEBITO}>Cartão débito</option>
           <option value={FORMA_PAGAMENTO.PIX}>Pix</option>
           <option value={FORMA_PAGAMENTO.CORTESIA}>Cortesia</option>
         </select>
-        <input data-testid="campo-valor-pagamento" value={valor} onChange={(evento) => setValor(evento.target.value)} placeholder="0,00" inputMode="decimal" />
+        <input
+          data-testid="campo-valor-pagamento"
+          value={valor}
+          onChange={(evento) => setValor(evento.target.value)}
+          placeholder="0,00"
+          inputMode="decimal"
+          disabled={enviando}
+        />
         {formaPagamento === FORMA_PAGAMENTO.CORTESIA ? (
           <input
             data-testid="campo-motivo-cortesia"
             value={motivoCortesia}
             onChange={(evento) => setMotivoCortesia(evento.target.value)}
             placeholder="Motivo da cortesia"
+            disabled={enviando}
           />
         ) : null}
       </div>
-      <p>Total a pagar: {formatarMoeda(restante)}</p>
-      {erro ? <p role="alert">{erro}</p> : null}
-      <button type="submit" data-testid="botao-confirmar-pagamento">Confirmar pagamento</button>
+      <p>Total a pagar: {formatarMoeda(totalCentavos)}</p>
+      {mensagemErro ? (
+        <p role="alert" data-testid="erro-pagamento">
+          {mensagemErro}
+        </p>
+      ) : null}
+      <button
+        type="submit"
+        data-testid="botao-confirmar-pagamento"
+        disabled={enviando || totalCentavos <= 0}
+      >
+        Confirmar pagamento
+      </button>
     </form>
   )
 }

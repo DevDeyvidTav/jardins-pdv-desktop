@@ -38,6 +38,11 @@ async function registrarMovimento(
   valor: string,
   descricao?: string,
 ) {
+  const formulario = janela.getByTestId('formulario-movimento-caixa')
+  if (!(await formulario.isVisible().catch(() => false))) {
+    await janela.getByTestId('botao-toggle-movimento').click()
+  }
+
   await janela.getByTestId('campo-tipo-movimento').selectOption(tipo)
   await janela.getByTestId('campo-valor-movimento').fill(valor)
 

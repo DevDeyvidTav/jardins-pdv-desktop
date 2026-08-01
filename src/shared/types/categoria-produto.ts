@@ -29,3 +29,7 @@ export interface ReativarCategoriaProdutoEntrada {
 export interface ListarCategoriasProdutoEntrada {
   apenasAtivas?: boolean
 }
+
+export interface ExcluirCategoriaProdutoEntrada {
+  categoriaId: string
+}

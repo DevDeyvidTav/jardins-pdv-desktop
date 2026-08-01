@@ -6,6 +6,7 @@ interface BuscaProdutosProps {
   categorias: CategoriaProduto[]
   onTermoChange: (termo: string) => void
   onCategoriaChange: (categoriaId: string) => void
+  compacto?: boolean
 }
 
 export function BuscaProdutos({
@@ -14,30 +15,34 @@ export function BuscaProdutos({
   categorias,
   onTermoChange,
   onCategoriaChange,
+  compacto = false,
 }: BuscaProdutosProps) {
   return (
-    <section className="busca-produtos" data-testid="busca-produtos">
+    <section
+      className={compacto ? 'busca-produtos busca-produtos--compacta' : 'busca-produtos'}
+      data-testid="busca-produtos"
+    >
       <label className="busca-produtos__campo" htmlFor="termo-busca-produto">
-        Buscar por nome
+        {compacto ? null : 'Buscar por nome'}
         <input
           id="termo-busca-produto"
           data-testid="campo-busca-produto"
           type="search"
           value={termo}
           onChange={(evento) => onTermoChange(evento.target.value)}
-          placeholder="Ex.: coca"
+          placeholder="Buscar produto..."
         />
       </label>
 
       <label className="busca-produtos__campo" htmlFor="filtro-categoria-produto">
-        Filtrar por categoria
+        {compacto ? null : 'Filtrar por categoria'}
         <select
           id="filtro-categoria-produto"
           data-testid="filtro-categoria-produto"
           value={categoriaFiltroId}
           onChange={(evento) => onCategoriaChange(evento.target.value)}
         >
-          <option value="">Todas</option>
+          <option value="">Todas as categorias</option>
           {categorias.map((categoria) => (
             <option key={categoria.id} value={categoria.id}>
               {categoria.nome}

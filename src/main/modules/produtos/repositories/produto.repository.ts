@@ -235,6 +235,46 @@ export class ProdutoRepository {
       atualizadoEm: agora,
     }
   }
+
+  contarPorCategoria(categoriaId: string): number {
+    const conexao = this.obterConexao()
+    const consulta = conexao.instancia.prepare(
+      `SELECT COUNT(*) AS total FROM produto WHERE categoria_id = ?`,
+    )
+    consulta.bind([categoriaId])
+
+    if (!consulta.step()) {
+      consulta.free()
+      return 0
+    }
+
+    const linha = consulta.getAsObject() as { total: number }
+    consulta.free()
+    return Number(linha.total) || 0
+  }
+
+  estaReferenciadoEmPedido(produtoId: string): boolean {
+    const conexao = this.obterConexao()
+    const consulta = conexao.instancia.prepare(
+      `SELECT 1 AS existe FROM pedido_item WHERE produto_id = ? LIMIT 1`,
+    )
+    consulta.bind([produtoId])
+    const existe = consulta.step()
+    consulta.free()
+    return existe
+  }
+
+  excluir(produtoId: string): void {
+    const existente = this.buscarPorId(produtoId)
+
+    if (!existente) {
+      throw new Error('Produto nao encontrado.')
+    }
+
+    const conexao = this.obterConexao()
+    conexao.instancia.run(`DELETE FROM produto WHERE id = ?`, [produtoId])
+    persistirConexaoBanco(conexao)
+  }
 }
 
 export function criarProdutoRepository(conexao?: ConexaoSqlite): ProdutoRepository {

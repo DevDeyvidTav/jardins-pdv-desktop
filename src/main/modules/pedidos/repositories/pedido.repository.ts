@@ -52,6 +52,17 @@ export class PedidoRepository {
     )
   }
 
+  buscarPedidoAbertoBalcao(): Pedido | null {
+    return this.buscarPorConsulta(
+      `SELECT ${obterColunasPedido()}
+       FROM pedido
+       WHERE tipo = ? AND status = ?
+       ORDER BY criado_em DESC
+       LIMIT 1`,
+      [TIPO_PEDIDO.BALCAO, STATUS_PEDIDO.ABERTO],
+    )
+  }
+
   listarPedidosAbertos(): Pedido[] {
     const conexao = this.obterConexao()
     const consulta = conexao.instancia.prepare(
@@ -71,6 +82,85 @@ export class PedidoRepository {
 
     consulta.free()
     return pedidos
+  }
+
+  listarHistorico(filtros: {
+    status: 'TODOS' | 'FINALIZADO' | 'CANCELADO'
+    formaPagamento: string
+  }): Array<{
+    pedido: Pedido
+    mesaNumero: number | null
+    formasPagamento: string[]
+    totalPagoCentavos: number
+  }> {
+    const conexao = this.obterConexao()
+    const consulta = conexao.instancia.prepare(
+      `SELECT
+         p.id, p.sessao_caixa_id, p.mesa_id, p.tipo, p.status,
+         p.subtotal_centavos, p.desconto_centavos, p.total_centavos,
+         p.desconto_itens_centavos, p.desconto_pedido_centavos,
+         p.valor_pago_centavos, p.valor_cortesia_centavos, p.valor_restante_centavos,
+         p.criado_em, p.atualizado_em, p.finalizado_em, p.cancelado_em,
+         m.numero AS mesa_numero,
+         COALESCE(GROUP_CONCAT(DISTINCT CASE
+           WHEN pg.status = 'CONFIRMADO' AND pg.cancelado_em IS NULL
+           THEN pg.forma_pagamento END), '') AS formas_pagamento,
+         COALESCE(SUM(CASE
+           WHEN pg.status = 'CONFIRMADO' AND pg.cancelado_em IS NULL
+           THEN pg.valor_centavos ELSE 0 END), 0) AS total_pago_centavos
+       FROM pedido p
+       LEFT JOIN mesa m ON m.id = p.mesa_id
+       LEFT JOIN pagamento_pedido pg ON pg.pedido_id = p.id
+       WHERE p.status IN ('FINALIZADO', 'CANCELADO')
+         AND (? = 'TODOS' OR p.status = ?)
+         AND (
+           ? = ''
+           OR EXISTS (
+             SELECT 1
+             FROM pagamento_pedido pg2
+             WHERE pg2.pedido_id = p.id
+               AND pg2.forma_pagamento = ?
+               AND pg2.status = 'CONFIRMADO'
+               AND pg2.cancelado_em IS NULL
+           )
+         )
+       GROUP BY p.id
+       ORDER BY COALESCE(p.finalizado_em, p.cancelado_em, p.atualizado_em) DESC`,
+    )
+
+    consulta.bind([
+      filtros.status,
+      filtros.status,
+      filtros.formaPagamento,
+      filtros.formaPagamento,
+    ])
+
+    const itens: Array<{
+      pedido: Pedido
+      mesaNumero: number | null
+      formasPagamento: string[]
+      totalPagoCentavos: number
+    }> = []
+
+    while (consulta.step()) {
+      const linha = consulta.getAsObject() as unknown as LinhaPedidoSql & {
+        mesa_numero: number | null
+        formas_pagamento: string
+        total_pago_centavos: number
+      }
+
+      itens.push({
+        pedido: mapearLinhaPedido(linha),
+        mesaNumero: linha.mesa_numero ?? null,
+        formasPagamento: linha.formas_pagamento
+          ? linha.formas_pagamento.split(',').filter(Boolean)
+          : [],
+        totalPagoCentavos: Number(linha.total_pago_centavos) || 0,
+      })
+    }
+
+    consulta.free()
+    return itens
   }
 
   inserir(dados: {
@@ -98,6 +188,7 @@ export class PedidoRepository {
       atualizadoEm: agora,
       finalizadoEm: null,
       canceladoEm: null,
+      motivoCancelamento: null,
     }
 
     conexao.instancia.run(
@@ -221,7 +312,7 @@ export class PedidoRepository {
     }
   }
 
-  cancelar(pedidoId: string): Pedido {
+  cancelar(pedidoId: string, motivoCancelamento: string): Pedido {
     const existente = this.buscarPorId(pedidoId)
 
     if (!existente) {
@@ -233,9 +324,9 @@ export class PedidoRepository {
 
     conexao.instancia.run(
       `UPDATE pedido
-       SET status = ?, cancelado_em = ?, atualizado_em = ?
+       SET status = ?, cancelado_em = ?, motivo_cancelamento = ?, atualizado_em = ?
        WHERE id = ?`,
-      [STATUS_PEDIDO.CANCELADO, agora, agora, pedidoId],
+      [STATUS_PEDIDO.CANCELADO, agora, motivoCancelamento, agora, pedidoId],
     )
 
     persistirConexaoBanco(conexao)
@@ -244,6 +335,7 @@ export class PedidoRepository {
       ...existente,
       status: STATUS_PEDIDO.CANCELADO,
       canceladoEm: agora,
+      motivoCancelamento,
       atualizadoEm: agora,
     }
   }

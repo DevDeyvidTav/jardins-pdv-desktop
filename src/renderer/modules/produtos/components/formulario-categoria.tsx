@@ -1,22 +1,34 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
+import type { CategoriaProduto } from '@shared/types/categoria-produto'
 
 interface FormularioCategoriaProps {
   carregando: boolean
   erroExterno: string | null
-  onCriar: (nome: string, descricao?: string) => Promise<boolean>
+  categoriaInicial?: CategoriaProduto | null
+  onSalvar: (nome: string, descricao?: string) => Promise<boolean>
   onLimparFeedback: () => void
+  onCancelar?: () => void
 }
 
 export function FormularioCategoria({
   carregando,
   erroExterno,
-  onCriar,
+  categoriaInicial = null,
+  onSalvar,
   onLimparFeedback,
+  onCancelar,
 }: FormularioCategoriaProps) {
-  const [nome, setNome] = useState('')
-  const [descricao, setDescricao] = useState('')
+  const editando = categoriaInicial !== null
+  const [nome, setNome] = useState(categoriaInicial?.nome ?? '')
+  const [descricao, setDescricao] = useState(categoriaInicial?.descricao ?? '')
   const [erroValidacao, setErroValidacao] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
+
+  useEffect(() => {
+    setNome(categoriaInicial?.nome ?? '')
+    setDescricao(categoriaInicial?.descricao ?? '')
+    setErroValidacao(null)
+  }, [categoriaInicial])
 
   async function handleSubmit(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault()
@@ -31,9 +43,9 @@ export function FormularioCategoria({
     setEnviando(true)
 
     try {
-      const sucesso = await onCriar(nome, descricao.trim() || undefined)
+      const sucesso = await onSalvar(nome, descricao.trim() || undefined)
 
-      if (sucesso) {
+      if (sucesso && !editando) {
         setNome('')
         setDescricao('')
       }
@@ -45,7 +57,7 @@ export function FormularioCategoria({
   return (
     <form
       className="formulario-categoria"
-      data-testid="formulario-categoria"
+      data-testid={editando ? 'formulario-editar-categoria' : 'formulario-categoria'}
       onSubmit={(evento) => void handleSubmit(evento)}
     >
       <label className="formulario-categoria__campo" htmlFor="nome-categoria">
@@ -85,9 +97,26 @@ export function FormularioCategoria({
         </p>
       ) : null}
 
-      <button type="submit" data-testid="botao-criar-categoria" disabled={carregando || enviando}>
-        Criar categoria
-      </button>
+      <div className="formulario-categoria__acoes">
+        {onCancelar ? (
+          <button
+            type="button"
+            className="produtos__botao-secundario"
+            data-testid="botao-cancelar-edicao-categoria"
+            disabled={carregando || enviando}
+            onClick={onCancelar}
+          >
+            Cancelar
+          </button>
+        ) : null}
+        <button
+          type="submit"
+          data-testid={editando ? 'botao-salvar-categoria' : 'botao-criar-categoria'}
+          disabled={carregando || enviando}
+        >
+          {editando ? 'Salvar categoria' : 'Criar categoria'}
+        </button>
+      </div>
     </form>
   )
 }

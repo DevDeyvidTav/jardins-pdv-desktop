@@ -31,9 +31,15 @@ export function criarCancelarPedido(
       )
     }
 
-    repositorioItem.cancelarItensAtivosPorPedido(entrada.pedidoId)
+    repositorioItem.cancelarItensAtivosPorPedido(
+      entrada.pedidoId,
+      entrada.motivoCancelamento,
+    )
 
-    const pedidoCancelado = repositorioPedido.cancelar(entrada.pedidoId)
+    const pedidoCancelado = repositorioPedido.cancelar(
+      entrada.pedidoId,
+      entrada.motivoCancelamento,
+    )
 
     if (pedido.tipo === TIPO_PEDIDO.MESA && pedido.mesaId) {
       repositorioMesa.atualizarStatus(pedido.mesaId, STATUS_MESA.LIVRE)

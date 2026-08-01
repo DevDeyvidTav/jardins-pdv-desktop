@@ -107,6 +107,20 @@ Total do pedido no painel: verde `#2e7d32` (mesmo peso visual do total no Swfast
 | `botao-cadastrar-mesas` | Toggle cadastro por intervalo |
 | `filtros-status-mesas` | Barra de filtros |
 
+## Abas da area direita
+
+| Aba | Conteudo |
+|-----|----------|
+| Mesas | Grade + filtros de status + cadastro/balcao |
+| Historico | Lista de pedidos finalizados/cancelados |
+
+### Historico
+
+- Filtros: **Todos / Finalizados / Cancelados**
+- Filtro por forma de pagamento (Dinheiro, Credito, Debito, Pix, Cortesia)
+- Clique no item carrega o pedido no painel esquerdo (somente leitura)
+- Apos finalizar ou cancelar, a aba Historico abre automaticamente
+
 ## Manutencao
 
 Ao adicionar novos status de mesa:

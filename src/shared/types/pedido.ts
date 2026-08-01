@@ -37,6 +37,7 @@ export interface Pedido {
   atualizadoEm: string
   finalizadoEm: string | null
   canceladoEm: string | null
+  motivoCancelamento: string | null
 }
 
 export interface PedidoItem {
@@ -54,6 +55,7 @@ export interface PedidoItem {
   atualizadoEm: string
   /** Preenchido quando o item e cancelado (soft delete). */
   canceladoEm: string | null
+  motivoCancelamento: string | null
 }
 
 export function itemPedidoEstaAtivo(item: PedidoItem): boolean {
@@ -91,6 +93,7 @@ export interface AlterarQuantidadeItemPedidoEntrada {
 export interface CancelarItemPedidoEntrada {
   pedidoId: string
   itemId: string
+  motivoCancelamento: string
 }
 
 /** @deprecated Preferir CancelarItemPedidoEntrada */
@@ -110,4 +113,26 @@ export interface ObterResumoPedidoEntrada {
 
 export interface CancelarPedidoEntrada {
   pedidoId: string
+  motivoCancelamento: string
+}
+
+export const FILTRO_STATUS_HISTORICO_PEDIDO = {
+  TODOS: 'TODOS',
+  FINALIZADO: 'FINALIZADO',
+  CANCELADO: 'CANCELADO',
+} as const
+
+export type FiltroStatusHistoricoPedido =
+  (typeof FILTRO_STATUS_HISTORICO_PEDIDO)[keyof typeof FILTRO_STATUS_HISTORICO_PEDIDO]
+
+export interface ListarHistoricoPedidosEntrada {
+  status?: FiltroStatusHistoricoPedido
+  formaPagamento?: import('./pagamento-pedido').FormaPagamento | ''
+}
+
+export interface ItemHistoricoPedido {
+  pedido: Pedido
+  mesaNumero: number | null
+  formasPagamento: import('./pagamento-pedido').FormaPagamento[]
+  totalPagoCentavos: number
 }

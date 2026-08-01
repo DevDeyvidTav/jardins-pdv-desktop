@@ -11,6 +11,7 @@ interface FormularioMovimentoCaixaProps {
   erroExterno: string | null
   onRegistrar: (entrada: RegistrarMovimentoCaixaEntrada) => Promise<boolean>
   onLimparFeedback: () => void
+  compacto?: boolean
 }
 
 const TIPOS_MOVIMENTO: { valor: TipoMovimentoCaixa; rotulo: string }[] = [
@@ -24,6 +25,7 @@ export function FormularioMovimentoCaixa({
   erroExterno,
   onRegistrar,
   onLimparFeedback,
+  compacto = false,
 }: FormularioMovimentoCaixaProps) {
   const [tipo, setTipo] = useState<TipoMovimentoCaixa>(
     TIPO_MOVIMENTO_CAIXA.SUPRIMENTO,
@@ -78,11 +80,15 @@ export function FormularioMovimentoCaixa({
 
   return (
     <form
-      className="formulario-movimento-caixa"
+      className={
+        compacto
+          ? 'formulario-movimento-caixa formulario-movimento-caixa--compacto'
+          : 'formulario-movimento-caixa'
+      }
       data-testid="formulario-movimento-caixa"
       onSubmit={(evento) => void handleSubmit(evento)}
     >
-      <h2>Registrar movimento</h2>
+      {!compacto ? <h2>Registrar movimento</h2> : null}
 
       <label className="formulario-movimento-caixa__campo" htmlFor="tipo-movimento">
         Tipo

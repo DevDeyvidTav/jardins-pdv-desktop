@@ -30,6 +30,7 @@ test.describe('catalogo de produtos local', () => {
       await janela.getByTestId('nav-produtos').click()
       await expect(janela.getByTestId('pagina-produtos')).toBeVisible()
 
+      await janela.getByTestId('botao-toggle-categoria').click()
       await janela.getByTestId('campo-nome-categoria').fill('Bebidas')
       await janela.getByTestId('campo-descricao-categoria').fill('Bebidas em geral')
       await janela.getByTestId('botao-criar-categoria').click()
@@ -38,6 +39,7 @@ test.describe('catalogo de produtos local', () => {
       })
       await expect(janela.getByTestId('item-categoria')).toHaveCount(1)
 
+      await janela.getByTestId('botao-toggle-produto').click()
       await janela.getByTestId('campo-nome-produto').fill('Coca-Cola lata')
       await janela.getByTestId('campo-descricao-produto').fill('350ml')
       await janela.getByTestId('campo-preco-produto').fill('6,00')
@@ -46,10 +48,7 @@ test.describe('catalogo de produtos local', () => {
         timeout: 10_000,
       })
 
-      const listaAtivos = janela
-        .getByTestId('lista-produtos')
-        .first()
-        .getByTestId('item-produto')
+      const listaAtivos = janela.getByTestId('lista-produtos').getByTestId('item-produto')
       await expect(listaAtivos).toHaveCount(1)
       await expect(listaAtivos.getByTestId('produto-nome')).toHaveText('Coca-Cola lata')
       await expect(listaAtivos.getByTestId('produto-preco')).toHaveText(/R\$\s*6,00/)
@@ -60,19 +59,17 @@ test.describe('catalogo de produtos local', () => {
       await listaAtivos.getByTestId('botao-inativar-produto').click()
       await expect(listaAtivos).toHaveCount(0)
 
-      const listaAdministrativa = janela
-        .getByTestId('lista-produtos')
-        .nth(1)
-        .getByTestId('item-produto')
-      await expect(listaAdministrativa).toHaveCount(1)
-      await expect(listaAdministrativa.getByTestId('status-produto')).toHaveText('Inativo')
+      await janela.getByTestId('filtro-produtos-todos').click()
+      const listaTodos = janela.getByTestId('lista-produtos').getByTestId('item-produto')
+      await expect(listaTodos).toHaveCount(1)
+      await expect(listaTodos.getByTestId('status-produto')).toHaveText('Inativo')
 
-      await listaAdministrativa.getByTestId('botao-reativar-produto').click()
+      await listaTodos.getByTestId('botao-reativar-produto').click()
       await expect(janela.getByTestId('feedback-sucesso-produtos')).toBeVisible({
         timeout: 10_000,
       })
+      await janela.getByTestId('filtro-produtos-ativos').click()
       await expect(listaAtivos).toHaveCount(1)
-      await expect(listaAdministrativa.getByTestId('status-produto')).toHaveText('Ativo')
 
       await aplicativo.close()
 
@@ -85,14 +82,10 @@ test.describe('catalogo de produtos local', () => {
       await janelaReaberta.getByTestId('nav-produtos').click()
       await expect(janelaReaberta.getByTestId('item-categoria')).toHaveCount(1)
       await expect(
-        janelaReaberta.getByTestId('lista-produtos').nth(1).getByTestId('item-produto'),
+        janelaReaberta.getByTestId('lista-produtos').getByTestId('item-produto'),
       ).toHaveCount(1)
       await expect(
-        janelaReaberta
-          .getByTestId('lista-produtos')
-          .nth(1)
-          .getByTestId('produto-nome')
-          .first(),
+        janelaReaberta.getByTestId('lista-produtos').getByTestId('produto-nome').first(),
       ).toHaveText('Coca-Cola lata')
 
       await aplicativoReaberto.close()

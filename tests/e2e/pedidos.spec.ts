@@ -87,6 +87,9 @@ test.describe('pedidos locais', () => {
       await expect(janela.getByTestId('pedido-total')).toHaveText(/R\$\s*18,00/)
 
       await janela.getByTestId('botao-remover-item').click()
+      await expect(janela.getByTestId('modal-confirmar-cancelamento-item')).toBeVisible()
+      await janela.getByTestId('input-motivo-cancelamento').fill('Item lancado errado')
+      await janela.getByTestId('botao-confirmar-cancelamento-pedido').click()
       await expect(janela.getByTestId('item-pedido')).toHaveCount(0)
       await expect(janela.getByTestId('pedido-total')).toHaveText(/R\$\s*0,00/)
 

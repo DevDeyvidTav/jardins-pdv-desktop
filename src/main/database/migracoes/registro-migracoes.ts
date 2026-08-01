@@ -206,4 +206,12 @@ WHERE valor_restante_centavos = 0;
 ALTER TABLE pagamento_pedido ADD COLUMN motivo_cortesia TEXT;
 `.trim(),
   },
+  {
+    versao: 10,
+    nome: '0010-adicionar-motivo-cancelamento',
+    sql: `
+ALTER TABLE pedido ADD COLUMN motivo_cancelamento TEXT;
+ALTER TABLE pedido_item ADD COLUMN motivo_cancelamento TEXT;
+`.trim(),
+  },
 ]

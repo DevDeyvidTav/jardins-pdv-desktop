@@ -42,6 +42,10 @@ export const reativarProdutoSchema = z.object({
   produtoId: z.string().trim().min(1, 'Produto e obrigatorio.'),
 })
 
+export const excluirProdutoSchema = z.object({
+  produtoId: z.string().trim().min(1, 'Produto e obrigatorio.'),
+})
+
 export const obterProdutoPorIdSchema = z.object({
   produtoId: z.string().trim().min(1, 'Produto e obrigatorio.'),
 })

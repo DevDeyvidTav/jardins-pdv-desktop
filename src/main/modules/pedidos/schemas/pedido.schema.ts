@@ -31,9 +31,16 @@ export const alterarQuantidadeItemPedidoSchema = z.object({
   quantidade: quantidadeSchema,
 })
 
+const motivoCancelamentoSchema = z
+  .string()
+  .trim()
+  .min(1, 'Motivo do cancelamento e obrigatorio.')
+  .max(500, 'Motivo do cancelamento deve ter no maximo 500 caracteres.')
+
 export const cancelarItemPedidoSchema = z.object({
   pedidoId: z.string().trim().min(1, 'Pedido e obrigatorio.'),
   itemId: z.string().trim().min(1, 'Item e obrigatorio.'),
+  motivoCancelamento: motivoCancelamentoSchema,
 })
 
 export const removerItemPedidoSchema = cancelarItemPedidoSchema
@@ -54,4 +61,12 @@ export const obterResumoPedidoSchema = z.object({
 
 export const cancelarPedidoSchema = z.object({
   pedidoId: z.string().trim().min(1, 'Pedido e obrigatorio.'),
+  motivoCancelamento: motivoCancelamentoSchema,
+})
+
+export const listarHistoricoPedidosSchema = z.object({
+  status: z.enum(['TODOS', 'FINALIZADO', 'CANCELADO']).optional(),
+  formaPagamento: z
+    .enum(['', 'DINHEIRO', 'CARTAO_CREDITO', 'CARTAO_DEBITO', 'PIX', 'CORTESIA'])
+    .optional(),
 })

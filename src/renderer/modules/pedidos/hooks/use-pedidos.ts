@@ -1,15 +1,23 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { Mesa } from '@shared/types/mesa'
-import type { Pedido, ResumoPedido } from '@shared/types/pedido'
+import type {
+  FiltroStatusHistoricoPedido,
+  ItemHistoricoPedido,
+  Pedido,
+  ResumoPedido,
+} from '@shared/types/pedido'
+import { FILTRO_STATUS_HISTORICO_PEDIDO } from '@shared/types/pedido'
 import type { ProdutoComCategoria } from '@shared/types/produto'
 import type { CategoriaProduto } from '@shared/types/categoria-produto'
-import type { PagamentoInformado } from '@shared/types/pagamento-pedido'
+import type { FormaPagamento, PagamentoInformado } from '@shared/types/pagamento-pedido'
 import type { SessaoCaixa } from '@shared/types/sessao-caixa'
 import { STATUS_MESA } from '@shared/types/mesa'
 import {
   FILTROS_STATUS_MESA,
   type FiltroStatusMesa,
 } from '../constants/mesa-status-cores'
+
+export type AbaPedidos = 'mesas' | 'historico'
 
 export interface UsePedidosResultado {
   mesas: Mesa[]
@@ -24,6 +32,11 @@ export interface UsePedidosResultado {
   carregandoPedido: boolean
   exibirFormularioItem: boolean
   exibirCadastroMesas: boolean
+  abaAtiva: AbaPedidos
+  historicoPedidos: ItemHistoricoPedido[]
+  historicoPedidoSelecionadoId: string | null
+  filtroHistoricoStatus: FiltroStatusHistoricoPedido
+  filtroHistoricoFormaPagamento: FormaPagamento | ''
   erro: string | null
   sucesso: string | null
   criarMesasPorIntervalo: (numeroInicial: number, numeroFinal: number) => Promise<boolean>
@@ -37,11 +50,15 @@ export interface UsePedidosResultado {
     observacao?: string,
   ) => Promise<boolean>
   alterarQuantidadeItem: (itemId: string, quantidade: number) => Promise<boolean>
-  removerItem: (itemId: string) => Promise<boolean>
+  removerItem: (itemId: string, motivoCancelamento: string) => Promise<boolean>
   aplicarDescontoPedido: (descontoCentavos: number, motivoDesconto?: string) => Promise<boolean>
-  cancelarPedido: () => Promise<boolean>
+  cancelarPedido: (motivoCancelamento: string) => Promise<boolean>
   registrarPagamento: (pagamento: PagamentoInformado) => Promise<boolean>
   definirFiltroStatusMesas: (filtro: FiltroStatusMesa) => void
+  definirAbaAtiva: (aba: AbaPedidos) => void
+  definirFiltroHistoricoStatus: (status: FiltroStatusHistoricoPedido) => void
+  definirFiltroHistoricoFormaPagamento: (forma: FormaPagamento | '') => void
+  selecionarHistoricoPedido: (item: ItemHistoricoPedido) => Promise<void>
   abrirFormularioItem: () => void
   fecharFormularioItem: () => void
   alternarCadastroMesas: () => void
@@ -73,8 +90,26 @@ export function usePedidos(): UsePedidosResultado {
   const [carregandoPedido, setCarregandoPedido] = useState(false)
   const [exibirFormularioItem, setExibirFormularioItem] = useState(false)
   const [exibirCadastroMesas, setExibirCadastroMesas] = useState(false)
+  const [abaAtiva, setAbaAtiva] = useState<AbaPedidos>('mesas')
+  const [historicoPedidos, setHistoricoPedidos] = useState<ItemHistoricoPedido[]>([])
+  const [historicoPedidoSelecionadoId, setHistoricoPedidoSelecionadoId] = useState<
+    string | null
+  >(null)
+  const [filtroHistoricoStatus, setFiltroHistoricoStatus] =
+    useState<FiltroStatusHistoricoPedido>(FILTRO_STATUS_HISTORICO_PEDIDO.TODOS)
+  const [filtroHistoricoFormaPagamento, setFiltroHistoricoFormaPagamento] = useState<
+    FormaPagamento | ''
+  >('')
   const [erro, setErro] = useState<string | null>(null)
   const [sucesso, setSucesso] = useState<string | null>(null)
+
+  const carregarHistorico = useCallback(async () => {
+    const historico = await window.pdv.pedidos.listarHistoricoPedidos({
+      status: filtroHistoricoStatus,
+      formaPagamento: filtroHistoricoFormaPagamento,
+    })
+    setHistoricoPedidos(historico)
+  }, [filtroHistoricoFormaPagamento, filtroHistoricoStatus])
 
   const carregarDados = useCallback(async () => {
     setCarregando(true)
@@ -113,11 +148,24 @@ export function usePedidos(): UsePedidosResultado {
     void carregarDados()
   }, [carregarDados])
 
-  const atualizarResumo = useCallback(async (pedidoId: string) => {
-    const resumo = await window.pdv.pedidos.obterResumoPedido({ pedidoId })
-    setResumoPedido(resumo)
-    return resumo
-  }, [])
+  useEffect(() => {
+    if (abaAtiva !== 'historico') return
+    void carregarHistorico().catch((causa) => {
+      setErro(extrairMensagemErro(causa))
+    })
+  }, [abaAtiva, carregarHistorico])
+
+  const atualizarResumo = useCallback(
+    async (pedidoId: string, incluirItensCancelados = false) => {
+      const resumo = await window.pdv.pedidos.obterResumoPedido({
+        pedidoId,
+        incluirItensCancelados,
+      })
+      setResumoPedido(resumo)
+      return resumo
+    },
+    [],
+  )
 
   const carregarPedidoAbertoDaMesa = useCallback(async (mesa: Mesa) => {
     setCarregandoPedido(true)
@@ -215,7 +263,13 @@ export function usePedidos(): UsePedidosResultado {
       await atualizarResumo(pedido.id)
       setMesaSelecionada(null)
       setExibirFormularioItem(false)
-      setSucesso('Pedido balcao aberto.')
+      setAbaAtiva('mesas')
+      setHistoricoPedidoSelecionadoId(null)
+      setSucesso(
+        pedido.subtotalCentavos > 0 || pedido.totalCentavos > 0
+          ? 'Pedido balcao reaberto.'
+          : 'Pedido balcao aberto.',
+      )
       return true
     } catch (causa) {
       setErro(extrairMensagemErro(causa))
@@ -231,6 +285,8 @@ export function usePedidos(): UsePedidosResultado {
       setSucesso(null)
       setMesaSelecionada(mesa)
       setExibirFormularioItem(false)
+      setAbaAtiva('mesas')
+      setHistoricoPedidoSelecionadoId(null)
 
       if (mesa.status === STATUS_MESA.OCUPADA && mesa.ativo) {
         await carregarPedidoAbertoDaMesa(mesa)
@@ -319,7 +375,7 @@ export function usePedidos(): UsePedidosResultado {
   )
 
   const removerItem = useCallback(
-    async (itemId: string): Promise<boolean> => {
+    async (itemId: string, motivoCancelamento: string): Promise<boolean> => {
       if (!resumoPedido) {
         return false
       }
@@ -331,6 +387,7 @@ export function usePedidos(): UsePedidosResultado {
         const resumo = await window.pdv.pedidos.removerItemPedido({
           pedidoId: resumoPedido.pedido.id,
           itemId,
+          motivoCancelamento,
         })
         setResumoPedido(resumo)
         setSucesso('Item cancelado do pedido.')
@@ -366,24 +423,32 @@ export function usePedidos(): UsePedidosResultado {
     [carregarDados, resumoPedido],
   )
 
-  const cancelarPedido = useCallback(async (): Promise<boolean> => {
-    if (!resumoPedido) return false
-    setErro(null)
-    setSucesso(null)
-    try {
-      await window.pdv.pedidos.cancelarPedido({
-        pedidoId: resumoPedido.pedido.id,
-      })
-      setResumoPedido(null)
-      setExibirFormularioItem(false)
-      await carregarDados()
-      setSucesso('Pedido cancelado.')
-      return true
-    } catch (causa) {
-      setErro(extrairMensagemErro(causa))
-      return false
-    }
-  }, [carregarDados, resumoPedido])
+  const cancelarPedido = useCallback(
+    async (motivoCancelamento: string): Promise<boolean> => {
+      if (!resumoPedido) return false
+      setErro(null)
+      setSucesso(null)
+      try {
+        await window.pdv.pedidos.cancelarPedido({
+          pedidoId: resumoPedido.pedido.id,
+          motivoCancelamento,
+        })
+        setResumoPedido(null)
+        setExibirFormularioItem(false)
+        setMesaSelecionada(null)
+        await carregarDados()
+        setAbaAtiva('historico')
+        setFiltroHistoricoStatus(FILTRO_STATUS_HISTORICO_PEDIDO.CANCELADO)
+        setHistoricoPedidoSelecionadoId(null)
+        setSucesso('Pedido cancelado.')
+        return true
+      } catch (causa) {
+        setErro(extrairMensagemErro(causa))
+        return false
+      }
+    },
+    [carregarDados, resumoPedido],
+  )
 
   const registrarPagamento = useCallback(
     async (pagamento: PagamentoInformado): Promise<boolean> => {
@@ -391,15 +456,26 @@ export function usePedidos(): UsePedidosResultado {
       setErro(null)
       setSucesso(null)
       try {
-        await window.pdv.pagamentos.registrarPagamentoPedido({
+        const resultado = await window.pdv.pagamentos.registrarPagamentoPedido({
           pedidoId: resumoPedido.pedido.id,
           formaPagamento: pagamento.formaPagamento,
           valorCentavos: pagamento.valorCentavos,
           motivoCortesia: pagamento.motivoCortesia,
         })
         await carregarDados()
-        await atualizarResumo(resumoPedido.pedido.id)
-        setSucesso('Pagamento registrado.')
+
+        if (resultado.valorRestanteCentavos === 0) {
+          setResumoPedido(null)
+          setExibirFormularioItem(false)
+          setMesaSelecionada(null)
+          setAbaAtiva('historico')
+          setFiltroHistoricoStatus(FILTRO_STATUS_HISTORICO_PEDIDO.FINALIZADO)
+          setHistoricoPedidoSelecionadoId(null)
+          setSucesso('Pagamento confirmado e pedido finalizado.')
+        } else {
+          await atualizarResumo(resumoPedido.pedido.id)
+          setSucesso('Pagamento parcial registrado.')
+        }
         return true
       } catch (causa) {
         setErro(extrairMensagemErro(causa))
@@ -412,6 +488,50 @@ export function usePedidos(): UsePedidosResultado {
   const definirFiltroStatusMesas = useCallback((filtro: FiltroStatusMesa) => {
     setFiltroStatusMesas(filtro)
   }, [])
+
+  const definirAbaAtiva = useCallback((aba: AbaPedidos) => {
+    setAbaAtiva(aba)
+    if (aba === 'mesas') {
+      setHistoricoPedidoSelecionadoId(null)
+      setExibirCadastroMesas(false)
+    } else {
+      setExibirCadastroMesas(false)
+      setExibirFormularioItem(false)
+    }
+  }, [])
+
+  const definirFiltroHistoricoStatus = useCallback(
+    (status: FiltroStatusHistoricoPedido) => {
+      setFiltroHistoricoStatus(status)
+    },
+    [],
+  )
+
+  const definirFiltroHistoricoFormaPagamento = useCallback(
+    (forma: FormaPagamento | '') => {
+      setFiltroHistoricoFormaPagamento(forma)
+    },
+    [],
+  )
+
+  const selecionarHistoricoPedido = useCallback(
+    async (item: ItemHistoricoPedido) => {
+      setErro(null)
+      setSucesso(null)
+      setMesaSelecionada(null)
+      setExibirFormularioItem(false)
+      setHistoricoPedidoSelecionadoId(item.pedido.id)
+      setCarregandoPedido(true)
+      try {
+        await atualizarResumo(item.pedido.id, item.pedido.status === 'CANCELADO')
+      } catch (causa) {
+        setErro(extrairMensagemErro(causa))
+      } finally {
+        setCarregandoPedido(false)
+      }
+    },
+    [atualizarResumo],
+  )
 
   const abrirFormularioItem = useCallback(() => {
     setExibirFormularioItem(true)
@@ -449,6 +569,11 @@ export function usePedidos(): UsePedidosResultado {
     carregandoPedido,
     exibirFormularioItem,
     exibirCadastroMesas,
+    abaAtiva,
+    historicoPedidos,
+    historicoPedidoSelecionadoId,
+    filtroHistoricoStatus,
+    filtroHistoricoFormaPagamento,
     erro,
     sucesso,
     criarMesasPorIntervalo,
@@ -463,6 +588,10 @@ export function usePedidos(): UsePedidosResultado {
     cancelarPedido,
     registrarPagamento,
     definirFiltroStatusMesas,
+    definirAbaAtiva,
+    definirFiltroHistoricoStatus,
+    definirFiltroHistoricoFormaPagamento,
+    selecionarHistoricoPedido,
     abrirFormularioItem,
     fecharFormularioItem,
     alternarCadastroMesas,

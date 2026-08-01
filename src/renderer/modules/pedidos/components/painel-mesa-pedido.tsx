@@ -7,6 +7,7 @@ import type { CategoriaProduto } from '@shared/types/categoria-produto'
 import type { ProdutoComCategoria } from '@shared/types/produto'
 import { formatarMoeda, converterReaisParaCentavos } from '@shared/utils/moeda'
 import { ROTULOS_STATUS_MESA } from '../constants/mesa-status-cores'
+import { ModalMotivoCancelamento } from './modal-motivo-cancelamento'
 import { BuscaProdutosPedido, ListaItensPedido } from './pedido-itens'
 import { FormularioPagamentoPedido } from '../../pagamentos/components/formulario-pagamento-pedido'
 import type { PagamentoInformado } from '@shared/types/pagamento-pedido'
@@ -27,13 +28,14 @@ interface PainelMesaPedidoProps {
     observacao?: string,
   ) => Promise<boolean>
   onAlterarQuantidade: (itemId: string, quantidade: number) => Promise<boolean>
-  onRemoverItem: (itemId: string) => Promise<boolean>
+  onRemoverItem: (itemId: string, motivoCancelamento: string) => Promise<boolean>
   onAplicarDesconto?: (
     descontoCentavos: number,
     motivoDesconto?: string,
   ) => Promise<boolean>
-  onCancelarPedido: () => Promise<boolean>
+  onCancelarPedido: (motivoCancelamento: string) => Promise<boolean>
   onRegistrarPagamento: (pagamento: PagamentoInformado) => Promise<boolean>
+  erroPagamento?: string | null
 }
 
 export function PainelMesaPedido({
@@ -52,11 +54,14 @@ export function PainelMesaPedido({
   onAplicarDesconto,
   onCancelarPedido,
   onRegistrarPagamento,
+  erroPagamento = null,
 }: PainelMesaPedidoProps) {
   const pedidoAtivo = resumoPedido !== null
   const pedidoBalcao = resumoPedido?.pedido.tipo === TIPO_PEDIDO.BALCAO
   const [mostrarPagamento, setMostrarPagamento] = useState(false)
   const [mostrarDesconto, setMostrarDesconto] = useState(false)
+  const [mostrarConfirmacaoCancelar, setMostrarConfirmacaoCancelar] = useState(false)
+  const [cancelandoPedido, setCancelandoPedido] = useState(false)
   const [valorDescontoReais, setValorDescontoReais] = useState('')
   const [motivoDesconto, setMotivoDesconto] = useState('')
   const [erroDesconto, setErroDesconto] = useState<string | null>(null)
@@ -78,6 +83,16 @@ export function PainelMesaPedido({
     : pedidoAtivo
       ? 'Ocupada'
       : ''
+
+  const handleConfirmarCancelamento = async (motivoCancelamento: string) => {
+    setCancelandoPedido(true)
+    try {
+      const ok = await onCancelarPedido(motivoCancelamento)
+      if (ok) setMostrarConfirmacaoCancelar(false)
+    } finally {
+      setCancelandoPedido(false)
+    }
+  }
 
   const handleConfirmarDesconto = async () => {
     setErroDesconto(null)
@@ -233,12 +248,7 @@ export function PainelMesaPedido({
                     type="button"
                     className="painel-mesa-pedido__acao-cancelar"
                     data-testid="botao-cancelar-pedido"
-                    onClick={() => {
-                      const confirmar = window.confirm(
-                        'Cancelar este pedido? Essa acao nao pode ser desfeita.',
-                      )
-                      if (confirmar) void onCancelarPedido()
-                    }}
+                    onClick={() => setMostrarConfirmacaoCancelar(true)}
                   >
                     Cancelar pedido
                   </button>
@@ -292,6 +302,19 @@ export function PainelMesaPedido({
             </footer>
           </div>
         </>
+      ) : null}
+
+      {mostrarConfirmacaoCancelar ? (
+        <ModalMotivoCancelamento
+          titulo="Cancelar pedido"
+          descricao="Deseja realmente cancelar este pedido? Itens ativos serao cancelados e a mesa sera liberada, se houver."
+          testId="modal-confirmar-cancelamento"
+          confirmando={cancelandoPedido}
+          onFechar={() => {
+            if (!cancelandoPedido) setMostrarConfirmacaoCancelar(false)
+          }}
+          onConfirmar={handleConfirmarCancelamento}
+        />
       ) : null}
 
       {pedidoAtivo && resumoPedido && mostrarDesconto ? (
@@ -381,6 +404,7 @@ export function PainelMesaPedido({
             </header>
             <FormularioPagamentoPedido
               totalCentavos={resumoPedido.pedido.valorRestanteCentavos}
+              erroExterno={erroPagamento}
               onConfirmar={async (pagamento) => {
                 const ok = await onRegistrarPagamento(pagamento)
                 if (ok) setMostrarPagamento(false)

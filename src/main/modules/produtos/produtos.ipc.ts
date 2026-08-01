@@ -8,6 +8,7 @@ import {
 import {
   atualizarCategoriaProdutoSchema,
   criarCategoriaProdutoSchema,
+  excluirCategoriaProdutoSchema,
   inativarCategoriaProdutoSchema,
   listarCategoriasProdutoSchema,
   reativarCategoriaProdutoSchema,
@@ -16,6 +17,7 @@ import {
   atualizarProdutoSchema,
   buscarProdutosSchema,
   criarProdutoSchema,
+  excluirProdutoSchema,
   inativarProdutoSchema,
   listarProdutosSchema,
   obterProdutoPorIdSchema,
@@ -24,6 +26,8 @@ import {
 import { atualizarCategoriaProduto } from './use-cases/atualizar-categoria-produto'
 import { criarCategoriaProduto } from './use-cases/criar-categoria-produto'
 import { criarProduto } from './use-cases/criar-produto'
+import { excluirCategoriaProduto } from './use-cases/excluir-categoria-produto'
+import { excluirProduto } from './use-cases/excluir-produto'
 import { inativarCategoriaProduto } from './use-cases/inativar-categoria-produto'
 import { inativarProduto } from './use-cases/inativar-produto'
 import { reativarCategoriaProduto } from './use-cases/reativar-categoria-produto'
@@ -110,6 +114,18 @@ export function registrarHandlersProdutos(): void {
     },
   )
 
+  ipcMain.handle(
+    CANAIS_IPC.PRODUTOS_EXCLUIR_CATEGORIA,
+    (_evento, entradaDesconhecida) => {
+      try {
+        const entrada = excluirCategoriaProdutoSchema.parse(entradaDesconhecida)
+        return excluirCategoriaProduto(entrada)
+      } catch (erro) {
+        tratarErroProdutos(erro)
+      }
+    },
+  )
+
   ipcMain.handle(CANAIS_IPC.PRODUTOS_CRIAR_PRODUTO, (_evento, entradaDesconhecida) => {
     try {
       const entrada = criarProdutoSchema.parse(entradaDesconhecida)
@@ -159,6 +175,15 @@ export function registrarHandlersProdutos(): void {
     try {
       const entrada = reativarProdutoSchema.parse(entradaDesconhecida)
       return reativarProduto(entrada)
+    } catch (erro) {
+      tratarErroProdutos(erro)
+    }
+  })
+
+  ipcMain.handle(CANAIS_IPC.PRODUTOS_EXCLUIR_PRODUTO, (_evento, entradaDesconhecida) => {
+    try {
+      const entrada = excluirProdutoSchema.parse(entradaDesconhecida)
+      return excluirProduto(entrada)
     } catch (erro) {
       tratarErroProdutos(erro)
     }
