@@ -4,6 +4,7 @@ import { registrarHandlersProdutos } from '../modules/produtos/produtos.ipc'
 import { registrarHandlersMesas } from '../modules/mesas/mesas.ipc'
 import { registrarHandlersPedidos } from '../modules/pedidos/pedidos.ipc'
 import { registrarHandlersPagamentos } from '../modules/pagamentos/pagamentos.ipc'
+import { registrarHandlersDelivery } from '../modules/delivery/delivery.ipc'
 
 export function registrarHandlersIpc(): void {
   registrarHandlersSistema()
@@ -12,4 +13,5 @@ export function registrarHandlersIpc(): void {
   registrarHandlersMesas()
   registrarHandlersPedidos()
   registrarHandlersPagamentos()
+  registrarHandlersDelivery()
 }

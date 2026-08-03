@@ -77,6 +77,8 @@ export async function prepararAmbientePedidos() {
     categoria,
     produto,
     mesa,
+    repositorioPedido,
+    repositorioSessao,
     repositorioMesa,
     repositorioProduto,
     repositorioItem,

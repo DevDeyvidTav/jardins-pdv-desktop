@@ -113,6 +113,30 @@
   display: flex;
   gap: 0.75rem;
   flex-wrap: wrap;
+  align-items: center;
+}
+
+.pedidos-operacao__botao-delivery {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.pedidos-operacao__icone-delivery {
+  display: inline-flex;
+  line-height: 0;
+}
+
+.pedidos-operacao__deliveries {
+  padding: 0.5rem 0.75rem 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.pedidos-operacao__deliveries-titulo {
+  margin: 0 0 0.5rem;
+  font-size: 0.8125rem;
+  color: #4b5563;
+  font-weight: 600;
 }
 
 .pedidos-operacao__cadastro-mesas {
@@ -619,6 +643,11 @@
 .grade-mesas__celula--ocupada {
   background: var(--mesa-ocupada-fundo);
   color: #e65100;
+}
+
+.grade-mesas__celula--agrupada {
+  background: #fde68a;
+  color: #78350f;
 }
 
 .grade-mesas__celula--inativa {

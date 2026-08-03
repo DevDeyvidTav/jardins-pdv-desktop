@@ -68,12 +68,53 @@ export async function abrirConexaoSqlite(
   }
 }
 
+/** Contador de transacoes abertas via helpers. Necessario porque sql.js
+ *  `Database.export()` fecha/reabre o DB e descarta a transacao ativa. */
+let profundidadeTransacao = 0
+
+export function iniciarTransacaoImediata(conexao: ConexaoSqlite): void {
+  conexao.instancia.run('BEGIN IMMEDIATE')
+  profundidadeTransacao += 1
+}
+
+export function iniciarTransacao(conexao: ConexaoSqlite): void {
+  conexao.instancia.run('BEGIN')
+  profundidadeTransacao += 1
+}
+
+export function confirmarTransacao(conexao: ConexaoSqlite): void {
+  conexao.instancia.run('COMMIT')
+  profundidadeTransacao = Math.max(0, profundidadeTransacao - 1)
+}
+
+export function reverterTransacao(conexao: ConexaoSqlite): void {
+  try {
+    if (profundidadeTransacao > 0) {
+      conexao.instancia.run('ROLLBACK')
+    }
+  } finally {
+    profundidadeTransacao = Math.max(0, profundidadeTransacao - 1)
+  }
+}
+
+export function reiniciarControleTransacao(): void {
+  profundidadeTransacao = 0
+}
+
 export function fecharConexaoSqlite(conexao: ConexaoSqlite): void {
-  persistirBanco(conexao)
-  conexao.instancia.close()
+  try {
+    persistirBanco(conexao)
+  } finally {
+    profundidadeTransacao = 0
+    conexao.instancia.close()
+  }
 }
 
 export function persistirConexaoBanco(conexao: ConexaoSqlite): void {
+  // sql.js export() fecha e reabre o banco; nao pode rodar dentro de transacao.
+  if (profundidadeTransacao > 0) {
+    return
+  }
   persistirBanco(conexao)
 }
 
@@ -175,4 +216,21 @@ export function consultarValorMetadata(
   const linha = consulta.getAsObject() as { valor?: string }
   consulta.free()
   return linha.valor ?? null
+}
+
+export function definirValorMetadata(
+  conexao: ConexaoSqlite,
+  chave: string,
+  valor: string,
+): void {
+  const agora = agoraEmIsoUtc()
+  conexao.instancia.run(
+    `INSERT INTO app_metadata (chave, valor, criado_em, atualizado_em)
+     VALUES (?, ?, ?, ?)
+     ON CONFLICT(chave) DO UPDATE SET
+       valor = excluded.valor,
+       atualizado_em = excluded.atualizado_em`,
+    [chave, valor, agora, agora],
+  )
+  persistirBanco(conexao)
 }

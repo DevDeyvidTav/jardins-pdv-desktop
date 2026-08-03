@@ -1,6 +1,7 @@
 export const TIPO_PEDIDO = {
   MESA: 'MESA',
   BALCAO: 'BALCAO',
+  DELIVERY: 'DELIVERY',
 } as const
 
 export type TipoPedido = (typeof TIPO_PEDIDO)[keyof typeof TIPO_PEDIDO]
@@ -17,6 +18,8 @@ export interface Pedido {
   id: string
   sessaoCaixaId: string
   mesaId: string | null
+  /** Agrupamento ativo vinculado ao pedido de mesa, se houver. */
+  mesaAgrupamentoId: string | null
   tipo: TipoPedido
   status: StatusPedido
   subtotalCentavos: number
@@ -26,6 +29,8 @@ export interface Pedido {
   descontoItensCentavos: number
   /** Desconto geral aplicado sobre o pedido. */
   descontoPedidoCentavos: number
+  /** Taxa de entrega em centavos (apenas para pedidos DELIVERY). */
+  taxaEntregaCentavos: number
   totalCentavos: number
   /** Soma dos pagamentos financeiros (dinheiro, cartao, pix). */
   valorPagoCentavos: number
@@ -65,6 +70,7 @@ export function itemPedidoEstaAtivo(item: PedidoItem): boolean {
 export interface ResumoPedido {
   pedido: Pedido
   itens: PedidoItem[]
+  entrega: PedidoEntrega | null
 }
 
 export interface CriarPedidoMesaEntrada {
@@ -135,4 +141,75 @@ export interface ItemHistoricoPedido {
   mesaNumero: number | null
   formasPagamento: import('./pagamento-pedido').FormaPagamento[]
   totalPagoCentavos: number
+}
+export const STATUS_ENTREGA = {
+  AGUARDANDO_PREPARO: 'AGUARDANDO_PREPARO',
+  EM_PREPARO: 'EM_PREPARO',
+  SAIU_PARA_ENTREGA: 'SAIU_PARA_ENTREGA',
+  ENTREGUE: 'ENTREGUE',
+  CANCELADA: 'CANCELADA',
+} as const
+
+export type StatusEntrega = (typeof STATUS_ENTREGA)[keyof typeof STATUS_ENTREGA]
+
+export interface PedidoEntrega {
+  id: string
+  pedidoId: string
+  clienteNome: string
+  telefone: string | null
+  observacao: string | null
+  status: StatusEntrega
+  saiuParaEntregaEm: string | null
+  entregueEm: string | null
+  canceladoEm: string | null
+  motivoCancelamento: string | null
+  criadoEm: string
+  atualizadoEm: string
+}
+
+export interface CriarPedidoDeliveryEntrada {
+  clienteNome: string
+  telefone?: string
+  observacao?: string
+  /** Se omitido, usa a taxa padrao configurada. */
+  taxaEntregaCentavos?: number
+}
+
+export interface ObterEntregaPorPedidoEntrada {
+  pedidoId: string
+}
+
+export interface AtualizarDadosEntregaEntrada {
+  pedidoId: string
+  clienteNome?: string
+  telefone?: string | null
+  observacao?: string | null
+}
+
+export interface AtualizarTaxaEntregaEntrada {
+  pedidoId: string
+  taxaEntregaCentavos: number
+}
+
+export interface AtualizarStatusEntregaEntrada {
+  pedidoId: string
+  status: StatusEntrega
+}
+
+export interface ListarPedidosDeliveryAbertosEntrada {
+  /** Filtrar por status de entrega (opcional). */
+  status?: StatusEntrega
+}
+
+export interface ItemDeliveryAberto {
+  pedido: Pedido
+  entrega: PedidoEntrega
+}
+
+export interface ObterTaxaEntregaPadraoResultado {
+  taxaEntregaPadraoCentavos: number
+}
+
+export interface DefinirTaxaEntregaPadraoEntrada {
+  taxaEntregaPadraoCentavos: number
 }

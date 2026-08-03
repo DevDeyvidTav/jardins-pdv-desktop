@@ -11,6 +11,7 @@ export interface LinhaPedidoSql {
   id: string
   sessao_caixa_id: string
   mesa_id: string | null
+  mesa_agrupamento_id: string | null
   tipo: string
   status: string
   subtotal_centavos: number
@@ -19,6 +20,7 @@ export interface LinhaPedidoSql {
   total_centavos: number
   desconto_itens_centavos: number
   desconto_pedido_centavos: number
+  taxa_entrega_centavos: number
   valor_pago_centavos: number
   valor_cortesia_centavos: number
   valor_restante_centavos: number
@@ -47,9 +49,12 @@ export interface LinhaPedidoItemSql {
 }
 
 const COLUNAS_PEDIDO = `
-  id, sessao_caixa_id, mesa_id, tipo, status,
+  id, sessao_caixa_id, mesa_id,
+  mesa_agrupamento_id,
+  tipo, status,
   subtotal_centavos, desconto_centavos, total_centavos,
   desconto_itens_centavos, desconto_pedido_centavos,
+  COALESCE(taxa_entrega_centavos, 0) AS taxa_entrega_centavos,
   valor_pago_centavos, valor_cortesia_centavos, valor_restante_centavos,
   criado_em, atualizado_em, finalizado_em, cancelado_em, motivo_cancelamento
 `.trim()
@@ -76,6 +81,7 @@ export function mapearLinhaPedido(
     id: linha.id,
     sessaoCaixaId: linha.sessao_caixa_id,
     mesaId: linha.mesa_id,
+    mesaAgrupamentoId: linha.mesa_agrupamento_id ?? null,
     tipo: linha.tipo as import('@shared/types/pedido').TipoPedido,
     status: linha.status as import('@shared/types/pedido').StatusPedido,
     subtotalCentavos: Number(linha.subtotal_centavos) || 0,
@@ -84,6 +90,7 @@ export function mapearLinhaPedido(
       Number(linha.desconto_pedido_centavos ?? linha.desconto_centavos) || 0,
     descontoItensCentavos: Number(linha.desconto_itens_centavos) || 0,
     descontoPedidoCentavos: Number(linha.desconto_pedido_centavos) || 0,
+    taxaEntregaCentavos: Number(linha.taxa_entrega_centavos) || 0,
     totalCentavos: Number(linha.total_centavos) || 0,
     valorPagoCentavos: Number(linha.valor_pago_centavos) || 0,
     valorCortesiaCentavos: Number(linha.valor_cortesia_centavos) || 0,

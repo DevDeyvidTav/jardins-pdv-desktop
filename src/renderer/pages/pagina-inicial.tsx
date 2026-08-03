@@ -31,7 +31,7 @@ export function PaginaInicial() {
       <section className="pagina-inicial__cartao">
         <p className="pagina-inicial__etiqueta">Fundacao desktop</p>
         <h1 data-testid="nome-sistema">
-          {informacoes?.nomeAplicacao ?? 'PDV Restaurante'}
+          {informacoes?.nomeAplicacao ?? 'PDV Jardins'}
         </h1>
         <p className="pagina-inicial__mensagem">
           A fundacao do aplicativo desktop foi configurada com sucesso. Os

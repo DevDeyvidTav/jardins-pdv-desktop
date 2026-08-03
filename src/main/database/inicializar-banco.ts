@@ -7,6 +7,7 @@ import {
   bancoEstaInicializado,
   executarMigracoes,
   fecharConexaoSqlite,
+  reiniciarControleTransacao,
   type ConexaoSqlite,
 } from './conexao-sqlite'
 
@@ -57,11 +58,13 @@ export function bancoLocalEstaPronto(): boolean {
 
 export function encerrarBancoLocal(): void {
   if (!conexaoAtual) {
+    reiniciarControleTransacao()
     return
   }
 
   fecharConexaoSqlite(conexaoAtual)
   conexaoAtual = null
+  reiniciarControleTransacao()
 }
 
 export async function reiniciarBancoLocalParaTestes(

@@ -1,6 +1,6 @@
 import type { PedidoRepository } from '../repositories/pedido.repository'
 import type { PedidoItemRepository } from '../repositories/pedido-item.repository'
-import { calcularTotaisPedido } from '../types/pedido-calculos.types'
+import { calcularTotaisPedidoComTaxa } from '../types/pedido-calculos.types'
 
 export function recalcularTotaisPedido(
   pedidoId: string,
@@ -29,10 +29,11 @@ export function recalcularTotaisPedido(
     descontoPedidoCentavos: descontoPedido,
     totalCentavos,
     valorRestanteCentavos,
-  } = calcularTotaisPedido(
+  } = calcularTotaisPedidoComTaxa(
     subtotalCentavos,
     descontoItensCentavos,
     pedido.descontoPedidoCentavos,
+    pedido.taxaEntregaCentavos,
     pedido.valorPagoCentavos,
     pedido.valorCortesiaCentavos,
   )

@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { Mesa } from '@shared/types/mesa'
+import type { Mesa, PedidoMesaMovimentacao, ResumoMesaAgrupamento } from '@shared/types/mesa'
 import type {
+  CriarPedidoDeliveryEntrada,
   FiltroStatusHistoricoPedido,
+  ItemDeliveryAberto,
   ItemHistoricoPedido,
   Pedido,
   ResumoPedido,
@@ -42,6 +44,11 @@ export interface UsePedidosResultado {
   criarMesasPorIntervalo: (numeroInicial: number, numeroFinal: number) => Promise<boolean>
   abrirPedidoMesa: (mesaId: string) => Promise<boolean>
   abrirPedidoBalcao: () => Promise<boolean>
+  criarPedidoDelivery: (entrada: CriarPedidoDeliveryEntrada) => Promise<boolean>
+  selecionarDelivery: (pedidoId: string) => Promise<boolean>
+  deliveriesAbertos: ItemDeliveryAberto[]
+  taxaEntregaPadraoCentavos: number
+  definirTaxaEntregaPadrao: (taxaCentavos: number) => Promise<boolean>
   selecionarMesaNoGrid: (mesa: Mesa) => Promise<void>
   abrirPedidoDaMesaSelecionada: () => Promise<boolean>
   adicionarItem: (
@@ -65,6 +72,11 @@ export interface UsePedidosResultado {
   limparSelecaoMesa: () => void
   recarregar: () => Promise<void>
   limparFeedback: () => void
+  transferirPedidoMesa: (mesaDestinoId: string, motivo?: string) => Promise<boolean>
+  agruparMesasPedido: (mesaIds: string[], motivo?: string) => Promise<boolean>
+  encerrarAgrupamentoManual: (observacao?: string) => Promise<boolean>
+  resumoAgrupamento: ResumoMesaAgrupamento | null
+  historicoMovimentacaoPedido: PedidoMesaMovimentacao[]
 }
 
 function extrairMensagemErro(causa: unknown): string {
@@ -102,6 +114,14 @@ export function usePedidos(): UsePedidosResultado {
   >('')
   const [erro, setErro] = useState<string | null>(null)
   const [sucesso, setSucesso] = useState<string | null>(null)
+  const [deliveriesAbertos, setDeliveriesAbertos] = useState<ItemDeliveryAberto[]>([])
+  const [taxaEntregaPadraoCentavos, setTaxaEntregaPadraoCentavos] = useState(0)
+  const [resumoAgrupamento, setResumoAgrupamento] = useState<ResumoMesaAgrupamento | null>(
+    null,
+  )
+  const [historicoMovimentacaoPedido, setHistoricoMovimentacaoPedido] = useState<
+    PedidoMesaMovimentacao[]
+  >([])
 
   const carregarHistorico = useCallback(async () => {
     const historico = await window.pdv.pedidos.listarHistoricoPedidos({
@@ -116,19 +136,24 @@ export function usePedidos(): UsePedidosResultado {
     setErro(null)
 
     try {
-      const [sessao, listaMesas, abertos, produtos, categorias] = await Promise.all([
-        window.pdv.caixa.obterSessaoCaixaAberta(),
-        window.pdv.mesas.listarMesas(),
-        window.pdv.pedidos.listarPedidosAbertos(),
-        window.pdv.produtos.listarProdutos({ apenasAtivos: true }),
-        window.pdv.produtos.listarCategorias({ apenasAtivas: true }),
-      ])
+      const [sessao, listaMesas, abertos, produtos, categorias, deliveries, taxaPadrao] =
+        await Promise.all([
+          window.pdv.caixa.obterSessaoCaixaAberta(),
+          window.pdv.mesas.listarMesas(),
+          window.pdv.pedidos.listarPedidosAbertos(),
+          window.pdv.produtos.listarProdutos({ apenasAtivos: true }),
+          window.pdv.produtos.listarCategorias({ apenasAtivas: true }),
+          window.pdv.delivery.listarDeliveryAbertos(),
+          window.pdv.delivery.obterTaxaEntregaPadrao(),
+        ])
 
       setSessaoCaixa(sessao)
       setMesas(listaMesas)
       setPedidosAbertos(abertos)
       setProdutosAtivos(produtos)
       setCategoriasAtivas(categorias)
+      setDeliveriesAbertos(deliveries)
+      setTaxaEntregaPadraoCentavos(taxaPadrao.taxaEntregaPadraoCentavos)
 
       setMesaSelecionada((atual) => {
         if (!atual) {
@@ -167,6 +192,17 @@ export function usePedidos(): UsePedidosResultado {
     [],
   )
 
+  const carregarContextoPedidoMesa = useCallback(async (pedidoId: string) => {
+    const [agrupamento, historico] = await Promise.all([
+      window.pdv.mesas.obterAgrupamentoPedido({ pedidoId }),
+      window.pdv.pedidos.listarHistoricoMovimentacaoMesa({ pedidoId }),
+    ])
+    setResumoAgrupamento(
+      agrupamento?.agrupamento.status === 'ATIVO' ? agrupamento : null,
+    )
+    setHistoricoMovimentacaoPedido(historico)
+  }, [])
+
   const carregarPedidoAbertoDaMesa = useCallback(async (mesa: Mesa) => {
     setCarregandoPedido(true)
     setErro(null)
@@ -176,11 +212,14 @@ export function usePedidos(): UsePedidosResultado {
 
       if (!resumo) {
         setResumoPedido(null)
+        setResumoAgrupamento(null)
+        setHistoricoMovimentacaoPedido([])
         setErro('Pedido aberto nao encontrado para esta mesa.')
         return false
       }
 
       setResumoPedido(resumo)
+      await carregarContextoPedidoMesa(resumo.pedido.id)
       setExibirFormularioItem(false)
       return true
     } catch (causa) {
@@ -189,7 +228,7 @@ export function usePedidos(): UsePedidosResultado {
     } finally {
       setCarregandoPedido(false)
     }
-  }, [])
+  }, [carregarContextoPedidoMesa])
 
   const criarMesasPorIntervalo = useCallback(
     async (numeroInicial: number, numeroFinal: number): Promise<boolean> => {
@@ -279,6 +318,78 @@ export function usePedidos(): UsePedidosResultado {
     }
   }, [atualizarResumo, carregarDados, sessaoCaixa])
 
+  const criarPedidoDelivery = useCallback(
+    async (entrada: CriarPedidoDeliveryEntrada): Promise<boolean> => {
+      setErro(null)
+      setSucesso(null)
+
+      if (!sessaoCaixa) {
+        setErro('Abra o caixa antes de criar pedidos.')
+        return false
+      }
+
+      setCarregandoPedido(true)
+      try {
+        const resumo = await window.pdv.delivery.criarPedidoDelivery(entrada)
+        await carregarDados()
+        setResumoPedido(resumo)
+        setMesaSelecionada(null)
+        setExibirFormularioItem(false)
+        setAbaAtiva('mesas')
+        setHistoricoPedidoSelecionadoId(null)
+        setSucesso('Delivery criado.')
+        return true
+      } catch (causa) {
+        setErro(extrairMensagemErro(causa))
+        return false
+      } finally {
+        setCarregandoPedido(false)
+      }
+    },
+    [carregarDados, sessaoCaixa],
+  )
+
+  const selecionarDelivery = useCallback(
+    async (pedidoId: string): Promise<boolean> => {
+      setErro(null)
+      setSucesso(null)
+      setMesaSelecionada(null)
+      setExibirFormularioItem(false)
+      setAbaAtiva('mesas')
+      setHistoricoPedidoSelecionadoId(null)
+      setCarregandoPedido(true)
+      try {
+        await atualizarResumo(pedidoId)
+        return true
+      } catch (causa) {
+        setErro(extrairMensagemErro(causa))
+        return false
+      } finally {
+        setCarregandoPedido(false)
+      }
+    },
+    [atualizarResumo],
+  )
+
+  const definirTaxaEntregaPadrao = useCallback(
+    async (taxaCentavos: number): Promise<boolean> => {
+      setErro(null)
+      setSucesso(null)
+      try {
+        const resultado = await window.pdv.delivery.definirTaxaEntregaPadrao({
+          taxaEntregaPadraoCentavos: taxaCentavos,
+        })
+        setTaxaEntregaPadraoCentavos(resultado.taxaEntregaPadraoCentavos)
+        setSucesso('Taxa de entrega padrao atualizada.')
+        return true
+      } catch (causa) {
+        setErro(extrairMensagemErro(causa))
+        return false
+      }
+    },
+    [],
+  )
+
   const selecionarMesaNoGrid = useCallback(
     async (mesa: Mesa) => {
       setErro(null)
@@ -288,12 +399,17 @@ export function usePedidos(): UsePedidosResultado {
       setAbaAtiva('mesas')
       setHistoricoPedidoSelecionadoId(null)
 
-      if (mesa.status === STATUS_MESA.OCUPADA && mesa.ativo) {
+      if (
+        (mesa.status === STATUS_MESA.OCUPADA || mesa.status === STATUS_MESA.AGRUPADA) &&
+        mesa.ativo
+      ) {
         await carregarPedidoAbertoDaMesa(mesa)
         return
       }
 
       setResumoPedido(null)
+      setResumoAgrupamento(null)
+      setHistoricoMovimentacaoPedido([])
     },
     [carregarPedidoAbertoDaMesa],
   )
@@ -308,7 +424,10 @@ export function usePedidos(): UsePedidosResultado {
       return false
     }
 
-    if (mesaSelecionada.status === STATUS_MESA.OCUPADA) {
+    if (
+      mesaSelecionada.status === STATUS_MESA.OCUPADA ||
+      mesaSelecionada.status === STATUS_MESA.AGRUPADA
+    ) {
       return carregarPedidoAbertoDaMesa(mesaSelecionada)
     }
 
@@ -548,8 +667,102 @@ export function usePedidos(): UsePedidosResultado {
   const limparSelecaoMesa = useCallback(() => {
     setMesaSelecionada(null)
     setResumoPedido(null)
+    setResumoAgrupamento(null)
+    setHistoricoMovimentacaoPedido([])
     setExibirFormularioItem(false)
   }, [])
+
+  const transferirPedidoMesa = useCallback(
+    async (mesaDestinoId: string, motivo?: string): Promise<boolean> => {
+      if (!resumoPedido) return false
+      setErro(null)
+      setSucesso(null)
+      setCarregandoPedido(true)
+      try {
+        const resultado = await window.pdv.mesas.transferirPedido({
+          pedidoId: resumoPedido.pedido.id,
+          mesaDestinoId,
+          motivo,
+        })
+        await carregarDados()
+        const mesaDestino = (await window.pdv.mesas.listarMesas()).find(
+          (m) => m.id === resultado.mesaDestino.id,
+        )
+        if (mesaDestino) {
+          setMesaSelecionada(mesaDestino)
+          await carregarPedidoAbertoDaMesa(mesaDestino)
+        }
+        setSucesso(
+          `Pedido transferido da mesa ${resultado.mesaOrigem.numero} para a mesa ${resultado.mesaDestino.numero}.`,
+        )
+        return true
+      } catch (causa) {
+        setErro(extrairMensagemErro(causa))
+        return false
+      } finally {
+        setCarregandoPedido(false)
+      }
+    },
+    [carregarDados, carregarPedidoAbertoDaMesa, resumoPedido],
+  )
+
+  const agruparMesasPedido = useCallback(
+    async (mesaIds: string[], motivo?: string): Promise<boolean> => {
+      if (!resumoPedido) return false
+      setErro(null)
+      setSucesso(null)
+      setCarregandoPedido(true)
+      try {
+        const resultado = await window.pdv.mesas.agruparPedido({
+          pedidoId: resumoPedido.pedido.id,
+          mesaIds,
+          motivo,
+        })
+        await carregarDados()
+        if (mesaSelecionada) {
+          await carregarPedidoAbertoDaMesa(mesaSelecionada)
+        }
+        setSucesso(
+          `Mesas agrupadas: ${resultado.mesas.map((m) => m.numero).join(', ')}. Principal: ${resultado.mesaPrincipal.numero}.`,
+        )
+        return true
+      } catch (causa) {
+        setErro(extrairMensagemErro(causa))
+        return false
+      } finally {
+        setCarregandoPedido(false)
+      }
+    },
+    [carregarDados, carregarPedidoAbertoDaMesa, mesaSelecionada, resumoPedido],
+  )
+
+  const encerrarAgrupamentoManual = useCallback(
+    async (observacao?: string): Promise<boolean> => {
+      if (!resumoPedido) return false
+      setErro(null)
+      setSucesso(null)
+      setCarregandoPedido(true)
+      try {
+        await window.pdv.mesas.encerrarAgrupamento({
+          pedidoId: resumoPedido.pedido.id,
+          motivo: 'ENCERRAMENTO_MANUAL',
+          observacao,
+        })
+        await carregarDados()
+        if (mesaSelecionada) {
+          await carregarPedidoAbertoDaMesa(mesaSelecionada)
+        }
+        setSucesso('Agrupamento encerrado. Mesas secundarias liberadas.')
+        return true
+      } catch (causa) {
+        setErro(extrairMensagemErro(causa))
+        return false
+      } finally {
+        setCarregandoPedido(false)
+      }
+    },
+    [carregarDados, carregarPedidoAbertoDaMesa, mesaSelecionada, resumoPedido],
+  )
 
   const limparFeedback = useCallback(() => {
     setErro(null)
@@ -579,6 +792,11 @@ export function usePedidos(): UsePedidosResultado {
     criarMesasPorIntervalo,
     abrirPedidoMesa,
     abrirPedidoBalcao,
+    criarPedidoDelivery,
+    selecionarDelivery,
+    deliveriesAbertos,
+    taxaEntregaPadraoCentavos,
+    definirTaxaEntregaPadrao,
     selecionarMesaNoGrid,
     abrirPedidoDaMesaSelecionada,
     adicionarItem,
@@ -598,5 +816,10 @@ export function usePedidos(): UsePedidosResultado {
     limparSelecaoMesa,
     recarregar: carregarDados,
     limparFeedback,
+    transferirPedidoMesa,
+    agruparMesasPedido,
+    encerrarAgrupamentoManual,
+    resumoAgrupamento,
+    historicoMovimentacaoPedido,
   }
 }

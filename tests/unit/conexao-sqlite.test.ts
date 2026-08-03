@@ -34,7 +34,7 @@ describe('conexao SQLite', () => {
     executarMigracoes(conexao)
 
     expect(bancoEstaInicializado(conexao)).toBe(true)
-    expect(consultarValorMetadata(conexao, 'schema_version')).toBe('10')
+    expect(consultarValorMetadata(conexao, 'schema_version')).toBe('13')
 
     fecharConexaoSqlite(conexao)
   })
@@ -45,11 +45,14 @@ describe('conexao SQLite', () => {
     executarMigracoes(conexao)
     executarMigracoes(conexao)
 
+    expect(consultarValorMetadata(conexao, 'schema_version')).toBe('13')
+    expect(consultarValorMetadata(conexao, 'taxa_entrega_padrao_centavos')).toBe('0')
+
     const registros = conexao.instancia.exec(
       'SELECT COUNT(*) as total FROM app_metadata',
     )
 
-    expect(registros[0]?.values[0]?.[0]).toBe(1)
+    expect(registros[0]?.values[0]?.[0]).toBe(2)
 
     fecharConexaoSqlite(conexao)
   })

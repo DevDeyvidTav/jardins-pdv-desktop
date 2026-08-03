@@ -5,6 +5,7 @@ import type { PedidoRepository } from '../repositories/pedido.repository'
 import { criarPedidoRepository } from '../repositories/pedido.repository'
 import type { PedidoItemRepository } from '../repositories/pedido-item.repository'
 import { criarPedidoItemRepository } from '../repositories/pedido-item.repository'
+import { criarPedidoEntregaRepository } from '../../delivery/repositories/pedido-entrega.repository'
 
 export function criarObterPedidoAbertoPorMesa(
   repositorioPedido: PedidoRepository = criarPedidoRepository(),
@@ -22,6 +23,7 @@ export function criarObterPedidoAbertoPorMesa(
     return {
       pedido,
       itens: repositorioItem.listarPorPedido(pedido.id, true),
+      entrega: null,
     }
   }
 }
@@ -55,10 +57,13 @@ export function criarObterResumoPedido(
     }
 
     const apenasItensAtivos = !(entrada.incluirItensCancelados ?? false)
+    const repositorioEntrega = criarPedidoEntregaRepository()
+    const entrega = repositorioEntrega.buscarPorPedidoId(pedido.id)
 
     return {
       pedido,
       itens: repositorioItem.listarPorPedido(pedido.id, apenasItensAtivos),
+      entrega: entrega ?? null,
     }
   }
 }

@@ -46,9 +46,21 @@ export class PedidoRepository {
     return this.buscarPorConsulta(
       `SELECT ${obterColunasPedido()}
        FROM pedido
-       WHERE mesa_id = ? AND status = ?
+       WHERE status = ?
+         AND (
+           mesa_id = ?
+           OR (
+             mesa_agrupamento_id IS NOT NULL
+             AND mesa_agrupamento_id IN (
+               SELECT mesa_agrupamento_id
+               FROM mesa_agrupada
+               WHERE mesa_id = ?
+                 AND removida_em IS NULL
+             )
+           )
+         )
        LIMIT 1`,
-      [mesaId, STATUS_PEDIDO.ABERTO],
+      [STATUS_PEDIDO.ABERTO, mesaId, mesaId],
     )
   }
 
@@ -96,11 +108,13 @@ export class PedidoRepository {
     const conexao = this.obterConexao()
     const consulta = conexao.instancia.prepare(
       `SELECT
-         p.id, p.sessao_caixa_id, p.mesa_id, p.tipo, p.status,
+         p.id, p.sessao_caixa_id, p.mesa_id, p.mesa_agrupamento_id, p.tipo, p.status,
          p.subtotal_centavos, p.desconto_centavos, p.total_centavos,
          p.desconto_itens_centavos, p.desconto_pedido_centavos,
+         COALESCE(p.taxa_entrega_centavos, 0) AS taxa_entrega_centavos,
          p.valor_pago_centavos, p.valor_cortesia_centavos, p.valor_restante_centavos,
          p.criado_em, p.atualizado_em, p.finalizado_em, p.cancelado_em,
+         p.motivo_cancelamento,
          m.numero AS mesa_numero,
          COALESCE(GROUP_CONCAT(DISTINCT CASE
            WHEN pg.status = 'CONFIRMADO' AND pg.cancelado_em IS NULL
@@ -174,12 +188,14 @@ export class PedidoRepository {
       id: randomUUID(),
       sessaoCaixaId: dados.sessaoCaixaId,
       mesaId: dados.mesaId,
+      mesaAgrupamentoId: null,
       tipo: dados.tipo,
       status: STATUS_PEDIDO.ABERTO,
       subtotalCentavos: 0,
       descontoCentavos: 0,
       descontoItensCentavos: 0,
       descontoPedidoCentavos: 0,
+      taxaEntregaCentavos: 0,
       totalCentavos: 0,
       valorPagoCentavos: 0,
       valorCortesiaCentavos: 0,
@@ -193,16 +209,17 @@ export class PedidoRepository {
 
     conexao.instancia.run(
       `INSERT INTO pedido (
-         id, sessao_caixa_id, mesa_id, tipo, status,
+         id, sessao_caixa_id, mesa_id, mesa_agrupamento_id, tipo, status,
          subtotal_centavos, desconto_centavos, total_centavos,
          desconto_itens_centavos, desconto_pedido_centavos,
          valor_pago_centavos, valor_cortesia_centavos, valor_restante_centavos,
          criado_em, atualizado_em, finalizado_em, cancelado_em
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         pedido.id,
         pedido.sessaoCaixaId,
         pedido.mesaId,
+        null,
         pedido.tipo,
         pedido.status,
         pedido.subtotalCentavos,

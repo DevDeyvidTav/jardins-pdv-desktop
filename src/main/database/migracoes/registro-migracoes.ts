@@ -214,4 +214,155 @@ ALTER TABLE pedido ADD COLUMN motivo_cancelamento TEXT;
 ALTER TABLE pedido_item ADD COLUMN motivo_cancelamento TEXT;
 `.trim(),
   },
+  {
+    versao: 11,
+    nome: '0011-delivery-taxa-entrega',
+    sql: `
+ALTER TABLE pedido ADD COLUMN taxa_entrega_centavos INTEGER NOT NULL DEFAULT 0;
+
+CREATE TABLE IF NOT EXISTS pedido_entrega (
+  id TEXT PRIMARY KEY NOT NULL,
+  pedido_id TEXT NOT NULL UNIQUE,
+  cliente_nome TEXT NOT NULL,
+  telefone TEXT NOT NULL,
+  cep TEXT,
+  logradouro TEXT NOT NULL,
+  numero TEXT NOT NULL,
+  complemento TEXT,
+  bairro TEXT NOT NULL,
+  cidade TEXT NOT NULL,
+  uf TEXT NOT NULL,
+  referencia TEXT,
+  status TEXT NOT NULL DEFAULT 'AGUARDANDO_PREPARO',
+  saiu_para_entrega_em TEXT,
+  entregue_em TEXT,
+  cancelado_em TEXT,
+  motivo_cancelamento TEXT,
+  criado_em TEXT NOT NULL,
+  atualizado_em TEXT NOT NULL,
+  FOREIGN KEY (pedido_id) REFERENCES pedido (id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_pedido_entrega_status
+  ON pedido_entrega (status);
+
+CREATE INDEX IF NOT EXISTS idx_pedido_entrega_pedido
+  ON pedido_entrega (pedido_id);
+`.trim(),
+  },
+  {
+    versao: 12,
+    nome: '0012-simplificar-pedido-entrega-e-taxa-padrao',
+    sql: `
+CREATE TABLE pedido_entrega_v12 (
+  id TEXT PRIMARY KEY NOT NULL,
+  pedido_id TEXT NOT NULL UNIQUE,
+  cliente_nome TEXT NOT NULL,
+  telefone TEXT,
+  observacao TEXT,
+  status TEXT NOT NULL DEFAULT 'AGUARDANDO_PREPARO',
+  saiu_para_entrega_em TEXT,
+  entregue_em TEXT,
+  cancelado_em TEXT,
+  motivo_cancelamento TEXT,
+  criado_em TEXT NOT NULL,
+  atualizado_em TEXT NOT NULL,
+  FOREIGN KEY (pedido_id) REFERENCES pedido (id)
+);
+
+INSERT INTO pedido_entrega_v12 (
+  id, pedido_id, cliente_nome, telefone, observacao, status,
+  saiu_para_entrega_em, entregue_em, cancelado_em, motivo_cancelamento,
+  criado_em, atualizado_em
+)
+SELECT
+  id, pedido_id, cliente_nome, telefone, NULL, status,
+  saiu_para_entrega_em, entregue_em, cancelado_em, motivo_cancelamento,
+  criado_em, atualizado_em
+FROM pedido_entrega;
+
+DROP TABLE pedido_entrega;
+
+ALTER TABLE pedido_entrega_v12 RENAME TO pedido_entrega;
+
+CREATE INDEX IF NOT EXISTS idx_pedido_entrega_status
+  ON pedido_entrega (status);
+
+CREATE INDEX IF NOT EXISTS idx_pedido_entrega_pedido
+  ON pedido_entrega (pedido_id);
+
+INSERT INTO app_metadata (chave, valor, criado_em, atualizado_em)
+VALUES (
+  'taxa_entrega_padrao_centavos',
+  '0',
+  datetime('now'),
+  datetime('now')
+)
+ON CONFLICT(chave) DO NOTHING;
+`.trim(),
+  },
+  {
+    versao: 13,
+    nome: '0013-transferencia-e-agrupamento-mesas',
+    sql: `
+ALTER TABLE pedido ADD COLUMN mesa_agrupamento_id TEXT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_pedido_mesa_agrupamento
+  ON pedido (mesa_agrupamento_id);
+
+CREATE TABLE IF NOT EXISTS mesa_agrupamento (
+  id TEXT PRIMARY KEY NOT NULL,
+  pedido_id TEXT NOT NULL UNIQUE,
+  mesa_principal_id TEXT NOT NULL,
+  status TEXT NOT NULL,
+  criado_em TEXT NOT NULL,
+  encerrado_em TEXT,
+  motivo_encerramento TEXT,
+  FOREIGN KEY (pedido_id) REFERENCES pedido (id),
+  FOREIGN KEY (mesa_principal_id) REFERENCES mesa (id)
+);
+
+CREATE TABLE IF NOT EXISTS mesa_agrupada (
+  id TEXT PRIMARY KEY NOT NULL,
+  mesa_agrupamento_id TEXT NOT NULL,
+  mesa_id TEXT NOT NULL,
+  eh_principal INTEGER NOT NULL DEFAULT 0,
+  adicionada_em TEXT NOT NULL,
+  removida_em TEXT,
+  FOREIGN KEY (mesa_agrupamento_id) REFERENCES mesa_agrupamento (id),
+  FOREIGN KEY (mesa_id) REFERENCES mesa (id),
+  UNIQUE (mesa_agrupamento_id, mesa_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_mesa_agrupada_agrupamento
+  ON mesa_agrupada (mesa_agrupamento_id);
+
+CREATE INDEX IF NOT EXISTS idx_mesa_agrupada_mesa
+  ON mesa_agrupada (mesa_id);
+
+CREATE TABLE IF NOT EXISTS pedido_mesa_movimentacao (
+  id TEXT PRIMARY KEY NOT NULL,
+  pedido_id TEXT NOT NULL,
+  tipo TEXT NOT NULL,
+  mesa_origem_id TEXT,
+  mesa_destino_id TEXT,
+  mesa_agrupamento_id TEXT,
+  dados_antes_json TEXT NOT NULL,
+  dados_depois_json TEXT NOT NULL,
+  motivo TEXT,
+  operador_id TEXT,
+  criado_em TEXT NOT NULL,
+  FOREIGN KEY (pedido_id) REFERENCES pedido (id),
+  FOREIGN KEY (mesa_origem_id) REFERENCES mesa (id),
+  FOREIGN KEY (mesa_destino_id) REFERENCES mesa (id),
+  FOREIGN KEY (mesa_agrupamento_id) REFERENCES mesa_agrupamento (id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_pedido_mesa_movimentacao_pedido
+  ON pedido_mesa_movimentacao (pedido_id);
+
+CREATE INDEX IF NOT EXISTS idx_pedido_mesa_movimentacao_criado
+  ON pedido_mesa_movimentacao (criado_em);
+`.trim(),
+  },
 ]

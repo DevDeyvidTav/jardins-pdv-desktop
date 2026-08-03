@@ -25,6 +25,12 @@ export const CANAIS_IPC = {
   MESAS_LISTAR: 'mesas:listar',
   MESAS_ATUALIZAR: 'mesas:atualizar',
   MESAS_INATIVAR: 'mesas:inativar',
+  MESAS_TRANSFERIR_PEDIDO: 'mesas:transferir-pedido',
+  MESAS_AGRUPAR_PEDIDO: 'mesas:agrupar-pedido',
+  MESAS_ENCERRAR_AGRUPAMENTO: 'mesas:encerrar-agrupamento',
+  MESAS_OBTER_AGRUPAMENTO_PEDIDO: 'mesas:obter-agrupamento-pedido',
+  MESAS_LISTAR_HISTORICO_MESA: 'mesas:listar-historico-mesa',
+  PEDIDOS_LISTAR_HISTORICO_MOVIMENTACAO: 'pedidos:listar-historico-mesa',
   PEDIDOS_CRIAR_PEDIDO_MESA: 'pedidos:criar-pedido-mesa',
   PEDIDOS_CRIAR_PEDIDO_BALCAO: 'pedidos:criar-pedido-balcao',
   PEDIDOS_OBTER_PEDIDO_ABERTO_POR_MESA: 'pedidos:obter-pedido-aberto-por-mesa',
@@ -39,6 +45,14 @@ export const CANAIS_IPC = {
   PAGAMENTOS_REGISTRAR_PEDIDO: 'pagamentos:registrar-pedido',
   PAGAMENTOS_LISTAR_PEDIDO: 'pagamentos:listar-pedido',
   PAGAMENTOS_OBTER_RESUMO_PEDIDO: 'pagamentos:obter-resumo-pedido',
+  DELIVERY_CRIAR_PEDIDO: 'delivery:criar-pedido',
+  DELIVERY_OBTER_ENTREGA: 'delivery:obter-entrega',
+  DELIVERY_ATUALIZAR_DADOS_ENTREGA: 'delivery:atualizar-dados-entrega',
+  DELIVERY_ATUALIZAR_TAXA_ENTREGA: 'delivery:atualizar-taxa-entrega',
+  DELIVERY_ATUALIZAR_STATUS_ENTREGA: 'delivery:atualizar-status-entrega',
+  DELIVERY_LISTAR_ABERTOS: 'delivery:listar-abertos',
+  DELIVERY_OBTER_TAXA_PADRAO: 'delivery:obter-taxa-padrao',
+  DELIVERY_DEFINIR_TAXA_PADRAO: 'delivery:definir-taxa-padrao',
 } as const
 
 export type CanalIpc = (typeof CANAIS_IPC)[keyof typeof CANAIS_IPC]

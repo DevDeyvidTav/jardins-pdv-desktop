@@ -59,6 +59,16 @@ const apiPdv: PdvApi = {
     listarMesas: () => ipcRenderer.invoke(CANAIS_IPC.MESAS_LISTAR),
     atualizarMesa: (entrada) => ipcRenderer.invoke(CANAIS_IPC.MESAS_ATUALIZAR, entrada),
     inativarMesa: (entrada) => ipcRenderer.invoke(CANAIS_IPC.MESAS_INATIVAR, entrada),
+    transferirPedido: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.MESAS_TRANSFERIR_PEDIDO, entrada),
+    agruparPedido: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.MESAS_AGRUPAR_PEDIDO, entrada),
+    encerrarAgrupamento: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.MESAS_ENCERRAR_AGRUPAMENTO, entrada),
+    obterAgrupamentoPedido: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.MESAS_OBTER_AGRUPAMENTO_PEDIDO, entrada),
+    listarHistoricoMesa: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.MESAS_LISTAR_HISTORICO_MESA, entrada),
   },
   pedidos: {
     criarPedidoMesa: (entrada) =>
@@ -83,6 +93,8 @@ const apiPdv: PdvApi = {
     cancelarPedido: (entrada) => ipcRenderer.invoke(CANAIS_IPC.PEDIDOS_CANCELAR, entrada),
     listarHistoricoPedidos: (entrada) =>
       ipcRenderer.invoke(CANAIS_IPC.PEDIDOS_LISTAR_HISTORICO, entrada ?? {}),
+    listarHistoricoMovimentacaoMesa: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.PEDIDOS_LISTAR_HISTORICO_MOVIMENTACAO, entrada),
   },
   pagamentos: {
     registrarPagamentoPedido: (entrada) =>
@@ -91,6 +103,24 @@ const apiPdv: PdvApi = {
       ipcRenderer.invoke(CANAIS_IPC.PAGAMENTOS_LISTAR_PEDIDO, entrada),
     obterResumoPagamentoPedido: (entrada) =>
       ipcRenderer.invoke(CANAIS_IPC.PAGAMENTOS_OBTER_RESUMO_PEDIDO, entrada),
+  },
+  delivery: {
+    criarPedidoDelivery: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.DELIVERY_CRIAR_PEDIDO, entrada),
+    obterEntrega: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.DELIVERY_OBTER_ENTREGA, entrada),
+    atualizarDadosEntrega: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.DELIVERY_ATUALIZAR_DADOS_ENTREGA, entrada),
+    atualizarTaxaEntrega: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.DELIVERY_ATUALIZAR_TAXA_ENTREGA, entrada),
+    atualizarStatusEntrega: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.DELIVERY_ATUALIZAR_STATUS_ENTREGA, entrada),
+    listarDeliveryAbertos: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.DELIVERY_LISTAR_ABERTOS, entrada ?? {}),
+    obterTaxaEntregaPadrao: () =>
+      ipcRenderer.invoke(CANAIS_IPC.DELIVERY_OBTER_TAXA_PADRAO),
+    definirTaxaEntregaPadrao: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.DELIVERY_DEFINIR_TAXA_PADRAO, entrada),
   },
 }
 

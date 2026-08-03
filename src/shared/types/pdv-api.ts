@@ -31,10 +31,21 @@ import type {
   ReativarProdutoEntrada,
 } from './produto'
 import type {
+  AgruparMesasPedidoEntrada,
+  AgruparMesasPedidoResultado,
   AtualizarMesaEntrada,
   CriarMesasPorIntervaloEntrada,
+  EncerrarAgrupamentoMesaEntrada,
   InativarMesaEntrada,
+  ListarHistoricoMesaEntrada,
+  ListarHistoricoPedidoMesaEntrada,
   Mesa,
+  MesaAgrupamento,
+  ObterAgrupamentoPedidoEntrada,
+  PedidoMesaMovimentacao,
+  ResumoMesaAgrupamento,
+  TransferirPedidoMesaEntrada,
+  TransferirPedidoMesaResultado,
 } from './mesa'
 import type {
   AdicionarItemPedidoEntrada,
@@ -50,6 +61,16 @@ import type {
   CancelarItemPedidoEntrada,
   RemoverItemPedidoEntrada,
   ResumoPedido,
+  PedidoEntrega,
+  CriarPedidoDeliveryEntrada,
+  ObterEntregaPorPedidoEntrada,
+  AtualizarDadosEntregaEntrada,
+  AtualizarTaxaEntregaEntrada,
+  AtualizarStatusEntregaEntrada,
+  ListarPedidosDeliveryAbertosEntrada,
+  ItemDeliveryAberto,
+  ObterTaxaEntregaPadraoResultado,
+  DefinirTaxaEntregaPadraoEntrada,
 } from './pedido'
 import type {
   ListarPagamentosPedidoEntrada,
@@ -104,6 +125,21 @@ export interface PdvApi {
     listarMesas: () => Promise<Mesa[]>
     atualizarMesa: (entrada: AtualizarMesaEntrada) => Promise<Mesa>
     inativarMesa: (entrada: InativarMesaEntrada) => Promise<Mesa>
+    transferirPedido: (
+      entrada: TransferirPedidoMesaEntrada,
+    ) => Promise<TransferirPedidoMesaResultado>
+    agruparPedido: (
+      entrada: AgruparMesasPedidoEntrada,
+    ) => Promise<AgruparMesasPedidoResultado>
+    encerrarAgrupamento: (
+      entrada: EncerrarAgrupamentoMesaEntrada,
+    ) => Promise<MesaAgrupamento>
+    obterAgrupamentoPedido: (
+      entrada: ObterAgrupamentoPedidoEntrada,
+    ) => Promise<ResumoMesaAgrupamento | null>
+    listarHistoricoMesa: (
+      entrada: ListarHistoricoMesaEntrada,
+    ) => Promise<PedidoMesaMovimentacao[]>
   }
   pedidos: {
     criarPedidoMesa: (entrada: CriarPedidoMesaEntrada) => Promise<Pedido>
@@ -127,6 +163,9 @@ export interface PdvApi {
     listarHistoricoPedidos: (
       entrada?: ListarHistoricoPedidosEntrada,
     ) => Promise<ItemHistoricoPedido[]>
+    listarHistoricoMovimentacaoMesa: (
+      entrada: ListarHistoricoPedidoMesaEntrada,
+    ) => Promise<PedidoMesaMovimentacao[]>
   }
   pagamentos: {
     registrarPagamentoPedido: (
@@ -138,6 +177,18 @@ export interface PdvApi {
     obterResumoPagamentoPedido: (
       entrada: ListarPagamentosPedidoEntrada,
     ) => Promise<ResumoPagamentoPedido>
+  }
+  delivery: {
+    criarPedidoDelivery: (entrada: CriarPedidoDeliveryEntrada) => Promise<ResumoPedido>
+    obterEntrega: (entrada: ObterEntregaPorPedidoEntrada) => Promise<PedidoEntrega>
+    atualizarDadosEntrega: (entrada: AtualizarDadosEntregaEntrada) => Promise<PedidoEntrega>
+    atualizarTaxaEntrega: (entrada: AtualizarTaxaEntregaEntrada) => Promise<ResumoPedido>
+    atualizarStatusEntrega: (entrada: AtualizarStatusEntregaEntrada) => Promise<PedidoEntrega>
+    listarDeliveryAbertos: (entrada?: ListarPedidosDeliveryAbertosEntrada) => Promise<ItemDeliveryAberto[]>
+    obterTaxaEntregaPadrao: () => Promise<ObterTaxaEntregaPadraoResultado>
+    definirTaxaEntregaPadrao: (
+      entrada: DefinirTaxaEntregaPadraoEntrada,
+    ) => Promise<ObterTaxaEntregaPadraoResultado>
   }
 }
 

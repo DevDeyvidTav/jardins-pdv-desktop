@@ -27,6 +27,8 @@ import {
 } from './use-cases/consultas-pedido'
 import { cancelarItemPedido } from './use-cases/cancelar-item-pedido'
 import { listarHistoricoPedidos } from './use-cases/listar-historico-pedidos'
+import { listarHistoricoPedidoMesa } from '../mesas/use-cases/encerrar-e-historico-mesas'
+import { listarHistoricoPedidoMesaSchema } from '../mesas/schemas/mesa-agrupamento.schema'
 
 function tratarErroPedidos(erro: unknown): never {
   if (erro instanceof ErroPedidos) {
@@ -142,4 +144,17 @@ export function registrarHandlersPedidos(): void {
       tratarErroPedidos(erro)
     }
   })
+
+  ipcMain.handle(
+    CANAIS_IPC.PEDIDOS_LISTAR_HISTORICO_MOVIMENTACAO,
+    (_evento, entradaDesconhecida) => {
+      try {
+        return listarHistoricoPedidoMesa(
+          listarHistoricoPedidoMesaSchema.parse(entradaDesconhecida),
+        )
+      } catch (erro) {
+        tratarErroPedidos(erro)
+      }
+    },
+  )
 }

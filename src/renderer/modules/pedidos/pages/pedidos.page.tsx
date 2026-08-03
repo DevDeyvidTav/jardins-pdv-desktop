@@ -1,18 +1,25 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { FormularioMesa } from '../components/formulario-mesa'
 import { GradeMesas } from '../components/grade-mesas'
 import { FiltrosStatusMesas } from '../components/filtros-status-mesas'
 import { FiltrosHistoricoPedidos } from '../components/filtros-historico-pedidos'
 import { HistoricoPedidosLista } from '../components/historico-pedidos-lista'
 import { PainelMesaPedido } from '../components/painel-mesa-pedido'
+import { ModalTaxaEntregaPadrao } from '../components/modal-taxa-entrega-padrao'
+import { FormularioDelivery } from '../../delivery/components/formulario-delivery'
+import { ListaDeliveries } from '../../delivery/components/lista-deliveries'
 import type { UsePedidosResultado } from '../hooks/use-pedidos'
 import './pedidos.css'
+import '../../delivery/pages/delivery.css'
 
 interface PedidosPageProps {
   pedidos: UsePedidosResultado
 }
 
 export function PedidosPage({ pedidos }: PedidosPageProps) {
+  const [exibirFormDelivery, setExibirFormDelivery] = useState(false)
+  const [exibirTaxaPadrao, setExibirTaxaPadrao] = useState(false)
+
   useEffect(() => {
     void pedidos.recarregar()
   }, [pedidos.recarregar])
@@ -45,7 +52,10 @@ export function PedidosPage({ pedidos }: PedidosPageProps) {
       <div className="pedidos-operacao">
         <PainelMesaPedido
           mesaSelecionada={pedidos.mesaSelecionada}
+          mesas={pedidos.mesas}
           resumoPedido={pedidos.resumoPedido}
+          resumoAgrupamento={pedidos.resumoAgrupamento}
+          historicoMovimentacaoPedido={pedidos.historicoMovimentacaoPedido}
           produtosAtivos={pedidos.produtosAtivos}
           categoriasAtivas={pedidos.categoriasAtivas}
           exibirFormularioItem={pedidos.exibirFormularioItem}
@@ -59,6 +69,14 @@ export function PedidosPage({ pedidos }: PedidosPageProps) {
           onAplicarDesconto={pedidos.aplicarDescontoPedido}
           onCancelarPedido={pedidos.cancelarPedido}
           onRegistrarPagamento={pedidos.registrarPagamento}
+          onTransferirMesa={pedidos.transferirPedidoMesa}
+          onAgruparMesas={pedidos.agruparMesasPedido}
+          onEncerrarAgrupamento={pedidos.encerrarAgrupamentoManual}
+          onRecarregarResumo={async () => {
+            if (pedidos.resumoPedido) {
+              await pedidos.selecionarDelivery(pedidos.resumoPedido.pedido.id)
+            }
+          }}
           erroPagamento={pedidos.erro}
         />
 
@@ -100,10 +118,34 @@ export function PedidosPage({ pedidos }: PedidosPageProps) {
                 </button>
                 <button
                   type="button"
+                  className="pedidos__botao-secundario"
+                  data-testid="botao-taxa-entrega"
+                  onClick={() => setExibirTaxaPadrao(true)}
+                >
+                  Taxa entrega
+                </button>
+                <button
+                  type="button"
                   data-testid="botao-pedido-balcao"
                   onClick={() => void pedidos.abrirPedidoBalcao()}
                 >
                   Pedido balcao
+                </button>
+                <button
+                  type="button"
+                  className="pedidos-operacao__botao-delivery"
+                  data-testid="botao-pedido-delivery"
+                  onClick={() => {
+                    setExibirFormDelivery(true)
+                    pedidos.limparFeedback()
+                  }}
+                >
+                  <span className="pedidos-operacao__icone-delivery" aria-hidden>
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                      <path d="M19.15 8.15a1.5 1.5 0 0 0-1.1-.48H15V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v9a1 1 0 0 0 1 1h1.18a2.5 2.5 0 0 0 4.64 0h5.36a2.5 2.5 0 0 0 4.64 0H21a1 1 0 0 0 1-1v-3.17a3 3 0 0 0-.85-2.05l-2-2.03ZM6.5 16.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm10 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2ZM15 9.67h2.67L19.5 11.5H15V9.67Z" />
+                    </svg>
+                  </span>
+                  Delivery
                 </button>
               </div>
             ) : null}
@@ -148,6 +190,17 @@ export function PedidosPage({ pedidos }: PedidosPageProps) {
                 </section>
               ) : null}
 
+              {pedidos.deliveriesAbertos.length > 0 ? (
+                <section className="pedidos-operacao__deliveries" data-testid="lista-deliveries-abertos">
+                  <h2 className="pedidos-operacao__deliveries-titulo">Deliveries abertos</h2>
+                  <ListaDeliveries
+                    itens={pedidos.deliveriesAbertos}
+                    pedidoSelecionadoId={pedidos.resumoPedido?.pedido.id ?? null}
+                    onSelecionar={(id) => void pedidos.selecionarDelivery(id)}
+                  />
+                </section>
+              ) : null}
+
               <div className="pedidos-operacao__grade-scroll">
                 <GradeMesas
                   mesas={pedidos.mesas}
@@ -165,6 +218,34 @@ export function PedidosPage({ pedidos }: PedidosPageProps) {
           )}
         </section>
       </div>
+
+      {exibirFormDelivery ? (
+        <div className="modal-pagamento" data-testid="modal-novo-delivery">
+          <div
+            className="modal-pagamento__backdrop"
+            onClick={() => setExibirFormDelivery(false)}
+          />
+          <div className="modal-pagamento__conteudo" role="dialog" aria-modal="true">
+            <FormularioDelivery
+              carregando={pedidos.carregandoPedido}
+              taxaPadraoCentavos={pedidos.taxaEntregaPadraoCentavos}
+              onCriar={async (entrada) => {
+                const ok = await pedidos.criarPedidoDelivery(entrada)
+                if (ok) setExibirFormDelivery(false)
+              }}
+              onCancelar={() => setExibirFormDelivery(false)}
+            />
+          </div>
+        </div>
+      ) : null}
+
+      {exibirTaxaPadrao ? (
+        <ModalTaxaEntregaPadrao
+          taxaAtualCentavos={pedidos.taxaEntregaPadraoCentavos}
+          onSalvar={pedidos.definirTaxaEntregaPadrao}
+          onFechar={() => setExibirTaxaPadrao(false)}
+        />
+      ) : null}
     </main>
   )
 }

@@ -5,6 +5,7 @@ export const FILTROS_STATUS_MESA = {
   TODAS: 'TODAS',
   LIVRE: STATUS_MESA.LIVRE,
   OCUPADA: STATUS_MESA.OCUPADA,
+  AGRUPADA: STATUS_MESA.AGRUPADA,
   INATIVA: STATUS_MESA.INATIVA,
 } as const
 
@@ -15,12 +16,14 @@ export const ROTULOS_FILTRO_STATUS_MESA: Record<FiltroStatusMesa, string> = {
   [FILTROS_STATUS_MESA.TODAS]: 'Todas',
   [FILTROS_STATUS_MESA.LIVRE]: 'Livres',
   [FILTROS_STATUS_MESA.OCUPADA]: 'Ocupadas',
+  [FILTROS_STATUS_MESA.AGRUPADA]: 'Agrupadas',
   [FILTROS_STATUS_MESA.INATIVA]: 'Inativas',
 }
 
 export const ROTULOS_STATUS_MESA: Record<StatusMesa, string> = {
   [STATUS_MESA.LIVRE]: 'Livre',
   [STATUS_MESA.OCUPADA]: 'Ocupada',
+  [STATUS_MESA.AGRUPADA]: 'Agrupada',
   [STATUS_MESA.INATIVA]: 'Inativa',
 }
 
@@ -31,6 +34,10 @@ export function obterClasseStatusMesa(status: StatusMesa, ativo: boolean): strin
 
   if (status === STATUS_MESA.OCUPADA) {
     return 'grade-mesas__celula--ocupada'
+  }
+
+  if (status === STATUS_MESA.AGRUPADA) {
+    return 'grade-mesas__celula--agrupada'
   }
 
   return 'grade-mesas__celula--livre'

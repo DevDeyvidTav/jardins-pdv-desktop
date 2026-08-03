@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { App } from './app/App'
+import { ErrorBoundaryApp } from './app/error-boundary-app'
 import './app/estilos-globais.css'
 
 const elementoRaiz = document.getElementById('root')
@@ -11,6 +12,8 @@ if (!elementoRaiz) {
 
 createRoot(elementoRaiz).render(
   <StrictMode>
-    <App />
+    <ErrorBoundaryApp>
+      <App />
+    </ErrorBoundaryApp>
   </StrictMode>,
 )

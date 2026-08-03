@@ -5,12 +5,29 @@ import type {
 import { FORMA_PAGAMENTO } from '@shared/types/pagamento-pedido'
 import { STATUS_PEDIDO, TIPO_PEDIDO } from '@shared/types/pedido'
 import { STATUS_SESSAO_CAIXA } from '@shared/types/sessao-caixa'
-import { STATUS_MESA } from '@shared/types/mesa'
+import {
+  MOTIVO_ENCERRAMENTO_AGRUPAMENTO,
+  STATUS_MESA,
+  TIPO_MOVIMENTACAO_MESA,
+} from '@shared/types/mesa'
+import {
+  confirmarTransacao,
+  iniciarTransacaoImediata,
+  persistirConexaoBanco,
+  reverterTransacao,
+} from '../../../database/conexao-sqlite'
+import { obterConexaoBancoLocal } from '../../../database/inicializar-banco'
 import { CODIGOS_ERRO_PEDIDOS, ErroPedidos } from '../../pedidos/errors/erros-pedidos'
 import { criarPedidoItemRepository, type PedidoItemRepository } from '../../pedidos/repositories/pedido-item.repository'
 import { criarPedidoRepository, type PedidoRepository } from '../../pedidos/repositories/pedido.repository'
 import { criarMesaRepository, type MesaRepository } from '../../mesas/repositories/mesa.repository'
 import { criarSessaoCaixaRepository, type SessaoCaixaRepository } from '../../caixa/repositories/sessao-caixa.repository'
+import {
+  atualizarStatusMesaNaConexao,
+  encerrarAgrupamentoAtivoNaConexao,
+  inserirMovimentacaoNaConexao,
+  snapshotMesa,
+} from '../../mesas/services/mesa-movimentacao.sql'
 import {
   criarPagamentoPedidoRepository,
   type PagamentoPedidoRepository,
@@ -22,6 +39,7 @@ export function criarRegistrarPagamentoPedido(
   repositorioSessao: SessaoCaixaRepository = criarSessaoCaixaRepository(),
   repositorioMesa: MesaRepository = criarMesaRepository(),
   repositorioPagamento: PagamentoPedidoRepository = criarPagamentoPedidoRepository(),
+  obterConexao = obterConexaoBancoLocal,
 ) {
   return function registrarPagamentoPedido(
     entrada: RegistrarPagamentoPedidoEntrada,
@@ -88,12 +106,6 @@ export function criarRegistrarPagamentoPedido(
       motivoCortesia: entrada.motivoCortesia,
     }
 
-    repositorioPagamento.inserir(
-      pedido.id,
-      sessao.id,
-      pagamentoInformado,
-    )
-
     const valorPagoCentavos =
       valorPagoAtual +
       (entrada.formaPagamento === FORMA_PAGAMENTO.CORTESIA
@@ -108,28 +120,70 @@ export function criarRegistrarPagamentoPedido(
     const valorQuitadoCentavos = valorPagoCentavos + valorCortesiaCentavos
     const valorRestanteCentavos = totalPedidoCentavos - valorQuitadoCentavos
 
-    repositorioPedido.atualizarValoresPagamento({
-      pedidoId: pedido.id,
-      valorPagoCentavos,
-      valorCortesiaCentavos,
-    })
+    const conexao = obterConexao()
+    iniciarTransacaoImediata(conexao)
+    try {
+      repositorioPagamento.inserir(
+        pedido.id,
+        sessao.id,
+        pagamentoInformado,
+      )
 
-    repositorioPedido.atualizarTotais({
-      pedidoId: pedido.id,
-      subtotalCentavos: Number(pedido.subtotalCentavos) || 0,
-      descontoItensCentavos: Number(pedido.descontoItensCentavos) || 0,
-      descontoPedidoCentavos: Number(pedido.descontoPedidoCentavos) || 0,
-      totalCentavos: totalPedidoCentavos,
-      valorRestanteCentavos,
-    })
+      repositorioPedido.atualizarValoresPagamento({
+        pedidoId: pedido.id,
+        valorPagoCentavos,
+        valorCortesiaCentavos,
+      })
 
-    if (valorRestanteCentavos === 0) {
-      repositorioPedido.finalizar(pedido.id)
+      repositorioPedido.atualizarTotais({
+        pedidoId: pedido.id,
+        subtotalCentavos: Number(pedido.subtotalCentavos) || 0,
+        descontoItensCentavos: Number(pedido.descontoItensCentavos) || 0,
+        descontoPedidoCentavos: Number(pedido.descontoPedidoCentavos) || 0,
+        totalCentavos: totalPedidoCentavos,
+        valorRestanteCentavos,
+      })
+
+      if (valorRestanteCentavos === 0) {
+        repositorioPedido.finalizar(pedido.id)
+
+        if (pedido.tipo === TIPO_PEDIDO.MESA && pedido.mesaId) {
+          const mesaAntes = repositorioMesa.buscarPorId(pedido.mesaId)
+          const encerrado = encerrarAgrupamentoAtivoNaConexao(conexao, {
+            pedidoId: pedido.id,
+            motivo: MOTIVO_ENCERRAMENTO_AGRUPAMENTO.PEDIDO_FINALIZADO,
+            liberarMesaPrincipal: true,
+          })
+
+          if (!encerrado) {
+            atualizarStatusMesaNaConexao(conexao, pedido.mesaId, STATUS_MESA.LIVRE)
+          }
+
+          inserirMovimentacaoNaConexao(conexao, {
+            pedidoId: pedido.id,
+            tipo: TIPO_MOVIMENTACAO_MESA.PEDIDO_FINALIZADO,
+            mesaOrigemId: pedido.mesaId,
+            mesaAgrupamentoId: pedido.mesaAgrupamentoId,
+            dadosAntes: {
+              pedidoId: pedido.id,
+              status: pedido.status,
+              mesa: mesaAntes ? snapshotMesa(mesaAntes) : null,
+            },
+            dadosDepois: {
+              pedidoId: pedido.id,
+              status: STATUS_PEDIDO.FINALIZADO,
+            },
+          })
+        }
+      }
+
+      confirmarTransacao(conexao)
+    } catch (erro) {
+      reverterTransacao(conexao)
+      throw erro
     }
 
-    if (pedido.tipo === TIPO_PEDIDO.MESA && pedido.mesaId && valorRestanteCentavos === 0) {
-      repositorioMesa.atualizarStatus(pedido.mesaId, STATUS_MESA.LIVRE)
-    }
+    persistirConexaoBanco(conexao)
 
     return {
       pedidoId: pedido.id,

@@ -90,7 +90,7 @@ export class PagamentoPedidoRepository {
         registro.formaPagamento,
         registro.valorCentavos,
         registro.status,
-        registro.motivoCortesia,
+        registro.motivoCortesia ?? null,
         registro.criadoEm,
         registro.atualizadoEm,
         registro.canceladoEm,

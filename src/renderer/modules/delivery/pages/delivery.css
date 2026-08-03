@@ -1,0 +1,506 @@
+.delivery--operacao {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 4.5rem);
+  overflow: hidden;
+}
+
+.delivery-operacao {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Painel esquerdo — detalhe */
+.delivery-operacao__painel {
+  width: 42%;
+  min-width: 280px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #ddd;
+  overflow-y: auto;
+  padding: 12px;
+  gap: 10px;
+}
+
+.delivery-operacao__painel-cabecalho {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.delivery-operacao__painel-cabecalho h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.delivery-operacao__status-pedido {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.delivery-operacao__status-pedido--aberto {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.delivery-operacao__status-pedido--finalizado {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.delivery-operacao__status-pedido--cancelado {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.delivery-operacao__acoes-cabecalho {
+  display: flex;
+  gap: 6px;
+}
+
+.delivery-operacao__botao-cancelar {
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  background: #ffebee;
+  border: 1px solid #ef9a9a;
+  color: #c62828;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.delivery-operacao__botao-cancelar:hover {
+  background: #ffcdd2;
+}
+
+.delivery-operacao__acoes {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.delivery-operacao__acoes button {
+  font-size: 0.8rem;
+  padding: 5px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.delivery-operacao__itens-scroll {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 60px;
+}
+
+.delivery-operacao__sucesso {
+  color: #2e7d32;
+  font-size: 0.82rem;
+  background: #e8f5e9;
+  padding: 5px 8px;
+  border-radius: 3px;
+}
+
+.delivery-operacao__erro {
+  color: #c62828;
+  font-size: 0.82rem;
+  background: #ffebee;
+  padding: 5px 8px;
+  border-radius: 3px;
+}
+
+.delivery-operacao__vazio {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #888;
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 24px;
+}
+
+/* Área direita — lista */
+.delivery-operacao__lista-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.delivery-operacao__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid #eee;
+  flex-shrink: 0;
+}
+
+.delivery-operacao__toolbar h1 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.delivery-operacao__meta {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #666;
+}
+
+.delivery-operacao__lista-scroll {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  padding: 8px;
+}
+
+/* Formulário de criação */
+.formulario-delivery {
+  background: #f9f9f9;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 8px;
+}
+
+.formulario-delivery__titulo {
+  margin: 0 0 4px;
+  font-size: 0.95rem;
+}
+
+.formulario-delivery__secao {
+  border: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.formulario-delivery__secao legend {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #555;
+  margin-bottom: 4px;
+}
+
+.formulario-delivery__campo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.formulario-delivery__campo label {
+  font-size: 0.78rem;
+  color: #444;
+}
+
+.formulario-delivery__campo input,
+.formulario-delivery__campo textarea {
+  font-size: 0.88rem;
+  padding: 4px 7px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+}
+
+.formulario-delivery__campo textarea {
+  resize: vertical;
+  min-height: 3rem;
+}
+
+.formulario-delivery__campo input:focus,
+.formulario-delivery__campo textarea:focus {
+  outline: none;
+  border-color: #1976d2;
+}
+
+.formulario-delivery__campo--grow {
+  flex: 1;
+}
+
+.formulario-delivery__campo--numero {
+  width: 90px;
+}
+
+.formulario-delivery__campo--cep {
+  width: 110px;
+}
+
+.formulario-delivery__campo--uf {
+  width: 60px;
+}
+
+.formulario-delivery__linha {
+  display: flex;
+  gap: 8px;
+}
+
+.formulario-delivery__erro {
+  font-size: 0.74rem;
+  color: #c62828;
+}
+
+.formulario-delivery__dica {
+  font-size: 0.74rem;
+  color: #666;
+}
+
+.formulario-delivery__acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.formulario-delivery__botao-cancelar {
+  font-size: 0.82rem;
+  padding: 5px 12px;
+  border-radius: 3px;
+  cursor: pointer;
+  background: #eee;
+  border: 1px solid #ccc;
+}
+
+.formulario-delivery__botao-confirmar {
+  font-size: 0.82rem;
+  padding: 5px 14px;
+  border-radius: 3px;
+  cursor: pointer;
+  background: #1976d2;
+  color: white;
+  border: none;
+}
+
+.formulario-delivery__botao-confirmar:disabled {
+  opacity: 0.6;
+}
+
+/* Lista de deliveries */
+.lista-deliveries {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lista-deliveries__item {
+  border-left: 3px solid #eee;
+  border-radius: 3px;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-left-width: 4px;
+}
+
+.lista-deliveries__item--selecionado {
+  border-color: #1976d2;
+  background: #e3f2fd;
+}
+
+.lista-deliveries__botao {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.lista-deliveries__cliente {
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.lista-deliveries__telefone,
+.lista-deliveries__endereco {
+  font-size: 0.78rem;
+  color: #555;
+}
+
+.lista-deliveries__status {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #666;
+}
+
+.lista-deliveries__total {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #1565c0;
+  align-self: flex-end;
+}
+
+.lista-deliveries__vazio {
+  text-align: center;
+  color: #888;
+  padding: 32px 16px;
+  font-size: 0.88rem;
+}
+
+/* Dados da entrega */
+.dados-entrega {
+  background: #f5f5f5;
+  border-radius: 4px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.82rem;
+}
+
+.dados-entrega--compacto {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.dados-entrega__linha {
+  display: flex;
+  gap: 8px;
+}
+
+.dados-entrega__label {
+  color: #666;
+  min-width: 70px;
+}
+
+.dados-entrega__valor {
+  font-weight: 500;
+}
+
+.dados-entrega__status {
+  font-size: 0.74rem;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+.dados-entrega__status--aguardando_preparo { background: #e3f2fd; color: #1565c0; }
+.dados-entrega__status--em_preparo { background: #fff8e1; color: #f57f17; }
+.dados-entrega__status--saiu_para_entrega { background: #e8f5e9; color: #2e7d32; }
+.dados-entrega__status--entregue { background: #f3e5f5; color: #6a1b9a; }
+.dados-entrega__status--cancelada { background: #ffebee; color: #c62828; }
+
+/* Resumo financeiro */
+.resumo-financeiro-delivery {
+  border-top: 1px solid #eee;
+  padding-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.82rem;
+}
+
+.resumo-financeiro-delivery__linha {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.resumo-financeiro-delivery__linha--desconto {
+  color: #c62828;
+}
+
+.resumo-financeiro-delivery__linha--total {
+  font-weight: 700;
+  font-size: 0.92rem;
+  border-top: 1px solid #eee;
+  padding-top: 4px;
+  margin-top: 2px;
+}
+
+.resumo-financeiro-delivery__linha--restante {
+  font-weight: 600;
+  color: #1565c0;
+}
+
+.resumo-financeiro-delivery__editar-taxa {
+  margin-left: 6px;
+  font-size: 0.72rem;
+  padding: 1px 6px;
+  background: #e3f2fd;
+  border: 1px solid #90caf9;
+  border-radius: 3px;
+  cursor: pointer;
+  color: #1565c0;
+}
+
+/* Status entrega */
+.status-entrega {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.status-entrega__passos {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.status-entrega__passo {
+  font-size: 0.72rem;
+  padding: 3px 8px;
+  border-radius: 12px;
+  background: #f0f0f0;
+  color: #888;
+}
+
+.status-entrega__passo--ativo {
+  background: #1976d2;
+  color: white;
+  font-weight: 600;
+}
+
+.status-entrega__passo--concluido {
+  background: #c8e6c9;
+  color: #2e7d32;
+}
+
+.status-entrega__passo-rotulo {
+  white-space: nowrap;
+}
+
+.status-entrega__botao-avancar {
+  font-size: 0.82rem;
+  padding: 5px 12px;
+  background: #2e7d32;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.status-entrega__botao-avancar:hover:not(:disabled) {
+  background: #1b5e20;
+}
+
+.status-entrega__botao-avancar:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.status-entrega__cancelado {
+  font-size: 0.82rem;
+  color: #c62828;
+  background: #ffebee;
+  padding: 4px 8px;
+  border-radius: 3px;
+  margin: 0;
+}

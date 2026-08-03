@@ -32,3 +32,6 @@ export function calcularDiferencaCentavos(
 ): number {
   return saldoFinalInformadoCentavos - saldoFinalEsperadoCentavos
 }
+
+/** Alias descritivo para formatarMoeda — formata centavos em R$ */
+export const formatarCentavosParaReais = formatarMoeda

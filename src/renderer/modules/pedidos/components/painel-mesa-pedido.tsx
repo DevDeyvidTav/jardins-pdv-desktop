@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { Mesa } from '@shared/types/mesa'
+import type { Mesa, PedidoMesaMovimentacao, ResumoMesaAgrupamento } from '@shared/types/mesa'
 import { STATUS_MESA } from '@shared/types/mesa'
 import type { ResumoPedido } from '@shared/types/pedido'
 import { TIPO_PEDIDO } from '@shared/types/pedido'
@@ -10,11 +10,19 @@ import { ROTULOS_STATUS_MESA } from '../constants/mesa-status-cores'
 import { ModalMotivoCancelamento } from './modal-motivo-cancelamento'
 import { BuscaProdutosPedido, ListaItensPedido } from './pedido-itens'
 import { FormularioPagamentoPedido } from '../../pagamentos/components/formulario-pagamento-pedido'
+import { DadosEntrega } from '../../delivery/components/dados-entrega'
+import { StatusEntregaPanel } from '../../delivery/components/status-entrega'
+import { ModalTransferirMesa } from './modal-transferir-mesa'
+import { ModalAgruparMesas } from './modal-agrupar-mesas'
+import { HistoricoMovimentacaoMesa } from './historico-movimentacao-mesa'
 import type { PagamentoInformado } from '@shared/types/pagamento-pedido'
 
 interface PainelMesaPedidoProps {
   mesaSelecionada: Mesa | null
+  mesas: Mesa[]
   resumoPedido: ResumoPedido | null
+  resumoAgrupamento: ResumoMesaAgrupamento | null
+  historicoMovimentacaoPedido: PedidoMesaMovimentacao[]
   produtosAtivos: ProdutoComCategoria[]
   categoriasAtivas: CategoriaProduto[]
   exibirFormularioItem: boolean
@@ -35,12 +43,19 @@ interface PainelMesaPedidoProps {
   ) => Promise<boolean>
   onCancelarPedido: (motivoCancelamento: string) => Promise<boolean>
   onRegistrarPagamento: (pagamento: PagamentoInformado) => Promise<boolean>
+  onTransferirMesa?: (mesaDestinoId: string, motivo?: string) => Promise<boolean>
+  onAgruparMesas?: (mesaIds: string[], motivo?: string) => Promise<boolean>
+  onEncerrarAgrupamento?: (observacao?: string) => Promise<boolean>
+  onRecarregarResumo?: () => Promise<void>
   erroPagamento?: string | null
 }
 
 export function PainelMesaPedido({
   mesaSelecionada,
+  mesas,
   resumoPedido,
+  resumoAgrupamento,
+  historicoMovimentacaoPedido,
   produtosAtivos,
   categoriasAtivas,
   exibirFormularioItem,
@@ -54,13 +69,22 @@ export function PainelMesaPedido({
   onAplicarDesconto,
   onCancelarPedido,
   onRegistrarPagamento,
+  onTransferirMesa,
+  onAgruparMesas,
+  onEncerrarAgrupamento,
+  onRecarregarResumo,
   erroPagamento = null,
 }: PainelMesaPedidoProps) {
   const pedidoAtivo = resumoPedido !== null
   const pedidoBalcao = resumoPedido?.pedido.tipo === TIPO_PEDIDO.BALCAO
+  const pedidoDelivery = resumoPedido?.pedido.tipo === TIPO_PEDIDO.DELIVERY
+  const pedidoMesa = resumoPedido?.pedido.tipo === TIPO_PEDIDO.MESA
+  const temAgrupamentoAtivo = Boolean(resumoAgrupamento)
   const [mostrarPagamento, setMostrarPagamento] = useState(false)
   const [mostrarDesconto, setMostrarDesconto] = useState(false)
   const [mostrarConfirmacaoCancelar, setMostrarConfirmacaoCancelar] = useState(false)
+  const [mostrarTransferir, setMostrarTransferir] = useState(false)
+  const [mostrarAgrupar, setMostrarAgrupar] = useState(false)
   const [cancelandoPedido, setCancelandoPedido] = useState(false)
   const [valorDescontoReais, setValorDescontoReais] = useState('')
   const [motivoDesconto, setMotivoDesconto] = useState('')
@@ -76,7 +100,11 @@ export function PainelMesaPedido({
     )
   }
 
-  const numeroExibido = pedidoBalcao ? 'Balcao' : (mesaSelecionada?.numero ?? '—')
+  const numeroExibido = pedidoDelivery
+    ? `Delivery${resumoPedido?.entrega ? ` · ${resumoPedido.entrega.clienteNome}` : ''}`
+    : pedidoBalcao
+      ? 'Balcao'
+      : (mesaSelecionada?.numero ?? '—')
 
   const statusExibido = mesaSelecionada
     ? ROTULOS_STATUS_MESA[mesaSelecionada.status]
@@ -170,7 +198,8 @@ export function PainelMesaPedido({
             </button>
           ) : null}
 
-          {mesaSelecionada.status === STATUS_MESA.OCUPADA ? (
+          {mesaSelecionada.status === STATUS_MESA.OCUPADA ||
+          mesaSelecionada.status === STATUS_MESA.AGRUPADA ? (
             <button
               type="button"
               className="painel-mesa-pedido__acao-principal"
@@ -186,6 +215,39 @@ export function PainelMesaPedido({
 
       {pedidoAtivo && resumoPedido ? (
         <>
+          {resumoPedido.entrega ? <DadosEntrega entrega={resumoPedido.entrega} /> : null}
+
+          {temAgrupamentoAtivo && resumoAgrupamento ? (
+            <div className="painel-mesa-pedido__agrupamento" data-testid="selo-agrupamento">
+              <strong>Mesas agrupadas</strong>
+              <ul>
+                {resumoAgrupamento.mesas
+                  .filter((m) => !m.removidaEm)
+                  .map((mesa) => (
+                    <li key={mesa.id}>
+                      Mesa {mesa.numero}
+                      {mesa.ehPrincipal ? ' (principal)' : ''}
+                    </li>
+                  ))}
+              </ul>
+            </div>
+          ) : null}
+
+          {resumoPedido.entrega && resumoPedido.pedido.status === 'ABERTO' ? (
+            <StatusEntregaPanel
+              entrega={resumoPedido.entrega}
+              pedidoFinalizado={false}
+              carregando={carregandoPedido}
+              onAvancar={async (status) => {
+                await window.pdv.delivery.atualizarStatusEntrega({
+                  pedidoId: resumoPedido.pedido.id,
+                  status,
+                })
+                await onRecarregarResumo?.()
+              }}
+            />
+          ) : null}
+
           <div className="painel-mesa-pedido__lista">
             <div className="painel-mesa-pedido__tabela-cabecalho">
               <span>Qtde</span>
@@ -244,6 +306,39 @@ export function PainelMesaPedido({
                     Desconto
                   </button>
 
+                  {pedidoMesa && mesaSelecionada && onTransferirMesa && !temAgrupamentoAtivo ? (
+                    <button
+                      type="button"
+                      className="painel-mesa-pedido__acao-secundaria"
+                      data-testid="botao-transferir-mesa"
+                      onClick={() => setMostrarTransferir(true)}
+                    >
+                      Transferir mesa
+                    </button>
+                  ) : null}
+
+                  {pedidoMesa && mesaSelecionada && onAgruparMesas && !temAgrupamentoAtivo ? (
+                    <button
+                      type="button"
+                      className="painel-mesa-pedido__acao-secundaria"
+                      data-testid="botao-agrupar-mesas"
+                      onClick={() => setMostrarAgrupar(true)}
+                    >
+                      Agrupar mesas
+                    </button>
+                  ) : null}
+
+                  {pedidoMesa && temAgrupamentoAtivo && onEncerrarAgrupamento ? (
+                    <button
+                      type="button"
+                      className="painel-mesa-pedido__acao-secundaria"
+                      data-testid="botao-encerrar-agrupamento"
+                      onClick={() => void onEncerrarAgrupamento()}
+                    >
+                      Encerrar agrupamento
+                    </button>
+                  ) : null}
+
                   <button
                     type="button"
                     className="painel-mesa-pedido__acao-cancelar"
@@ -254,6 +349,8 @@ export function PainelMesaPedido({
                   </button>
                 </div>
               ) : null}
+
+              <HistoricoMovimentacaoMesa itens={historicoMovimentacaoPedido} />
 
               <div className="painel-mesa-pedido__cupom" data-testid="pedido-totais">
                 <div className="painel-mesa-pedido__cupom-linha">
@@ -274,6 +371,14 @@ export function PainelMesaPedido({
                     {formatarMoeda(resumoPedido.pedido.descontoPedidoCentavos)}
                   </span>
                 </div>
+                {resumoPedido.pedido.taxaEntregaCentavos > 0 || pedidoDelivery ? (
+                  <div className="painel-mesa-pedido__cupom-linha">
+                    <span>Taxa entrega</span>
+                    <span data-testid="pedido-taxa-entrega">
+                      {formatarMoeda(resumoPedido.pedido.taxaEntregaCentavos)}
+                    </span>
+                  </div>
+                ) : null}
                 <div className="painel-mesa-pedido__cupom-linha painel-mesa-pedido__cupom-linha--total">
                   <span>Total</span>
                   <span data-testid="pedido-total">
@@ -413,6 +518,26 @@ export function PainelMesaPedido({
             />
           </div>
         </div>
+      ) : null}
+
+      {mostrarTransferir && mesaSelecionada && onTransferirMesa ? (
+        <ModalTransferirMesa
+          mesaAtual={mesaSelecionada}
+          mesas={mesas}
+          carregando={carregandoPedido}
+          onConfirmar={onTransferirMesa}
+          onFechar={() => setMostrarTransferir(false)}
+        />
+      ) : null}
+
+      {mostrarAgrupar && mesaSelecionada && onAgruparMesas ? (
+        <ModalAgruparMesas
+          mesaPrincipal={mesaSelecionada}
+          mesas={mesas}
+          carregando={carregandoPedido}
+          onConfirmar={onAgruparMesas}
+          onFechar={() => setMostrarAgrupar(false)}
+        />
       ) : null}
     </aside>
   )
