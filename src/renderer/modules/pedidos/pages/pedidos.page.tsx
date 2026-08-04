@@ -55,7 +55,6 @@ export function PedidosPage({ pedidos }: PedidosPageProps) {
           mesas={pedidos.mesas}
           resumoPedido={pedidos.resumoPedido}
           resumoAgrupamento={pedidos.resumoAgrupamento}
-          historicoMovimentacaoPedido={pedidos.historicoMovimentacaoPedido}
           produtosAtivos={pedidos.produtosAtivos}
           categoriasAtivas={pedidos.categoriasAtivas}
           exibirFormularioItem={pedidos.exibirFormularioItem}
@@ -69,6 +68,9 @@ export function PedidosPage({ pedidos }: PedidosPageProps) {
           onAplicarDesconto={pedidos.aplicarDescontoPedido}
           onCancelarPedido={pedidos.cancelarPedido}
           onRegistrarPagamento={pedidos.registrarPagamento}
+          onCriarDivisaoConta={pedidos.criarDivisaoConta}
+          onRegistrarPagamentoParte={pedidos.registrarPagamentoParte}
+          onCancelarDivisaoConta={pedidos.cancelarDivisaoConta}
           onTransferirMesa={pedidos.transferirPedidoMesa}
           onAgruparMesas={pedidos.agruparMesasPedido}
           onEncerrarAgrupamento={pedidos.encerrarAgrupamentoManual}

@@ -1,5 +1,6 @@
 import type { AtualizarTaxaEntregaEntrada, ResumoPedido } from '@shared/types/pedido'
 import { STATUS_PEDIDO, TIPO_PEDIDO } from '@shared/types/pedido'
+import { garantirPedidoSemDivisaoAtiva, montarResumoDivisaoConta } from '../../divisao-conta/services/resumo-divisao-conta'
 import { ErroDelivery, CODIGOS_ERRO_DELIVERY } from '../errors/erros-delivery'
 import {
   criarPedidoRepository,
@@ -47,6 +48,7 @@ export function criarAtualizarTaxaEntrega(
         'A taxa de entrega so pode ser alterada enquanto o pedido estiver aberto.',
       )
     }
+    garantirPedidoSemDivisaoAtiva(pedido.id)
     if (entrada.taxaEntregaCentavos < 0) {
       throw new ErroDelivery(
         CODIGOS_ERRO_DELIVERY.TAXA_ENTREGA_INVALIDA,
@@ -96,7 +98,12 @@ export function criarAtualizarTaxaEntrega(
     const itens = repositorioItem.listarPorPedido(pedido.id, true)
     const entrega = repositorioEntrega.buscarPorPedidoId(pedido.id)
 
-    return { pedido: pedidoAtualizado, itens, entrega }
+    return {
+      pedido: pedidoAtualizado,
+      itens,
+      entrega,
+      divisao: montarResumoDivisaoConta(pedido.id, pedidoAtualizado.totalCentavos),
+    }
   }
 }
 

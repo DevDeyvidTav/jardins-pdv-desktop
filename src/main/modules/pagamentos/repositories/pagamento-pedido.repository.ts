@@ -19,6 +19,7 @@ type LinhaPagamentoPedido = {
   valor_centavos: number
   status: PagamentoPedido['status']
   motivo_cortesia: string | null
+  pedido_divisao_parte_id: string | null
   criado_em: string
   atualizado_em: string
   cancelado_em: string | null
@@ -33,6 +34,7 @@ function mapear(linha: LinhaPagamentoPedido): PagamentoPedido {
     valorCentavos: linha.valor_centavos,
     status: linha.status,
     motivoCortesia: linha.motivo_cortesia,
+    pedidoDivisaoParteId: linha.pedido_divisao_parte_id ?? null,
     criadoEm: linha.criado_em,
     atualizadoEm: linha.atualizado_em,
     canceladoEm: linha.cancelado_em,
@@ -45,7 +47,7 @@ export class PagamentoPedidoRepository {
   listarPorPedido(pedidoId: string): PagamentoPedido[] {
     const consulta = this.obterConexao().instancia.prepare(
       `SELECT id, pedido_id, sessao_caixa_id, forma_pagamento, valor_centavos, status,
-              motivo_cortesia, criado_em, atualizado_em, cancelado_em
+              motivo_cortesia, pedido_divisao_parte_id, criado_em, atualizado_em, cancelado_em
        FROM pagamento_pedido
        WHERE pedido_id = ?
        ORDER BY criado_em ASC`,
@@ -62,6 +64,7 @@ export class PagamentoPedidoRepository {
     sessaoCaixaId: string,
     pagamento: PagamentoInformado,
     persistir = true,
+    pedidoDivisaoParteId: string | null = null,
   ): PagamentoPedido {
     const conexao = this.obterConexao()
     const agora = agoraEmIsoUtc()
@@ -73,6 +76,7 @@ export class PagamentoPedidoRepository {
       valorCentavos: pagamento.valorCentavos,
       status: STATUS_PAGAMENTO_PEDIDO.CONFIRMADO,
       motivoCortesia: pagamento.motivoCortesia ?? null,
+      pedidoDivisaoParteId,
       criadoEm: agora,
       atualizadoEm: agora,
       canceladoEm: null,
@@ -81,8 +85,8 @@ export class PagamentoPedidoRepository {
     conexao.instancia.run(
       `INSERT INTO pagamento_pedido (
         id, pedido_id, sessao_caixa_id, forma_pagamento, valor_centavos, status,
-        motivo_cortesia, criado_em, atualizado_em, cancelado_em
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        motivo_cortesia, pedido_divisao_parte_id, criado_em, atualizado_em, cancelado_em
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         registro.id,
         registro.pedidoId,
@@ -91,6 +95,7 @@ export class PagamentoPedidoRepository {
         registro.valorCentavos,
         registro.status,
         registro.motivoCortesia ?? null,
+        registro.pedidoDivisaoParteId,
         registro.criadoEm,
         registro.atualizadoEm,
         registro.canceladoEm,

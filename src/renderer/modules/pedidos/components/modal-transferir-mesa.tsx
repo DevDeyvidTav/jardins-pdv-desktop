@@ -46,46 +46,67 @@ export function ModalTransferirMesa({
   return (
     <div className="modal-pagamento" data-testid="modal-transferir-mesa">
       <div className="modal-pagamento__backdrop" onClick={onFechar} />
-      <div className="modal-pagamento__conteudo" role="dialog" aria-modal="true">
-        <h2>Transferir mesa</h2>
-        <p data-testid="transferir-mesa-origem">
+      <div
+        className="modal-pagamento__conteudo modal-mesa-operacao"
+        role="dialog"
+        aria-modal="true"
+      >
+        <header className="modal-pagamento__cabecalho">
+          <h2>Transferir mesa</h2>
+          <button type="button" className="modal-pagamento__fechar" onClick={onFechar}>
+            Fechar
+          </button>
+        </header>
+
+        <p className="modal-mesa-operacao__info" data-testid="transferir-mesa-origem">
           Mesa atual: <strong>{mesaAtual.numero}</strong>
         </p>
 
-        <label htmlFor="mesa-destino">Mesa destino</label>
-        <select
-          id="mesa-destino"
-          data-testid="select-mesa-destino"
-          value={mesaDestinoId}
-          disabled={carregando || enviando || elegiveis.length === 0}
-          onChange={(e) => setMesaDestinoId(e.target.value)}
-        >
-          {elegiveis.length === 0 ? (
-            <option value="">Nenhuma mesa livre</option>
-          ) : (
-            elegiveis.map((mesa) => (
-              <option key={mesa.id} value={mesa.id}>
-                Mesa {mesa.numero}
-              </option>
-            ))
-          )}
-        </select>
+        <div className="modal-mesa-operacao__campo">
+          <label htmlFor="mesa-destino">Mesa destino</label>
+          <select
+            id="mesa-destino"
+            data-testid="select-mesa-destino"
+            value={mesaDestinoId}
+            disabled={carregando || enviando || elegiveis.length === 0}
+            onChange={(e) => setMesaDestinoId(e.target.value)}
+          >
+            {elegiveis.length === 0 ? (
+              <option value="">Nenhuma mesa livre</option>
+            ) : (
+              elegiveis.map((mesa) => (
+                <option key={mesa.id} value={mesa.id}>
+                  Mesa {mesa.numero}
+                </option>
+              ))
+            )}
+          </select>
+        </div>
 
-        <label htmlFor="motivo-transferencia">Motivo (opcional)</label>
-        <input
-          id="motivo-transferencia"
-          data-testid="motivo-transferencia"
-          value={motivo}
-          onChange={(e) => setMotivo(e.target.value)}
-          disabled={carregando || enviando}
-        />
+        <div className="modal-mesa-operacao__campo">
+          <label htmlFor="motivo-transferencia">Motivo (opcional)</label>
+          <input
+            id="motivo-transferencia"
+            data-testid="motivo-transferencia"
+            value={motivo}
+            onChange={(e) => setMotivo(e.target.value)}
+            disabled={carregando || enviando}
+            placeholder="Ex.: cliente pediu mudanca"
+          />
+        </div>
 
         <div className="modal-pagamento__acoes">
-          <button type="button" data-testid="cancelar-transferencia" onClick={onFechar}>
+          <button
+            type="button"
+            className="modal-pagamento__botao-secundario"
+            data-testid="cancelar-transferencia"
+            onClick={onFechar}
+          >
             Cancelar
           </button>
           <button
             type="button"
+            className="modal-pagamento__botao-primario"
             data-testid="confirmar-transferencia"
             disabled={!mesaDestinoId || carregando || enviando}
             onClick={() => void handleConfirmar()}

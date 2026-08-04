@@ -1,5 +1,6 @@
 import type { ObterPedidoAbertoPorMesaEntrada, ResumoPedido } from '@shared/types/pedido'
 import { STATUS_PEDIDO } from '@shared/types/pedido'
+import { montarResumoDivisaoConta } from '../../divisao-conta/services/resumo-divisao-conta'
 import { CODIGOS_ERRO_PEDIDOS, ErroPedidos } from '../errors/erros-pedidos'
 import type { PedidoRepository } from '../repositories/pedido.repository'
 import { criarPedidoRepository } from '../repositories/pedido.repository'
@@ -24,6 +25,7 @@ export function criarObterPedidoAbertoPorMesa(
       pedido,
       itens: repositorioItem.listarPorPedido(pedido.id, true),
       entrega: null,
+      divisao: montarResumoDivisaoConta(pedido.id, pedido.totalCentavos),
     }
   }
 }
@@ -64,6 +66,7 @@ export function criarObterResumoPedido(
       pedido,
       itens: repositorioItem.listarPorPedido(pedido.id, apenasItensAtivos),
       entrega: entrega ?? null,
+      divisao: montarResumoDivisaoConta(pedido.id, pedido.totalCentavos),
     }
   }
 }

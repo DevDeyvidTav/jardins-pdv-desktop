@@ -12,6 +12,10 @@ import { FILTRO_STATUS_HISTORICO_PEDIDO } from '@shared/types/pedido'
 import type { ProdutoComCategoria } from '@shared/types/produto'
 import type { CategoriaProduto } from '@shared/types/categoria-produto'
 import type { FormaPagamento, PagamentoInformado } from '@shared/types/pagamento-pedido'
+import type {
+  CriarParteDivisaoEntrada,
+  PedidoDivisaoMovimentacao,
+} from '@shared/types/divisao-conta'
 import type { SessaoCaixa } from '@shared/types/sessao-caixa'
 import { STATUS_MESA } from '@shared/types/mesa'
 import {
@@ -61,6 +65,12 @@ export interface UsePedidosResultado {
   aplicarDescontoPedido: (descontoCentavos: number, motivoDesconto?: string) => Promise<boolean>
   cancelarPedido: (motivoCancelamento: string) => Promise<boolean>
   registrarPagamento: (pagamento: PagamentoInformado) => Promise<boolean>
+  criarDivisaoConta: (partes: CriarParteDivisaoEntrada[]) => Promise<boolean>
+  registrarPagamentoParte: (
+    parteId: string,
+    pagamento: PagamentoInformado,
+  ) => Promise<boolean>
+  cancelarDivisaoConta: (motivo?: string) => Promise<boolean>
   definirFiltroStatusMesas: (filtro: FiltroStatusMesa) => void
   definirAbaAtiva: (aba: AbaPedidos) => void
   definirFiltroHistoricoStatus: (status: FiltroStatusHistoricoPedido) => void
@@ -77,6 +87,7 @@ export interface UsePedidosResultado {
   encerrarAgrupamentoManual: (observacao?: string) => Promise<boolean>
   resumoAgrupamento: ResumoMesaAgrupamento | null
   historicoMovimentacaoPedido: PedidoMesaMovimentacao[]
+  historicoDivisaoConta: PedidoDivisaoMovimentacao[]
 }
 
 function extrairMensagemErro(causa: unknown): string {
@@ -121,6 +132,9 @@ export function usePedidos(): UsePedidosResultado {
   )
   const [historicoMovimentacaoPedido, setHistoricoMovimentacaoPedido] = useState<
     PedidoMesaMovimentacao[]
+  >([])
+  const [historicoDivisaoConta, setHistoricoDivisaoConta] = useState<
+    PedidoDivisaoMovimentacao[]
   >([])
 
   const carregarHistorico = useCallback(async () => {
@@ -182,11 +196,15 @@ export function usePedidos(): UsePedidosResultado {
 
   const atualizarResumo = useCallback(
     async (pedidoId: string, incluirItensCancelados = false) => {
-      const resumo = await window.pdv.pedidos.obterResumoPedido({
-        pedidoId,
-        incluirItensCancelados,
-      })
+      const [resumo, historicoDivisao] = await Promise.all([
+        window.pdv.pedidos.obterResumoPedido({
+          pedidoId,
+          incluirItensCancelados,
+        }),
+        window.pdv.divisaoConta.listarHistorico({ pedidoId }),
+      ])
       setResumoPedido(resumo)
+      setHistoricoDivisaoConta(historicoDivisao)
       return resumo
     },
     [],
@@ -214,11 +232,16 @@ export function usePedidos(): UsePedidosResultado {
         setResumoPedido(null)
         setResumoAgrupamento(null)
         setHistoricoMovimentacaoPedido([])
+        setHistoricoDivisaoConta([])
         setErro('Pedido aberto nao encontrado para esta mesa.')
         return false
       }
 
       setResumoPedido(resumo)
+      const historicoDivisao = await window.pdv.divisaoConta.listarHistorico({
+        pedidoId: resumo.pedido.id,
+      })
+      setHistoricoDivisaoConta(historicoDivisao)
       await carregarContextoPedidoMesa(resumo.pedido.id)
       setExibirFormularioItem(false)
       return true
@@ -410,6 +433,7 @@ export function usePedidos(): UsePedidosResultado {
       setResumoPedido(null)
       setResumoAgrupamento(null)
       setHistoricoMovimentacaoPedido([])
+      setHistoricoDivisaoConta([])
     },
     [carregarPedidoAbertoDaMesa],
   )
@@ -604,6 +628,85 @@ export function usePedidos(): UsePedidosResultado {
     [atualizarResumo, carregarDados, resumoPedido],
   )
 
+  const criarDivisaoConta = useCallback(
+    async (partes: CriarParteDivisaoEntrada[]): Promise<boolean> => {
+      if (!resumoPedido) return false
+      setErro(null)
+      setSucesso(null)
+      try {
+        await window.pdv.divisaoConta.criar({
+          pedidoId: resumoPedido.pedido.id,
+          partes,
+        })
+        await atualizarResumo(resumoPedido.pedido.id)
+        setSucesso('Divisao de conta criada.')
+        return true
+      } catch (causa) {
+        setErro(extrairMensagemErro(causa))
+        return false
+      }
+    },
+    [atualizarResumo, resumoPedido],
+  )
+
+  const registrarPagamentoParte = useCallback(
+    async (parteId: string, pagamento: PagamentoInformado): Promise<boolean> => {
+      if (!resumoPedido) return false
+      setErro(null)
+      setSucesso(null)
+      try {
+        const resultado = await window.pdv.divisaoConta.registrarPagamentoParte({
+          pedidoId: resumoPedido.pedido.id,
+          parteId,
+          formaPagamento: pagamento.formaPagamento,
+          valorCentavos: pagamento.valorCentavos,
+          motivoCortesia: pagamento.motivoCortesia,
+        })
+        await carregarDados()
+
+        if (resultado.totais.valorRestanteCentavos === 0) {
+          setResumoPedido(null)
+          setHistoricoDivisaoConta([])
+          setExibirFormularioItem(false)
+          setMesaSelecionada(null)
+          setAbaAtiva('historico')
+          setFiltroHistoricoStatus(FILTRO_STATUS_HISTORICO_PEDIDO.FINALIZADO)
+          setHistoricoPedidoSelecionadoId(null)
+          setSucesso('Divisao quitada e pedido finalizado.')
+        } else {
+          await atualizarResumo(resumoPedido.pedido.id)
+          setSucesso('Pagamento da parte registrado.')
+        }
+        return true
+      } catch (causa) {
+        setErro(extrairMensagemErro(causa))
+        return false
+      }
+    },
+    [atualizarResumo, carregarDados, resumoPedido],
+  )
+
+  const cancelarDivisaoConta = useCallback(
+    async (motivo?: string): Promise<boolean> => {
+      if (!resumoPedido) return false
+      setErro(null)
+      setSucesso(null)
+      try {
+        await window.pdv.divisaoConta.cancelar({
+          pedidoId: resumoPedido.pedido.id,
+          motivo,
+        })
+        await atualizarResumo(resumoPedido.pedido.id)
+        setSucesso('Divisao de conta cancelada.')
+        return true
+      } catch (causa) {
+        setErro(extrairMensagemErro(causa))
+        return false
+      }
+    },
+    [atualizarResumo, resumoPedido],
+  )
+
   const definirFiltroStatusMesas = useCallback((filtro: FiltroStatusMesa) => {
     setFiltroStatusMesas(filtro)
   }, [])
@@ -669,6 +772,7 @@ export function usePedidos(): UsePedidosResultado {
     setResumoPedido(null)
     setResumoAgrupamento(null)
     setHistoricoMovimentacaoPedido([])
+    setHistoricoDivisaoConta([])
     setExibirFormularioItem(false)
   }, [])
 
@@ -805,6 +909,9 @@ export function usePedidos(): UsePedidosResultado {
     aplicarDescontoPedido,
     cancelarPedido,
     registrarPagamento,
+    criarDivisaoConta,
+    registrarPagamentoParte,
+    cancelarDivisaoConta,
     definirFiltroStatusMesas,
     definirAbaAtiva,
     definirFiltroHistoricoStatus,
@@ -821,5 +928,6 @@ export function usePedidos(): UsePedidosResultado {
     encerrarAgrupamentoManual,
     resumoAgrupamento,
     historicoMovimentacaoPedido,
+    historicoDivisaoConta,
   }
 }

@@ -17,6 +17,7 @@ import {
   reverterTransacao,
 } from '../../../database/conexao-sqlite'
 import { obterConexaoBancoLocal } from '../../../database/inicializar-banco'
+import { garantirPagamentoSemDivisaoAtiva } from '../../divisao-conta/services/resumo-divisao-conta'
 import { CODIGOS_ERRO_PEDIDOS, ErroPedidos } from '../../pedidos/errors/erros-pedidos'
 import { criarPedidoItemRepository, type PedidoItemRepository } from '../../pedidos/repositories/pedido-item.repository'
 import { criarPedidoRepository, type PedidoRepository } from '../../pedidos/repositories/pedido.repository'
@@ -53,6 +54,7 @@ export function criarRegistrarPagamentoPedido(
     if (!pedido) {
       throw new ErroPedidos(CODIGOS_ERRO_PEDIDOS.PEDIDO_NAO_ENCONTRADO, 'Pedido nao encontrado.')
     }
+    garantirPagamentoSemDivisaoAtiva(pedido.id)
     if (pedido.status !== STATUS_PEDIDO.ABERTO) {
       throw new ErroPedidos(CODIGOS_ERRO_PEDIDOS.PEDIDO_NAO_ABERTO, 'Pedido nao esta aberto para pagamento.')
     }

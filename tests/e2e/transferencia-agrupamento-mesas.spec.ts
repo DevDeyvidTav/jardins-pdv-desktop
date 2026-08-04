@@ -110,7 +110,6 @@ test.describe('transferencia e agrupamento de mesas', () => {
 
       await expect(janela.getByTestId('selo-agrupamento')).toBeVisible({ timeout: 10_000 })
       await expect(janela.getByTestId('selo-agrupamento')).toContainText('principal')
-      await expect(janela.getByTestId('item-historico-movimentacao').first()).toBeVisible()
 
       await janela.getByTestId('botao-abrir-pagamento').click()
       await janela.getByTestId('campo-valor-pagamento').fill('6,00')

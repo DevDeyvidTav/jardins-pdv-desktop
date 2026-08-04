@@ -78,6 +78,15 @@ import type {
   RegistrarPagamentoPedidoEntrada,
   ResumoPagamentoPedido,
 } from './pagamento-pedido'
+import type {
+  CancelarDivisaoContaEntrada,
+  CriarDivisaoContaEntrada,
+  ListarHistoricoDivisaoContaEntrada,
+  ObterResumoDivisaoContaEntrada,
+  PedidoDivisaoMovimentacao,
+  RegistrarPagamentoParteDivisaoEntrada,
+  ResumoDivisaoConta,
+} from './divisao-conta'
 
 export interface PdvApi {
   sistema: {
@@ -189,6 +198,17 @@ export interface PdvApi {
     definirTaxaEntregaPadrao: (
       entrada: DefinirTaxaEntregaPadraoEntrada,
     ) => Promise<ObterTaxaEntregaPadraoResultado>
+  }
+  divisaoConta: {
+    criar: (entrada: CriarDivisaoContaEntrada) => Promise<ResumoDivisaoConta>
+    obterResumo: (entrada: ObterResumoDivisaoContaEntrada) => Promise<ResumoDivisaoConta | null>
+    registrarPagamentoParte: (
+      entrada: RegistrarPagamentoParteDivisaoEntrada,
+    ) => Promise<ResumoDivisaoConta>
+    cancelar: (entrada: CancelarDivisaoContaEntrada) => Promise<ResumoDivisaoConta>
+    listarHistorico: (
+      entrada: ListarHistoricoDivisaoContaEntrada,
+    ) => Promise<PedidoDivisaoMovimentacao[]>
   }
 }
 

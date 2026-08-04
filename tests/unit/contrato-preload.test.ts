@@ -25,7 +25,7 @@ const PEDIDO_BASE = {
   motivoCancelamento: null,
 }
 
-const RESUMO_BASE = { pedido: PEDIDO_BASE, itens: [], entrega: null }
+const RESUMO_BASE = { pedido: PEDIDO_BASE, itens: [], entrega: null, divisao: null }
 
 describe('contrato da API exposta pelo preload', () => {
   it('define canais IPC do sistema, caixa e produtos', () => {
@@ -33,6 +33,13 @@ describe('contrato da API exposta pelo preload', () => {
     expect(CANAIS_IPC.PRODUTOS_CRIAR_PRODUTO).toBe('produtos:criar-produto')
     expect(CANAIS_IPC.PRODUTOS_BUSCAR_PRODUTOS).toBe('produtos:buscar-produtos')
     expect(CANAIS_IPC.DELIVERY_CRIAR_PEDIDO).toBe('delivery:criar-pedido')
+    expect(CANAIS_IPC.DIVISAO_CONTA_CRIAR).toBe('divisao-conta:criar')
+    expect(CANAIS_IPC.DIVISAO_CONTA_OBTER_RESUMO).toBe('divisao-conta:obter-resumo')
+    expect(CANAIS_IPC.DIVISAO_CONTA_REGISTRAR_PAGAMENTO_PARTE).toBe(
+      'divisao-conta:registrar-pagamento-parte',
+    )
+    expect(CANAIS_IPC.DIVISAO_CONTA_CANCELAR).toBe('divisao-conta:cancelar')
+    expect(CANAIS_IPC.DIVISAO_CONTA_LISTAR_HISTORICO).toBe('divisao-conta:listar-historico')
   })
 
   it('mantem formato esperado da API window.pdv', () => {
@@ -327,6 +334,58 @@ describe('contrato da API exposta pelo preload', () => {
         obterTaxaEntregaPadrao: async () => ({ taxaEntregaPadraoCentavos: 0 }),
         definirTaxaEntregaPadrao: async () => ({ taxaEntregaPadraoCentavos: 500 }),
       },
+      divisaoConta: {
+        criar: async () => ({
+          divisao: {
+            id: 'div-1',
+            pedidoId: 'ped-1',
+            status: 'ATIVA' as const,
+            valorTotalCentavos: 0,
+            criadoEm: new Date().toISOString(),
+            canceladoEm: null,
+          },
+          partes: [],
+          totais: {
+            valorPedidoCentavos: 0,
+            valorPagoCentavos: 0,
+            valorRestanteCentavos: 0,
+          },
+        }),
+        obterResumo: async () => null,
+        registrarPagamentoParte: async () => ({
+          divisao: {
+            id: 'div-1',
+            pedidoId: 'ped-1',
+            status: 'ATIVA' as const,
+            valorTotalCentavos: 0,
+            criadoEm: new Date().toISOString(),
+            canceladoEm: null,
+          },
+          partes: [],
+          totais: {
+            valorPedidoCentavos: 0,
+            valorPagoCentavos: 0,
+            valorRestanteCentavos: 0,
+          },
+        }),
+        cancelar: async () => ({
+          divisao: {
+            id: 'div-1',
+            pedidoId: 'ped-1',
+            status: 'CANCELADA' as const,
+            valorTotalCentavos: 0,
+            criadoEm: new Date().toISOString(),
+            canceladoEm: new Date().toISOString(),
+          },
+          partes: [],
+          totais: {
+            valorPedidoCentavos: 0,
+            valorPagoCentavos: 0,
+            valorRestanteCentavos: 0,
+          },
+        }),
+        listarHistorico: async () => [],
+      },
     }
 
     expect(typeof api.caixa.fecharSessaoCaixa).toBe('function')
@@ -343,5 +402,10 @@ describe('contrato da API exposta pelo preload', () => {
     expect(typeof api.pagamentos.registrarPagamentoPedido).toBe('function')
     expect(typeof api.delivery.criarPedidoDelivery).toBe('function')
     expect(typeof api.delivery.atualizarStatusEntrega).toBe('function')
+    expect(typeof api.divisaoConta.criar).toBe('function')
+    expect(typeof api.divisaoConta.obterResumo).toBe('function')
+    expect(typeof api.divisaoConta.registrarPagamentoParte).toBe('function')
+    expect(typeof api.divisaoConta.cancelar).toBe('function')
+    expect(typeof api.divisaoConta.listarHistorico).toBe('function')
   })
 })

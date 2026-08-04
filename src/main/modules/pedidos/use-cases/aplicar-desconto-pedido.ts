@@ -31,6 +31,7 @@ import {
   inserirMovimentacaoNaConexao,
   snapshotMesa,
 } from '../../mesas/services/mesa-movimentacao.sql'
+import { garantirPedidoSemDivisaoAtiva } from '../../divisao-conta/services/resumo-divisao-conta'
 import { calcularTotaisPedidoComTaxa } from '../types/pedido-calculos.types'
 import { garantirPedidoAberto, obterResumoPedido } from './consultas-pedido'
 
@@ -61,6 +62,7 @@ export function criarAplicarDescontoPedido(
     }
 
     garantirPedidoAberto(pedido)
+    garantirPedidoSemDivisaoAtiva(pedido.id)
 
     if (entrada.descontoCentavos < 0) {
       throw new ErroPedidos(

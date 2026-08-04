@@ -26,6 +26,15 @@ import { criarPedidoRepository } from '../repositories/pedido.repository'
 import type { PedidoItemRepository } from '../repositories/pedido-item.repository'
 import { criarPedidoItemRepository } from '../repositories/pedido-item.repository'
 import { criarPedidoEntregaRepository } from '../../delivery/repositories/pedido-entrega.repository'
+import {
+  criarPedidoDivisaoContaRepository,
+  criarPedidoDivisaoMovimentacaoRepository,
+} from '../../divisao-conta/repositories/divisao-conta.repository'
+import {
+  STATUS_DIVISAO_CONTA,
+  TIPO_MOVIMENTACAO_DIVISAO,
+} from '@shared/types/divisao-conta'
+import { agoraEmIsoUtc } from '@shared/utils/data-hora'
 
 export function criarCancelarPedido(
   repositorioPedido: PedidoRepository = criarPedidoRepository(),
@@ -58,6 +67,25 @@ export function criarCancelarPedido(
 
     iniciarTransacaoImediata(conexao)
     try {
+      const repositorioDivisao = criarPedidoDivisaoContaRepository()
+      const repositorioMovimentacaoDivisao = criarPedidoDivisaoMovimentacaoRepository()
+      const divisaoAtiva = repositorioDivisao.buscarAtivaPorPedido(pedido.id)
+      if (divisaoAtiva) {
+        const agora = agoraEmIsoUtc()
+        repositorioDivisao.atualizarStatus(divisaoAtiva.id, STATUS_DIVISAO_CONTA.CANCELADA, {
+          canceladoEm: agora,
+          motivoCancelamento: entrada.motivoCancelamento,
+        })
+        repositorioMovimentacaoDivisao.inserir({
+          pedidoId: pedido.id,
+          divisaoId: divisaoAtiva.id,
+          tipo: TIPO_MOVIMENTACAO_DIVISAO.DIVISAO_CANCELADA,
+          dadosAntes: { status: divisaoAtiva.status },
+          dadosDepois: { status: STATUS_DIVISAO_CONTA.CANCELADA },
+          motivo: entrada.motivoCancelamento,
+        })
+      }
+
       repositorioItem.cancelarItensAtivosPorPedido(
         entrada.pedidoId,
         entrada.motivoCancelamento,

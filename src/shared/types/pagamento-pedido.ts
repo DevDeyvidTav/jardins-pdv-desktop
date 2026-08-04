@@ -24,6 +24,8 @@ export interface PagamentoPedido {
   valorCentavos: number
   status: StatusPagamentoPedido
   motivoCortesia?: string | null
+  /** Parte da divisao de conta vinculada, se houver. */
+  pedidoDivisaoParteId: string | null
   criadoEm: string
   atualizadoEm: string
   canceladoEm: string | null
@@ -41,6 +43,8 @@ export interface RegistrarPagamentoPedidoEntrada {
   formaPagamento: FormaPagamento
   valorCentavos: number
   motivoCortesia?: string
+  /** Quando informado, vincula o pagamento a uma parte da divisao. */
+  pedidoDivisaoParteId?: string
 }
 
 export interface ListarPagamentosPedidoEntrada {

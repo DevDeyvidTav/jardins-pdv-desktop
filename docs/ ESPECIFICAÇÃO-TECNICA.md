@@ -94,6 +94,7 @@ apps/desktop/src/
 | 0011 | pedido.taxa_entrega, pedido_entrega | Delivery e taxa de entrega |
 | 0012 | pedido_entrega (simplificado), taxa padrao | Campos reduzidos + metadata |
 | 0013 | mesa_agrupamento, mesa_agrupada, pedido_mesa_movimentacao, pedido.mesa_agrupamento_id | Transferência e agrupamento de mesas com auditoria imutável |
+| 0014 | pedido_divisao_conta, pedido_divisao_parte, pedido_divisao_movimentacao, pagamento_pedido.pedido_divisao_parte_id | Divisão de conta por valor com pagamentos vinculados às partes |
 
 ### Transferência e agrupamento (v13)
 
@@ -102,6 +103,15 @@ apps/desktop/src/
 - Auditoria em `pedido_mesa_movimentacao` (append-only): abertura, transferência, agrupamento, encerramento, finalização e cancelamento.
 - Finalizar/cancelar pedido agrupado encerra o agrupamento e libera todas as mesas na mesma transação.
 - Operações usam `BEGIN IMMEDIATE` via helpers em `conexao-sqlite` (persistência adiada enquanto a transação está aberta).
+
+### Divisão de conta por valor (v14)
+
+- Camada de organização do pagamento sobre o **mesmo** `pedido_id`; não cria pedidos novos nem move itens.
+- `pedido_divisao_conta` (ATIVA | QUITADA | CANCELADA) + `pedido_divisao_parte` (PENDENTE | PARCIALMENTE_PAGA | QUITADA).
+- Pagamentos continuam em `pagamento_pedido`, com vínculo opcional `pedido_divisao_parte_id`.
+- Enquanto a divisão estiver ATIVA: bloqueia alterações financeiras do pedido e pagamentos “normais” sem parte.
+- Cancelamento da divisão só antes do primeiro pagamento vinculado; cancelar o pedido com divisão ativa marca a divisão como CANCELADA preservando histórico.
+- Auditoria append-only em `pedido_divisao_movimentacao`.
 
 ### Schema SQL
 
@@ -479,6 +489,16 @@ export interface ResumoPagamentoPedido {
 | `pagamentos:registrar-pedido` | Renderer → Main | `{ pedidoId, formaPagamento, valorCentavos, motivoCortesia? }` | `ResumoPagamentoPedido` |
 | `pagamentos:listar-pedido` | Renderer → Main | `{ pedidoId }` | `PagamentoPedido[]` |
 | `pagamentos:obter-resumo-pedido` | Renderer → Main | `{ pedidoId }` | `ResumoPagamentoPedido` |
+
+### Divisão de conta
+
+| Channel | Direction | Payload | Response |
+|---------|-----------|---------|----------|
+| `divisao-conta:criar` | Renderer → Main | `{ pedidoId, partes: [{ identificacao, valorDefinidoCentavos }] }` | `ResumoDivisaoConta` |
+| `divisao-conta:obter-resumo` | Renderer → Main | `{ pedidoId }` | `ResumoDivisaoConta \| null` |
+| `divisao-conta:registrar-pagamento-parte` | Renderer → Main | `{ pedidoId, parteId, formaPagamento, valorCentavos, motivoCortesia? }` | `ResumoDivisaoConta` |
+| `divisao-conta:cancelar` | Renderer → Main | `{ pedidoId, motivo? }` | `ResumoDivisaoConta` |
+| `divisao-conta:listar-historico` | Renderer → Main | `{ pedidoId }` | `PedidoDivisaoMovimentacao[]` |
 
 ---
 

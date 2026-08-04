@@ -71,6 +71,8 @@ export interface ResumoPedido {
   pedido: Pedido
   itens: PedidoItem[]
   entrega: PedidoEntrega | null
+  /** Divisao ativa ou quitada mais recente; null se nunca houve. */
+  divisao: import('./divisao-conta').ResumoDivisaoConta | null
 }
 
 export interface CriarPedidoMesaEntrada {

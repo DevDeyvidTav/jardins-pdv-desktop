@@ -122,6 +122,16 @@ const apiPdv: PdvApi = {
     definirTaxaEntregaPadrao: (entrada) =>
       ipcRenderer.invoke(CANAIS_IPC.DELIVERY_DEFINIR_TAXA_PADRAO, entrada),
   },
+  divisaoConta: {
+    criar: (entrada) => ipcRenderer.invoke(CANAIS_IPC.DIVISAO_CONTA_CRIAR, entrada),
+    obterResumo: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.DIVISAO_CONTA_OBTER_RESUMO, entrada),
+    registrarPagamentoParte: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.DIVISAO_CONTA_REGISTRAR_PAGAMENTO_PARTE, entrada),
+    cancelar: (entrada) => ipcRenderer.invoke(CANAIS_IPC.DIVISAO_CONTA_CANCELAR, entrada),
+    listarHistorico: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.DIVISAO_CONTA_LISTAR_HISTORICO, entrada),
+  },
 }
 
 contextBridge.exposeInMainWorld('pdv', apiPdv)

@@ -57,34 +57,46 @@ export function ModalAgruparMesas({
   return (
     <div className="modal-pagamento" data-testid="modal-agrupar-mesas">
       <div className="modal-pagamento__backdrop" onClick={onFechar} />
-      <div className="modal-pagamento__conteudo" role="dialog" aria-modal="true">
-        <h2>Agrupar mesas</h2>
-        <p data-testid="agrupar-mesa-principal">
+      <div
+        className="modal-pagamento__conteudo modal-mesa-operacao modal-mesa-operacao--largo"
+        role="dialog"
+        aria-modal="true"
+      >
+        <header className="modal-pagamento__cabecalho">
+          <h2>Agrupar mesas</h2>
+          <button type="button" className="modal-pagamento__fechar" onClick={onFechar}>
+            Fechar
+          </button>
+        </header>
+
+        <p className="modal-mesa-operacao__info" data-testid="agrupar-mesa-principal">
           Mesa principal: <strong>{mesaPrincipal.numero}</strong>
         </p>
 
         <fieldset className="modal-agrupar-mesas__lista" data-testid="lista-mesas-agrupar">
           <legend>Mesas livres</legend>
           {elegiveis.length === 0 ? (
-            <p>Nenhuma mesa livre disponivel.</p>
+            <p className="modal-agrupar-mesas__vazio">Nenhuma mesa livre disponivel.</p>
           ) : (
-            elegiveis.map((mesa) => (
-              <label key={mesa.id} className="modal-agrupar-mesas__item">
-                <input
-                  type="checkbox"
-                  data-testid={`check-mesa-agrupar-${mesa.numero}`}
-                  checked={selecionadas.includes(mesa.id)}
-                  disabled={carregando || enviando}
-                  onChange={() => alternarMesa(mesa.id)}
-                />
-                Mesa {mesa.numero}
-              </label>
-            ))
+            <div className="modal-agrupar-mesas__grade">
+              {elegiveis.map((mesa) => (
+                <label key={mesa.id} className="modal-agrupar-mesas__item">
+                  <input
+                    type="checkbox"
+                    data-testid={`check-mesa-agrupar-${mesa.numero}`}
+                    checked={selecionadas.includes(mesa.id)}
+                    disabled={carregando || enviando}
+                    onChange={() => alternarMesa(mesa.id)}
+                  />
+                  <span>Mesa {mesa.numero}</span>
+                </label>
+              ))}
+            </div>
           )}
         </fieldset>
 
         {selecionadas.length > 0 ? (
-          <p data-testid="confirmacao-agrupamento">
+          <p className="modal-mesa-operacao__resumo" data-testid="confirmacao-agrupamento">
             Grupo: Mesa {mesaPrincipal.numero} (principal) +{' '}
             {elegiveis
               .filter((m) => selecionadas.includes(m.id))
@@ -93,21 +105,30 @@ export function ModalAgruparMesas({
           </p>
         ) : null}
 
-        <label htmlFor="motivo-agrupamento">Motivo (opcional)</label>
-        <input
-          id="motivo-agrupamento"
-          data-testid="motivo-agrupamento"
-          value={motivo}
-          onChange={(e) => setMotivo(e.target.value)}
-          disabled={carregando || enviando}
-        />
+        <div className="modal-mesa-operacao__campo">
+          <label htmlFor="motivo-agrupamento">Motivo (opcional)</label>
+          <input
+            id="motivo-agrupamento"
+            data-testid="motivo-agrupamento"
+            value={motivo}
+            onChange={(e) => setMotivo(e.target.value)}
+            disabled={carregando || enviando}
+            placeholder="Ex.: grupo de clientes"
+          />
+        </div>
 
         <div className="modal-pagamento__acoes">
-          <button type="button" data-testid="cancelar-agrupamento" onClick={onFechar}>
+          <button
+            type="button"
+            className="modal-pagamento__botao-secundario"
+            data-testid="cancelar-agrupamento"
+            onClick={onFechar}
+          >
             Cancelar
           </button>
           <button
             type="button"
+            className="modal-pagamento__botao-primario"
             data-testid="confirmar-agrupamento"
             disabled={selecionadas.length === 0 || carregando || enviando}
             onClick={() => void handleConfirmar()}

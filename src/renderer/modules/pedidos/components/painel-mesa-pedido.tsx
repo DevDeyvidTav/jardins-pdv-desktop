@@ -1,10 +1,14 @@
 import { useState } from 'react'
-import type { Mesa, PedidoMesaMovimentacao, ResumoMesaAgrupamento } from '@shared/types/mesa'
+import type { Mesa, ResumoMesaAgrupamento } from '@shared/types/mesa'
 import { STATUS_MESA } from '@shared/types/mesa'
 import type { ResumoPedido } from '@shared/types/pedido'
 import { TIPO_PEDIDO } from '@shared/types/pedido'
 import type { CategoriaProduto } from '@shared/types/categoria-produto'
 import type { ProdutoComCategoria } from '@shared/types/produto'
+import {
+  STATUS_DIVISAO_CONTA,
+  type CriarParteDivisaoEntrada,
+} from '@shared/types/divisao-conta'
 import { formatarMoeda, converterReaisParaCentavos } from '@shared/utils/moeda'
 import { ROTULOS_STATUS_MESA } from '../constants/mesa-status-cores'
 import { ModalMotivoCancelamento } from './modal-motivo-cancelamento'
@@ -14,7 +18,8 @@ import { DadosEntrega } from '../../delivery/components/dados-entrega'
 import { StatusEntregaPanel } from '../../delivery/components/status-entrega'
 import { ModalTransferirMesa } from './modal-transferir-mesa'
 import { ModalAgruparMesas } from './modal-agrupar-mesas'
-import { HistoricoMovimentacaoMesa } from './historico-movimentacao-mesa'
+import { ModalDividirConta } from './modal-dividir-conta'
+import { PainelDivisaoConta } from './painel-divisao-conta'
 import type { PagamentoInformado } from '@shared/types/pagamento-pedido'
 
 interface PainelMesaPedidoProps {
@@ -22,7 +27,6 @@ interface PainelMesaPedidoProps {
   mesas: Mesa[]
   resumoPedido: ResumoPedido | null
   resumoAgrupamento: ResumoMesaAgrupamento | null
-  historicoMovimentacaoPedido: PedidoMesaMovimentacao[]
   produtosAtivos: ProdutoComCategoria[]
   categoriasAtivas: CategoriaProduto[]
   exibirFormularioItem: boolean
@@ -43,6 +47,12 @@ interface PainelMesaPedidoProps {
   ) => Promise<boolean>
   onCancelarPedido: (motivoCancelamento: string) => Promise<boolean>
   onRegistrarPagamento: (pagamento: PagamentoInformado) => Promise<boolean>
+  onCriarDivisaoConta: (partes: CriarParteDivisaoEntrada[]) => Promise<boolean>
+  onRegistrarPagamentoParte: (
+    parteId: string,
+    pagamento: PagamentoInformado,
+  ) => Promise<boolean>
+  onCancelarDivisaoConta: (motivo?: string) => Promise<boolean>
   onTransferirMesa?: (mesaDestinoId: string, motivo?: string) => Promise<boolean>
   onAgruparMesas?: (mesaIds: string[], motivo?: string) => Promise<boolean>
   onEncerrarAgrupamento?: (observacao?: string) => Promise<boolean>
@@ -55,7 +65,6 @@ export function PainelMesaPedido({
   mesas,
   resumoPedido,
   resumoAgrupamento,
-  historicoMovimentacaoPedido,
   produtosAtivos,
   categoriasAtivas,
   exibirFormularioItem,
@@ -69,6 +78,9 @@ export function PainelMesaPedido({
   onAplicarDesconto,
   onCancelarPedido,
   onRegistrarPagamento,
+  onCriarDivisaoConta,
+  onRegistrarPagamentoParte,
+  onCancelarDivisaoConta,
   onTransferirMesa,
   onAgruparMesas,
   onEncerrarAgrupamento,
@@ -80,11 +92,21 @@ export function PainelMesaPedido({
   const pedidoDelivery = resumoPedido?.pedido.tipo === TIPO_PEDIDO.DELIVERY
   const pedidoMesa = resumoPedido?.pedido.tipo === TIPO_PEDIDO.MESA
   const temAgrupamentoAtivo = Boolean(resumoAgrupamento)
+  const divisaoAtiva =
+    resumoPedido?.divisao?.divisao.status === STATUS_DIVISAO_CONTA.ATIVA
+  const podeDividirConta =
+    Boolean(resumoPedido) &&
+    resumoPedido!.pedido.status === 'ABERTO' &&
+    resumoPedido!.pedido.totalCentavos > 0 &&
+    resumoPedido!.pedido.valorPagoCentavos === 0 &&
+    resumoPedido!.pedido.valorCortesiaCentavos === 0 &&
+    !resumoPedido!.divisao
   const [mostrarPagamento, setMostrarPagamento] = useState(false)
   const [mostrarDesconto, setMostrarDesconto] = useState(false)
   const [mostrarConfirmacaoCancelar, setMostrarConfirmacaoCancelar] = useState(false)
   const [mostrarTransferir, setMostrarTransferir] = useState(false)
   const [mostrarAgrupar, setMostrarAgrupar] = useState(false)
+  const [mostrarDividirConta, setMostrarDividirConta] = useState(false)
   const [cancelandoPedido, setCancelandoPedido] = useState(false)
   const [valorDescontoReais, setValorDescontoReais] = useState('')
   const [motivoDesconto, setMotivoDesconto] = useState('')
@@ -163,7 +185,7 @@ export function PainelMesaPedido({
           ) : null}
         </div>
 
-        {pedidoAtivo && resumoPedido?.pedido.status === 'ABERTO' ? (
+        {pedidoAtivo && resumoPedido?.pedido.status === 'ABERTO' && !divisaoAtiva ? (
           <button
             type="button"
             className="painel-mesa-pedido__botao-receber"
@@ -174,6 +196,17 @@ export function PainelMesaPedido({
               $
             </span>
             Receber
+          </button>
+        ) : null}
+
+        {podeDividirConta ? (
+          <button
+            type="button"
+            className="painel-mesa-pedido__acao-secundaria"
+            data-testid="botao-dividir-conta"
+            onClick={() => setMostrarDividirConta(true)}
+          >
+            Dividir conta
           </button>
         ) : null}
 
@@ -245,6 +278,17 @@ export function PainelMesaPedido({
                 })
                 await onRecarregarResumo?.()
               }}
+            />
+          ) : null}
+
+          {resumoPedido.divisao &&
+          (resumoPedido.divisao.divisao.status === STATUS_DIVISAO_CONTA.ATIVA ||
+            resumoPedido.divisao.divisao.status === STATUS_DIVISAO_CONTA.QUITADA) ? (
+            <PainelDivisaoConta
+              resumo={resumoPedido.divisao}
+              erroExterno={erroPagamento}
+              onRegistrarPagamentoParte={onRegistrarPagamentoParte}
+              onCancelarDivisao={onCancelarDivisaoConta}
             />
           ) : null}
 
@@ -349,8 +393,6 @@ export function PainelMesaPedido({
                   </button>
                 </div>
               ) : null}
-
-              <HistoricoMovimentacaoMesa itens={historicoMovimentacaoPedido} />
 
               <div className="painel-mesa-pedido__cupom" data-testid="pedido-totais">
                 <div className="painel-mesa-pedido__cupom-linha">
@@ -518,6 +560,16 @@ export function PainelMesaPedido({
             />
           </div>
         </div>
+      ) : null}
+
+      {mostrarDividirConta && resumoPedido ? (
+        <ModalDividirConta
+          totalCentavos={resumoPedido.pedido.totalCentavos}
+          carregando={carregandoPedido}
+          erroExterno={erroPagamento}
+          onConfirmar={onCriarDivisaoConta}
+          onFechar={() => setMostrarDividirConta(false)}
+        />
       ) : null}
 
       {mostrarTransferir && mesaSelecionada && onTransferirMesa ? (

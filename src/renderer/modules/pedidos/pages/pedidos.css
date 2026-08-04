@@ -436,6 +436,311 @@
   font-size: 0.875rem;
 }
 
+.modal-pagamento__acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+.modal-pagamento__botao-primario,
+.modal-pagamento__botao-secundario {
+  border: none;
+  border-radius: 8px;
+  padding: 0.55rem 0.95rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.modal-pagamento__botao-primario {
+  background: #111827;
+  color: #ffffff;
+}
+
+.modal-pagamento__botao-primario:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.modal-pagamento__botao-secundario {
+  background: #f3f4f6;
+  color: #111827;
+  border: 1px solid #d1d5db;
+}
+
+.modal-mesa-operacao {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.modal-mesa-operacao--largo {
+  width: min(100% - 2rem, 560px);
+  max-width: 560px;
+}
+
+.modal-mesa-operacao__info {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #374151;
+}
+
+.modal-mesa-operacao__resumo {
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  background: #f3f4f6;
+  font-size: 0.875rem;
+  color: #1f2937;
+}
+
+.modal-mesa-operacao__campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.modal-mesa-operacao__campo label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.modal-mesa-operacao__campo input,
+.modal-mesa-operacao__campo select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font: inherit;
+  background: #ffffff;
+}
+
+.modal-mesa-operacao__campo input:focus,
+.modal-mesa-operacao__campo select:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.modal-agrupar-mesas__lista {
+  margin: 0;
+  padding: 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fafafa;
+}
+
+.modal-agrupar-mesas__lista legend {
+  padding: 0 0.35rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.modal-agrupar-mesas__vazio {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.modal-agrupar-mesas__grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 0.5rem;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.modal-agrupar-mesas__item {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+  font-size: 0.875rem;
+  color: #111827;
+  cursor: pointer;
+}
+
+.modal-agrupar-mesas__item input {
+  margin: 0;
+}
+
+.painel-divisao-conta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 0.75rem 0;
+  padding: 0.85rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.painel-divisao-conta__cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.painel-divisao-conta__status {
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.painel-divisao-conta__status--ativa {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.painel-divisao-conta__status--quitada {
+  background: #d1fae5;
+  color: #047857;
+}
+
+.painel-divisao-conta__totais {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.painel-divisao-conta__totais > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: 8px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+}
+
+.painel-divisao-conta__totais span {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.painel-divisao-conta__totais strong {
+  font-size: 0.9rem;
+  color: #111827;
+}
+
+.painel-divisao-conta__partes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.painel-divisao-conta__parte {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) auto minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.45rem;
+  align-items: center;
+  text-align: left;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #111827;
+  font: inherit;
+  cursor: pointer;
+}
+
+.painel-divisao-conta__parte[data-selecionada='true'] {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+.painel-divisao-conta__parte-nome {
+  font-weight: 700;
+}
+
+.painel-divisao-conta__parte-status {
+  justify-self: start;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: #e5e7eb;
+}
+
+.painel-divisao-conta__parte-status--pendente {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.painel-divisao-conta__parte-status--parcialmente_paga {
+  background: #ffedd5;
+  color: #c2410c;
+}
+
+.painel-divisao-conta__parte-status--quitada {
+  background: #d1fae5;
+  color: #047857;
+}
+
+.painel-divisao-conta__parte-valores,
+.painel-divisao-conta__parte-restante {
+  font-size: 0.8rem;
+  color: #4b5563;
+}
+
+.painel-divisao-conta__pagamentos {
+  margin: 0.35rem 0 0 0.75rem;
+  padding: 0;
+  list-style: disc;
+  font-size: 0.78rem;
+  color: #4b5563;
+}
+
+.painel-divisao-conta__pagamento {
+  padding: 0.75rem;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+}
+
+.painel-divisao-conta__pagamento-titulo {
+  margin: 0 0 0.65rem;
+  font-size: 0.9rem;
+}
+
+.painel-divisao-conta__cancelar {
+  align-self: flex-start;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+  border-radius: 8px;
+  padding: 0.5rem 0.85rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+@media (max-width: 720px) {
+  .painel-divisao-conta__parte {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .painel-divisao-conta__parte-nome {
+    grid-column: 1 / -1;
+  }
+}
+
 .modal-confirmacao__acoes {
   display: flex;
   justify-content: flex-end;

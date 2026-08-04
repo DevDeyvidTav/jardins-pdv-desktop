@@ -132,7 +132,7 @@ export function criarCriarPedidoDelivery(
     const pedido = repositorioPedido.buscarPorId(pedidoId)!
     const entrega = repositorioEntrega.buscarPorPedidoId(pedidoId)!
 
-    return { pedido, itens: [], entrega }
+    return { pedido, itens: [], entrega, divisao: null }
   }
 }
 

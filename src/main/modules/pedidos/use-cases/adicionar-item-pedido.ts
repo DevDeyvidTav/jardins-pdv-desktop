@@ -6,6 +6,7 @@ import type { PedidoRepository } from '../repositories/pedido.repository'
 import { criarPedidoRepository } from '../repositories/pedido.repository'
 import type { PedidoItemRepository } from '../repositories/pedido-item.repository'
 import { criarPedidoItemRepository } from '../repositories/pedido-item.repository'
+import { garantirPedidoSemDivisaoAtiva } from '../../divisao-conta/services/resumo-divisao-conta'
 import { recalcularTotaisPedido } from '../services/recalcular-totais-pedido'
 import { garantirPedidoAberto } from './consultas-pedido'
 import { obterResumoPedido } from './consultas-pedido'
@@ -26,6 +27,7 @@ export function criarAdicionarItemPedido(
     }
 
     garantirPedidoAberto(pedido)
+    garantirPedidoSemDivisaoAtiva(pedido.id)
 
     if (entrada.quantidade <= 0) {
       throw new ErroPedidos(

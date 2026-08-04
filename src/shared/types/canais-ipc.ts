@@ -53,6 +53,11 @@ export const CANAIS_IPC = {
   DELIVERY_LISTAR_ABERTOS: 'delivery:listar-abertos',
   DELIVERY_OBTER_TAXA_PADRAO: 'delivery:obter-taxa-padrao',
   DELIVERY_DEFINIR_TAXA_PADRAO: 'delivery:definir-taxa-padrao',
+  DIVISAO_CONTA_CRIAR: 'divisao-conta:criar',
+  DIVISAO_CONTA_OBTER_RESUMO: 'divisao-conta:obter-resumo',
+  DIVISAO_CONTA_REGISTRAR_PAGAMENTO_PARTE: 'divisao-conta:registrar-pagamento-parte',
+  DIVISAO_CONTA_CANCELAR: 'divisao-conta:cancelar',
+  DIVISAO_CONTA_LISTAR_HISTORICO: 'divisao-conta:listar-historico',
 } as const
 
 export type CanalIpc = (typeof CANAIS_IPC)[keyof typeof CANAIS_IPC]
