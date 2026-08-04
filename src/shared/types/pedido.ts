@@ -48,7 +48,9 @@ export interface Pedido {
 export interface PedidoItem {
   id: string
   pedidoId: string
-  produtoId: string
+  /** Null quando o item for uma pizza composta. */
+  produtoId: string | null
+  tipo: import('./pizza').TipoPedidoItem
   produtoNome: string
   quantidade: number
   precoUnitarioCentavos: number
@@ -61,6 +63,8 @@ export interface PedidoItem {
   /** Preenchido quando o item e cancelado (soft delete). */
   canceladoEm: string | null
   motivoCancelamento: string | null
+  /** Composicao da pizza quando tipo = PIZZA. */
+  pizza?: import('./pizza').PizzaPedidoItemResumo | null
 }
 
 export function itemPedidoEstaAtivo(item: PedidoItem): boolean {

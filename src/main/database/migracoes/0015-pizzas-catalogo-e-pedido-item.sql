@@ -1,0 +1,2 @@
+-- Historico: catalogo de pizzas e suporte a item tipo PIZZA (versao 15).
+-- Conteudo aplicado em registro-migracoes.ts.

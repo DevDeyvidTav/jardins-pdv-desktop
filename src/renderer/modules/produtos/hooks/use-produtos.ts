@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { CategoriaProduto } from '@shared/types/categoria-produto'
 import type { ProdutoComCategoria } from '@shared/types/produto'
+import { extrairMensagemErroIpc } from '@shared/utils/erro-ipc'
 
 export interface UseProdutosResultado {
   categorias: CategoriaProduto[]
@@ -43,11 +44,7 @@ export interface UseProdutosResultado {
 }
 
 function extrairMensagemErro(causa: unknown): string {
-  if (causa instanceof Error) {
-    return causa.message
-  }
-
-  return 'Nao foi possivel concluir a operacao de produtos.'
+  return extrairMensagemErroIpc(causa)
 }
 
 export function useProdutos(): UseProdutosResultado {
@@ -87,7 +84,7 @@ export function useProdutos(): UseProdutosResultado {
 
     try {
       const [listaCategorias, listaAtivos, listaAdministrativos] = await Promise.all([
-        window.pdv.produtos.listarCategorias(),
+        window.pdv.produtos.listarCategorias({ apenasAtivas: true }),
         carregarProdutosAtivos(termoBusca, categoriaFiltroId),
         window.pdv.produtos.listarProdutos({ apenasAtivos: false }),
       ])
@@ -188,12 +185,16 @@ export function useProdutos(): UseProdutosResultado {
       setSucesso(null)
 
       try {
-        await window.pdv.produtos.excluirCategoria({ categoriaId })
+        const resultado = await window.pdv.produtos.excluirCategoria({ categoriaId })
         if (categoriaFiltroId === categoriaId) {
           setCategoriaFiltroId('')
         }
         await carregarDados()
-        setSucesso('Categoria excluida com sucesso.')
+        setSucesso(
+          resultado.modo === 'INATIVADO'
+            ? 'Categoria e produtos vinculados foram removidos do cardapio (soft delete).'
+            : 'Categoria excluida com sucesso.',
+        )
         return true
       } catch (causa) {
         setErro(extrairMensagemErro(causa))
@@ -303,9 +304,13 @@ export function useProdutos(): UseProdutosResultado {
       setSucesso(null)
 
       try {
-        await window.pdv.produtos.excluirProduto({ produtoId })
+        const resultado = await window.pdv.produtos.excluirProduto({ produtoId })
         await carregarDados()
-        setSucesso('Produto excluido com sucesso.')
+        setSucesso(
+          resultado.modo === 'INATIVADO'
+            ? 'Produto ja foi usado em pedidos e foi inativado.'
+            : 'Produto excluido com sucesso.',
+        )
         return true
       } catch (causa) {
         setErro(extrairMensagemErro(causa))

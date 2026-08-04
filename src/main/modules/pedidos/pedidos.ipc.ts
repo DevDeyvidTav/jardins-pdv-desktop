@@ -2,6 +2,7 @@ import { ipcMain } from 'electron'
 import { ZodError } from 'zod'
 import { CANAIS_IPC } from '@shared/types/canais-ipc'
 import { CODIGOS_ERRO_PEDIDOS, ErroPedidos } from './errors/erros-pedidos'
+import { ErroPizzas } from '../pizzas/errors/erros-pizzas'
 import {
   adicionarItemPedidoSchema,
   alterarQuantidadeItemPedidoSchema,
@@ -32,6 +33,10 @@ import { listarHistoricoPedidoMesaSchema } from '../mesas/schemas/mesa-agrupamen
 
 function tratarErroPedidos(erro: unknown): never {
   if (erro instanceof ErroPedidos) {
+    throw erro
+  }
+
+  if (erro instanceof ErroPizzas) {
     throw erro
   }
 

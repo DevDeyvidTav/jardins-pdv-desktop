@@ -63,6 +63,7 @@ export function PedidosPage({ pedidos }: PedidosPageProps) {
           onAdicionarItem={pedidos.abrirFormularioItem}
           onFecharFormularioItem={pedidos.fecharFormularioItem}
           onAdicionarItemPedido={pedidos.adicionarItem}
+          onAdicionarPizzaPedido={pedidos.adicionarPizza}
           onAlterarQuantidade={pedidos.alterarQuantidadeItem}
           onRemoverItem={pedidos.removerItem}
           onAplicarDesconto={pedidos.aplicarDescontoPedido}

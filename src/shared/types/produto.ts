@@ -54,3 +54,8 @@ export interface ObterProdutoPorIdEntrada {
 export interface ExcluirProdutoEntrada {
   produtoId: string
 }
+
+/** Hard delete quando seguro; soft delete (inativacao) quando o item ja esta em uso. */
+export type ResultadoRemocaoCatalogo = {
+  modo: 'EXCLUIDO' | 'INATIVADO'
+}

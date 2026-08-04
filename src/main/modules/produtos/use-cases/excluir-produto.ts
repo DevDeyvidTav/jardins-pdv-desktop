@@ -1,4 +1,7 @@
-import type { ExcluirProdutoEntrada } from '@shared/types/produto'
+import type {
+  ExcluirProdutoEntrada,
+  ResultadoRemocaoCatalogo,
+} from '@shared/types/produto'
 import {
   CODIGOS_ERRO_PRODUTOS,
   ErroProdutos,
@@ -9,7 +12,7 @@ import { criarProdutoRepository } from '../repositories/produto.repository'
 export function criarExcluirProduto(
   repositorioProduto: ProdutoRepository = criarProdutoRepository(),
 ) {
-  return function excluirProduto(entrada: ExcluirProdutoEntrada): void {
+  return function excluirProduto(entrada: ExcluirProdutoEntrada): ResultadoRemocaoCatalogo {
     const existente = repositorioProduto.buscarPorId(entrada.produtoId)
 
     if (!existente) {
@@ -19,14 +22,16 @@ export function criarExcluirProduto(
       )
     }
 
+    // Soft delete: produto ja usado em pedidos nao pode sumir do historico.
     if (repositorioProduto.estaReferenciadoEmPedido(entrada.produtoId)) {
-      throw new ErroProdutos(
-        CODIGOS_ERRO_PRODUTOS.PRODUTO_EM_USO,
-        'Nao e possivel excluir este produto porque ele ja foi usado em pedidos. Inative-o em vez de excluir.',
-      )
+      if (existente.ativo) {
+        repositorioProduto.inativar(entrada.produtoId)
+      }
+      return { modo: 'INATIVADO' }
     }
 
     repositorioProduto.excluir(entrada.produtoId)
+    return { modo: 'EXCLUIDO' }
   }
 }
 

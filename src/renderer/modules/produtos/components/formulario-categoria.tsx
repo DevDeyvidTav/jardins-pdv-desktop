@@ -11,7 +11,7 @@ interface FormularioCategoriaProps {
 }
 
 export function FormularioCategoria({
-  carregando,
+  carregando: _carregando,
   erroExterno,
   categoriaInicial = null,
   onSalvar,
@@ -28,7 +28,7 @@ export function FormularioCategoria({
     setNome(categoriaInicial?.nome ?? '')
     setDescricao(categoriaInicial?.descricao ?? '')
     setErroValidacao(null)
-  }, [categoriaInicial])
+  }, [categoriaInicial?.id, categoriaInicial])
 
   async function handleSubmit(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault()
@@ -68,7 +68,7 @@ export function FormularioCategoria({
           type="text"
           value={nome}
           onChange={(evento) => setNome(evento.target.value)}
-          disabled={carregando || enviando}
+          disabled={enviando}
         />
       </label>
 
@@ -80,7 +80,7 @@ export function FormularioCategoria({
           type="text"
           value={descricao}
           onChange={(evento) => setDescricao(evento.target.value)}
-          disabled={carregando || enviando}
+          disabled={enviando}
           placeholder="Opcional"
         />
       </label>
@@ -103,7 +103,7 @@ export function FormularioCategoria({
             type="button"
             className="produtos__botao-secundario"
             data-testid="botao-cancelar-edicao-categoria"
-            disabled={carregando || enviando}
+            disabled={enviando}
             onClick={onCancelar}
           >
             Cancelar
@@ -112,7 +112,7 @@ export function FormularioCategoria({
         <button
           type="submit"
           data-testid={editando ? 'botao-salvar-categoria' : 'botao-criar-categoria'}
-          disabled={carregando || enviando}
+          disabled={enviando}
         >
           {editando ? 'Salvar categoria' : 'Criar categoria'}
         </button>

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEven
 import type { CategoriaProduto } from '@shared/types/categoria-produto'
 import type { PedidoItem } from '@shared/types/pedido'
 import type { ProdutoComCategoria } from '@shared/types/produto'
+import { TIPO_PEDIDO_ITEM } from '@shared/types/pizza'
 import { formatarMoeda } from '@shared/utils/moeda'
 import { ModalMotivoCancelamento } from './modal-motivo-cancelamento'
 
@@ -279,6 +280,7 @@ interface ListaItensPedidoProps {
   onAlterarQuantidade: (itemId: string, quantidade: number) => Promise<boolean>
   onRemover: (itemId: string, motivoCancelamento: string) => Promise<boolean>
   variant?: 'lista' | 'tabela'
+  editavel?: boolean
 }
 
 export function ListaItensPedido({
@@ -286,6 +288,7 @@ export function ListaItensPedido({
   onAlterarQuantidade,
   onRemover,
   variant = 'lista',
+  editavel = true,
 }: ListaItensPedidoProps) {
   const [itemParaCancelar, setItemParaCancelar] = useState<PedidoItem | null>(null)
   const [cancelandoItem, setCancelandoItem] = useState(false)
@@ -327,48 +330,66 @@ export function ListaItensPedido({
     return (
       <>
         <ul className="lista-itens-pedido lista-itens-pedido--tabela" data-testid="lista-itens-pedido">
-          {itens.map((item) => (
-            <li key={item.id} className="lista-itens-pedido__linha" data-testid="item-pedido">
-              <div className="lista-itens-pedido__quantidade">
-                <button
-                  type="button"
-                  data-testid="botao-diminuir-quantidade"
-                  onClick={() => void onAlterarQuantidade(item.id, item.quantidade - 1)}
-                  disabled={item.quantidade <= 1}
-                  aria-label="Diminuir quantidade"
-                >
-                  -
-                </button>
-                <span data-testid="item-pedido-quantidade">{item.quantidade}</span>
-                <button
-                  type="button"
-                  data-testid="botao-aumentar-quantidade"
-                  onClick={() => void onAlterarQuantidade(item.id, item.quantidade + 1)}
-                  aria-label="Aumentar quantidade"
-                >
-                  +
-                </button>
-              </div>
-              <div className="lista-itens-pedido__produto">
-                <strong data-testid="item-pedido-nome">{item.produtoNome}</strong>
-                {item.observacao ? <p data-testid="item-pedido-obs">{item.observacao}</p> : null}
-              </div>
-              <span data-testid="item-pedido-preco-unitario">
-                {formatarMoeda(item.precoUnitarioCentavos)}
-              </span>
-              <div className="lista-itens-pedido__total-acoes">
-                <span data-testid="item-pedido-total">{formatarMoeda(item.totalCentavos)}</span>
-                <button
-                  type="button"
-                  data-testid="botao-remover-item"
-                  onClick={() => setItemParaCancelar(item)}
-                  aria-label="Cancelar item"
-                >
-                  x
-                </button>
-              </div>
-            </li>
-          ))}
+          {itens.map((item) => {
+            const ehPizza = item.tipo === TIPO_PEDIDO_ITEM.PIZZA
+
+            return (
+              <li
+                key={item.id}
+                className="lista-itens-pedido__linha"
+                data-testid="item-pedido"
+                data-tipo={item.tipo}
+                data-pizza={ehPizza ? 'true' : undefined}
+              >
+                <div className="lista-itens-pedido__quantidade">
+                  {editavel && !ehPizza ? (
+                    <>
+                      <button
+                        type="button"
+                        data-testid="botao-diminuir-quantidade"
+                        onClick={() => void onAlterarQuantidade(item.id, item.quantidade - 1)}
+                        disabled={item.quantidade <= 1}
+                        aria-label="Diminuir quantidade"
+                      >
+                        -
+                      </button>
+                      <span data-testid="item-pedido-quantidade">{item.quantidade}</span>
+                      <button
+                        type="button"
+                        data-testid="botao-aumentar-quantidade"
+                        onClick={() => void onAlterarQuantidade(item.id, item.quantidade + 1)}
+                        aria-label="Aumentar quantidade"
+                      >
+                        +
+                      </button>
+                    </>
+                  ) : (
+                    <span data-testid="item-pedido-quantidade">{item.quantidade}</span>
+                  )}
+                </div>
+                <div className="lista-itens-pedido__produto">
+                  <strong data-testid="item-pedido-nome">{item.produtoNome}</strong>
+                  {item.observacao ? <p data-testid="item-pedido-obs">{item.observacao}</p> : null}
+                </div>
+                <span data-testid="item-pedido-preco-unitario">
+                  {formatarMoeda(item.precoUnitarioCentavos)}
+                </span>
+                <div className="lista-itens-pedido__total-acoes">
+                  <span data-testid="item-pedido-total">{formatarMoeda(item.totalCentavos)}</span>
+                  {editavel ? (
+                    <button
+                      type="button"
+                      data-testid="botao-remover-item"
+                      onClick={() => setItemParaCancelar(item)}
+                      aria-label="Cancelar item"
+                    >
+                      x
+                    </button>
+                  ) : null}
+                </div>
+              </li>
+            )
+          })}
         </ul>
         {modalCancelamento}
       </>
@@ -378,43 +399,61 @@ export function ListaItensPedido({
   return (
     <>
       <ul className="lista-itens-pedido" data-testid="lista-itens-pedido">
-        {itens.map((item) => (
-          <li key={item.id} className="lista-itens-pedido__item" data-testid="item-pedido">
-            <div>
-              <strong data-testid="item-pedido-nome">{item.produtoNome}</strong>
-              {item.observacao ? <p data-testid="item-pedido-obs">{item.observacao}</p> : null}
-            </div>
-            <span data-testid="item-pedido-preco-unitario">
-              {formatarMoeda(item.precoUnitarioCentavos)}
-            </span>
-            <div className="lista-itens-pedido__quantidade">
-              <button
-                type="button"
-                data-testid="botao-diminuir-quantidade"
-                onClick={() => void onAlterarQuantidade(item.id, item.quantidade - 1)}
-                disabled={item.quantidade <= 1}
-              >
-                -
-              </button>
-              <span data-testid="item-pedido-quantidade">{item.quantidade}</span>
-              <button
-                type="button"
-                data-testid="botao-aumentar-quantidade"
-                onClick={() => void onAlterarQuantidade(item.id, item.quantidade + 1)}
-              >
-                +
-              </button>
-            </div>
-            <span data-testid="item-pedido-total">{formatarMoeda(item.totalCentavos)}</span>
-            <button
-              type="button"
-              data-testid="botao-remover-item"
-              onClick={() => setItemParaCancelar(item)}
+        {itens.map((item) => {
+          const ehPizza = item.tipo === TIPO_PEDIDO_ITEM.PIZZA
+
+          return (
+            <li
+              key={item.id}
+              className="lista-itens-pedido__item"
+              data-testid="item-pedido"
+              data-tipo={item.tipo}
+              data-pizza={ehPizza ? 'true' : undefined}
             >
-              Remover
-            </button>
-          </li>
-        ))}
+              <div>
+                <strong data-testid="item-pedido-nome">{item.produtoNome}</strong>
+                {item.observacao ? <p data-testid="item-pedido-obs">{item.observacao}</p> : null}
+              </div>
+              <span data-testid="item-pedido-preco-unitario">
+                {formatarMoeda(item.precoUnitarioCentavos)}
+              </span>
+              <div className="lista-itens-pedido__quantidade">
+                {editavel && !ehPizza ? (
+                  <>
+                    <button
+                      type="button"
+                      data-testid="botao-diminuir-quantidade"
+                      onClick={() => void onAlterarQuantidade(item.id, item.quantidade - 1)}
+                      disabled={item.quantidade <= 1}
+                    >
+                      -
+                    </button>
+                    <span data-testid="item-pedido-quantidade">{item.quantidade}</span>
+                    <button
+                      type="button"
+                      data-testid="botao-aumentar-quantidade"
+                      onClick={() => void onAlterarQuantidade(item.id, item.quantidade + 1)}
+                    >
+                      +
+                    </button>
+                  </>
+                ) : (
+                  <span data-testid="item-pedido-quantidade">{item.quantidade}</span>
+                )}
+              </div>
+              <span data-testid="item-pedido-total">{formatarMoeda(item.totalCentavos)}</span>
+              {editavel ? (
+                <button
+                  type="button"
+                  data-testid="botao-remover-item"
+                  onClick={() => setItemParaCancelar(item)}
+                >
+                  Remover
+                </button>
+              ) : null}
+            </li>
+          )
+        })}
       </ul>
       {modalCancelamento}
     </>

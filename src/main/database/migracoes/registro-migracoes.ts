@@ -433,4 +433,144 @@ CREATE INDEX IF NOT EXISTS idx_pedido_divisao_movimentacao_divisao
   ON pedido_divisao_movimentacao (pedido_divisao_conta_id);
 `.trim(),
   },
+  {
+    versao: 15,
+    nome: '0015-pizzas-catalogo-e-pedido-item',
+    sql: `
+CREATE TABLE IF NOT EXISTS pizza_categoria (
+  id TEXT PRIMARY KEY NOT NULL,
+  nome TEXT NOT NULL,
+  descricao TEXT,
+  regra_precificacao TEXT NOT NULL,
+  ativa INTEGER NOT NULL DEFAULT 1,
+  ordem INTEGER NOT NULL DEFAULT 0,
+  criado_em TEXT NOT NULL,
+  atualizado_em TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS pizza_tamanho (
+  id TEXT PRIMARY KEY NOT NULL,
+  nome TEXT NOT NULL,
+  sigla TEXT NOT NULL UNIQUE,
+  maximo_sabores INTEGER NOT NULL,
+  ativa INTEGER NOT NULL DEFAULT 1,
+  ordem INTEGER NOT NULL DEFAULT 0,
+  criado_em TEXT NOT NULL,
+  atualizado_em TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS pizza_sabor (
+  id TEXT PRIMARY KEY NOT NULL,
+  nome TEXT NOT NULL,
+  descricao TEXT,
+  ativa INTEGER NOT NULL DEFAULT 1,
+  ordem INTEGER NOT NULL DEFAULT 0,
+  criado_em TEXT NOT NULL,
+  atualizado_em TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS pizza_categoria_sabor (
+  pizza_categoria_id TEXT NOT NULL,
+  pizza_sabor_id TEXT NOT NULL,
+  ativo INTEGER NOT NULL DEFAULT 1,
+  criado_em TEXT NOT NULL,
+  PRIMARY KEY (pizza_categoria_id, pizza_sabor_id),
+  FOREIGN KEY (pizza_categoria_id) REFERENCES pizza_categoria (id),
+  FOREIGN KEY (pizza_sabor_id) REFERENCES pizza_sabor (id)
+);
+
+CREATE TABLE IF NOT EXISTS pizza_sabor_preco (
+  id TEXT PRIMARY KEY NOT NULL,
+  pizza_sabor_id TEXT NOT NULL,
+  pizza_tamanho_id TEXT NOT NULL,
+  valor_centavos INTEGER NOT NULL,
+  ativo INTEGER NOT NULL DEFAULT 1,
+  criado_em TEXT NOT NULL,
+  atualizado_em TEXT NOT NULL,
+  UNIQUE (pizza_sabor_id, pizza_tamanho_id),
+  FOREIGN KEY (pizza_sabor_id) REFERENCES pizza_sabor (id),
+  FOREIGN KEY (pizza_tamanho_id) REFERENCES pizza_tamanho (id)
+);
+
+CREATE TABLE IF NOT EXISTS pizza_pedido_item (
+  id TEXT PRIMARY KEY NOT NULL,
+  pedido_item_id TEXT NOT NULL UNIQUE,
+  pizza_categoria_id TEXT NOT NULL,
+  pizza_tamanho_id TEXT NOT NULL,
+  regra_precificacao_snapshot TEXT NOT NULL,
+  valor_calculado_centavos INTEGER NOT NULL,
+  observacao TEXT,
+  categoria_nome_snapshot TEXT NOT NULL,
+  tamanho_nome_snapshot TEXT NOT NULL,
+  criado_em TEXT NOT NULL,
+  atualizado_em TEXT NOT NULL,
+  FOREIGN KEY (pedido_item_id) REFERENCES pedido_item (id)
+);
+
+CREATE TABLE IF NOT EXISTS pizza_pedido_item_sabor (
+  id TEXT PRIMARY KEY NOT NULL,
+  pizza_pedido_item_id TEXT NOT NULL,
+  pizza_sabor_id TEXT NOT NULL,
+  sabor_nome_snapshot TEXT NOT NULL,
+  valor_sabor_snapshot_centavos INTEGER NOT NULL,
+  ordem INTEGER NOT NULL,
+  criado_em TEXT NOT NULL,
+  UNIQUE (pizza_pedido_item_id, pizza_sabor_id),
+  FOREIGN KEY (pizza_pedido_item_id) REFERENCES pizza_pedido_item (id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_pizza_sabor_preco_sabor
+  ON pizza_sabor_preco (pizza_sabor_id);
+
+CREATE INDEX IF NOT EXISTS idx_pizza_pedido_item_pedido_item
+  ON pizza_pedido_item (pedido_item_id);
+
+CREATE TABLE pedido_item_v15 (
+  id TEXT PRIMARY KEY NOT NULL,
+  pedido_id TEXT NOT NULL,
+  produto_id TEXT,
+  tipo TEXT NOT NULL DEFAULT 'PRODUTO',
+  produto_nome TEXT NOT NULL,
+  quantidade INTEGER NOT NULL,
+  preco_unitario_centavos INTEGER NOT NULL,
+  subtotal_centavos INTEGER NOT NULL DEFAULT 0,
+  desconto_centavos INTEGER NOT NULL DEFAULT 0,
+  total_centavos INTEGER NOT NULL,
+  observacao TEXT,
+  criado_em TEXT NOT NULL,
+  atualizado_em TEXT NOT NULL,
+  cancelado_em TEXT,
+  motivo_cancelamento TEXT,
+  FOREIGN KEY (pedido_id) REFERENCES pedido (id),
+  FOREIGN KEY (produto_id) REFERENCES produto (id)
+);
+
+INSERT INTO pedido_item_v15 (
+  id, pedido_id, produto_id, tipo, produto_nome, quantidade,
+  preco_unitario_centavos, subtotal_centavos, desconto_centavos, total_centavos,
+  observacao, criado_em, atualizado_em, cancelado_em, motivo_cancelamento
+)
+SELECT
+  id, pedido_id, produto_id, 'PRODUTO', produto_nome, quantidade,
+  preco_unitario_centavos,
+  COALESCE(subtotal_centavos, total_centavos),
+  COALESCE(desconto_centavos, 0),
+  total_centavos,
+  observacao, criado_em, atualizado_em, cancelado_em, motivo_cancelamento
+FROM pedido_item;
+
+DROP TABLE pedido_item;
+ALTER TABLE pedido_item_v15 RENAME TO pedido_item;
+
+CREATE INDEX IF NOT EXISTS idx_pedido_item_pedido
+  ON pedido_item (pedido_id);
+
+INSERT INTO pizza_tamanho (
+  id, nome, sigla, maximo_sabores, ativa, ordem, criado_em, atualizado_em
+) VALUES
+  ('pizza-tamanho-p', 'Pequena', 'P', 2, 1, 1, datetime('now'), datetime('now')),
+  ('pizza-tamanho-m', 'Media', 'M', 2, 1, 2, datetime('now'), datetime('now')),
+  ('pizza-tamanho-g', 'Grande', 'G', 3, 1, 3, datetime('now'), datetime('now'));
+`.trim(),
+  },
 ]

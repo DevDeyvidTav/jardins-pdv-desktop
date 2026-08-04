@@ -29,6 +29,7 @@ import type {
   Produto,
   ProdutoComCategoria,
   ReativarProdutoEntrada,
+  ResultadoRemocaoCatalogo,
 } from './produto'
 import type {
   AgruparMesasPedidoEntrada,
@@ -87,6 +88,25 @@ import type {
   RegistrarPagamentoParteDivisaoEntrada,
   ResumoDivisaoConta,
 } from './divisao-conta'
+import type {
+  AdicionarPizzaAoPedidoEntrada,
+  AtualizarPizzaCategoriaEntrada,
+  AtualizarPizzaSaborEntrada,
+  AtualizarPizzaTamanhoEntrada,
+  CriarPizzaCategoriaEntrada,
+  CriarPizzaSaborEntrada,
+  CriarPizzaTamanhoEntrada,
+  DefinirPrecoSaborPorTamanhoEntrada,
+  MontarPreviewPizzaEntrada,
+  ObterPizzaPedidoItemEntrada,
+  PizzaCategoria,
+  PizzaPedidoItemResumo,
+  PizzaSabor,
+  PizzaSaborPreco,
+  PizzaTamanho,
+  PreviewPizza,
+  VincularSaborCategoriaEntrada,
+} from './pizza'
 
 export interface PdvApi {
   sistema: {
@@ -117,14 +137,16 @@ export interface PdvApi {
     reativarCategoria: (
       entrada: ReativarCategoriaProdutoEntrada,
     ) => Promise<CategoriaProduto>
-    excluirCategoria: (entrada: ExcluirCategoriaProdutoEntrada) => Promise<void>
+    excluirCategoria: (
+      entrada: ExcluirCategoriaProdutoEntrada,
+    ) => Promise<ResultadoRemocaoCatalogo>
     criarProduto: (entrada: CriarProdutoEntrada) => Promise<Produto>
     listarProdutos: (entrada?: ListarProdutosEntrada) => Promise<ProdutoComCategoria[]>
     buscarProdutos: (entrada: BuscarProdutosEntrada) => Promise<ProdutoComCategoria[]>
     atualizarProduto: (entrada: AtualizarProdutoEntrada) => Promise<Produto>
     inativarProduto: (entrada: InativarProdutoEntrada) => Promise<Produto>
     reativarProduto: (entrada: ReativarProdutoEntrada) => Promise<Produto>
-    excluirProduto: (entrada: ExcluirProdutoEntrada) => Promise<void>
+    excluirProduto: (entrada: ExcluirProdutoEntrada) => Promise<ResultadoRemocaoCatalogo>
     obterProdutoPorId: (entrada: ObterProdutoPorIdEntrada) => Promise<Produto>
   }
   mesas: {
@@ -175,6 +197,34 @@ export interface PdvApi {
     listarHistoricoMovimentacaoMesa: (
       entrada: ListarHistoricoPedidoMesaEntrada,
     ) => Promise<PedidoMesaMovimentacao[]>
+    adicionarPizza: (entrada: AdicionarPizzaAoPedidoEntrada) => Promise<ResumoPedido>
+    obterPizzaItem: (
+      entrada: ObterPizzaPedidoItemEntrada,
+    ) => Promise<PizzaPedidoItemResumo>
+  }
+  pizzas: {
+    listarCategorias: (entrada?: { apenasAtivas?: boolean }) => Promise<PizzaCategoria[]>
+    criarCategoria: (entrada: CriarPizzaCategoriaEntrada) => Promise<PizzaCategoria>
+    atualizarCategoria: (
+      entrada: AtualizarPizzaCategoriaEntrada,
+    ) => Promise<PizzaCategoria>
+    listarTamanhos: (entrada?: { apenasAtivas?: boolean }) => Promise<PizzaTamanho[]>
+    criarTamanho: (entrada: CriarPizzaTamanhoEntrada) => Promise<PizzaTamanho>
+    atualizarTamanho: (entrada: AtualizarPizzaTamanhoEntrada) => Promise<PizzaTamanho>
+    listarSabores: (entrada?: {
+      apenasAtivos?: boolean
+      categoriaId?: string
+    }) => Promise<PizzaSabor[]>
+    criarSabor: (entrada: CriarPizzaSaborEntrada) => Promise<PizzaSabor>
+    atualizarSabor: (entrada: AtualizarPizzaSaborEntrada) => Promise<PizzaSabor>
+    vincularSaborCategoria: (entrada: VincularSaborCategoriaEntrada) => Promise<void>
+    definirPreco: (entrada: DefinirPrecoSaborPorTamanhoEntrada) => Promise<PizzaSaborPreco>
+    listarPrecosSabor: (entrada: {
+      saborId: string
+      apenasAtivos?: boolean
+    }) => Promise<PizzaSaborPreco[]>
+    listarCategoriasDoSabor: (entrada: { saborId: string }) => Promise<string[]>
+    montarPreview: (entrada: MontarPreviewPizzaEntrada) => Promise<PreviewPizza>
   }
   pagamentos: {
     registrarPagamentoPedido: (

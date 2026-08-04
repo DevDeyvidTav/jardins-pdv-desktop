@@ -16,6 +16,7 @@ import { criarCriarProduto } from '../../../src/main/modules/produtos/use-cases/
 import { criarInativarProduto } from '../../../src/main/modules/produtos/use-cases/inativar-produto'
 import { criarReativarProduto } from '../../../src/main/modules/produtos/use-cases/reativar-produto'
 import { criarListarProdutos } from '../../../src/main/modules/produtos/use-cases/listar-produtos'
+import { criarListarCategoriasProduto } from '../../../src/main/modules/produtos/use-cases/listar-categorias-produto'
 import { prepararAmbientePedidos } from '../../helpers/pedido-teste'
 import { prepararBancoTeste } from '../../helpers/banco-teste'
 
@@ -294,7 +295,27 @@ describe('produtos', () => {
     expect(listarProdutos({ apenasAtivos: false })).toHaveLength(0)
   })
 
-  it('impede excluir categoria com produtos', async () => {
+  it('exclui produto sem historico retorna modo EXCLUIDO', async () => {
+    const banco = await prepararBancoTeste()
+    encerrarBanco = banco.encerrar
+
+    const repositorioCategoria = criarCategoriaProdutoRepository()
+    const repositorioProduto = criarProdutoRepository()
+    const criarCategoriaProduto = criarCriarCategoriaProduto(repositorioCategoria)
+    const criarProduto = criarCriarProduto(repositorioProduto, repositorioCategoria)
+    const excluirProduto = criarExcluirProduto(repositorioProduto)
+
+    const categoria = criarCategoriaProduto({ nome: 'Bebidas' })
+    const produto = criarProduto({
+      categoriaId: categoria.id,
+      nome: 'Agua',
+      precoCentavos: 300,
+    })
+
+    expect(excluirProduto({ produtoId: produto.id })).toEqual({ modo: 'EXCLUIDO' })
+  })
+
+  it('soft delete em cascata: inativa produtos e categoria, some da listagem padrao', async () => {
     const banco = await prepararBancoTeste()
     encerrarBanco = banco.encerrar
 
@@ -306,23 +327,34 @@ describe('produtos', () => {
       repositorioCategoria,
       repositorioProduto,
     )
+    const listarCategoriasProduto = criarListarCategoriasProduto(repositorioCategoria)
+    const listarProdutos = criarListarProdutos(repositorioProduto)
 
     const categoria = criarCategoriaProduto({ nome: 'Bebidas' })
-    criarProduto({
+    const produto = criarProduto({
       categoriaId: categoria.id,
       nome: 'Suco',
       precoCentavos: 800,
     })
 
-    try {
-      excluirCategoriaProduto({ categoriaId: categoria.id })
-      expect.fail('deveria ter lancado erro')
-    } catch (erro) {
-      expect((erro as ErroProdutos).codigo).toBe(CODIGOS_ERRO_PRODUTOS.CATEGORIA_COM_PRODUTOS)
-    }
+    const resultado = excluirCategoriaProduto({ categoriaId: categoria.id })
+    expect(resultado.modo).toBe('INATIVADO')
+
+    const categoriaPersistida = repositorioCategoria.buscarPorId(categoria.id)
+    expect(categoriaPersistida).not.toBeNull()
+    expect(categoriaPersistida?.ativo).toBe(false)
+
+    const produtoPersistido = repositorioProduto.buscarPorId(produto.id)
+    expect(produtoPersistido).not.toBeNull()
+    expect(produtoPersistido?.ativo).toBe(false)
+
+    expect(listarCategoriasProduto()).toHaveLength(0)
+    expect(listarCategoriasProduto({ apenasAtivas: false })).toHaveLength(1)
+    expect(listarProdutos({ apenasAtivos: true })).toHaveLength(0)
+    expect(listarProdutos({ apenasAtivos: false })).toHaveLength(1)
   })
 
-  it('exclui categoria vazia', async () => {
+  it('soft delete tambem para categoria vazia (permanece no banco)', async () => {
     const banco = await prepararBancoTeste()
     encerrarBanco = banco.encerrar
 
@@ -333,14 +365,17 @@ describe('produtos', () => {
       repositorioCategoria,
       repositorioProduto,
     )
+    const listarCategoriasProduto = criarListarCategoriasProduto(repositorioCategoria)
 
     const categoria = criarCategoriaProduto({ nome: 'Vazia' })
-    excluirCategoriaProduto({ categoriaId: categoria.id })
+    const resultado = excluirCategoriaProduto({ categoriaId: categoria.id })
+    expect(resultado.modo).toBe('INATIVADO')
 
-    expect(repositorioCategoria.buscarPorId(categoria.id)).toBeNull()
+    expect(repositorioCategoria.buscarPorId(categoria.id)?.ativo).toBe(false)
+    expect(listarCategoriasProduto()).toHaveLength(0)
   })
 
-  it('impede excluir produto usado em pedido', async () => {
+  it('inativa produto usado em pedido em vez de excluir (soft delete)', async () => {
     const ambiente = await prepararAmbientePedidos()
     encerrarBanco = ambiente.encerrar
 
@@ -352,12 +387,11 @@ describe('produtos', () => {
     })
 
     const excluirProduto = criarExcluirProduto(ambiente.repositorioProduto)
+    const resultado = excluirProduto({ produtoId: ambiente.produto.id })
 
-    try {
-      excluirProduto({ produtoId: ambiente.produto.id })
-      expect.fail('deveria ter lancado erro')
-    } catch (erro) {
-      expect((erro as ErroProdutos).codigo).toBe(CODIGOS_ERRO_PRODUTOS.PRODUTO_EM_USO)
-    }
+    expect(resultado.modo).toBe('INATIVADO')
+    const produto = ambiente.repositorioProduto.buscarPorId(ambiente.produto.id)
+    expect(produto).not.toBeNull()
+    expect(produto?.ativo).toBe(false)
   })
 })

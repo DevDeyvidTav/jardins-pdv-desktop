@@ -12,7 +12,8 @@ import {
 import { formatarMoeda, converterReaisParaCentavos } from '@shared/utils/moeda'
 import { ROTULOS_STATUS_MESA } from '../constants/mesa-status-cores'
 import { ModalMotivoCancelamento } from './modal-motivo-cancelamento'
-import { BuscaProdutosPedido, ListaItensPedido } from './pedido-itens'
+import { FormularioAdicionarItemPedido } from './formulario-adicionar-item-pedido'
+import { ListaItensPedido } from './pedido-itens'
 import { FormularioPagamentoPedido } from '../../pagamentos/components/formulario-pagamento-pedido'
 import { DadosEntrega } from '../../delivery/components/dados-entrega'
 import { StatusEntregaPanel } from '../../delivery/components/status-entrega'
@@ -37,6 +38,12 @@ interface PainelMesaPedidoProps {
   onAdicionarItemPedido: (
     produtoId: string,
     quantidade: number,
+    observacao?: string,
+  ) => Promise<boolean>
+  onAdicionarPizzaPedido: (
+    categoriaId: string,
+    tamanhoId: string,
+    saborIds: string[],
     observacao?: string,
   ) => Promise<boolean>
   onAlterarQuantidade: (itemId: string, quantidade: number) => Promise<boolean>
@@ -73,6 +80,7 @@ export function PainelMesaPedido({
   onAdicionarItem,
   onFecharFormularioItem,
   onAdicionarItemPedido,
+  onAdicionarPizzaPedido,
   onAlterarQuantidade,
   onRemoverItem,
   onAplicarDesconto,
@@ -305,16 +313,17 @@ export function PainelMesaPedido({
               onAlterarQuantidade={onAlterarQuantidade}
               onRemover={onRemoverItem}
               variant="tabela"
+              editavel={resumoPedido.pedido.status === 'ABERTO'}
             />
           </div>
 
           <div className="painel-mesa-pedido__inferior">
             {exibirFormularioItem && resumoPedido.pedido.status === 'ABERTO' ? (
-              <BuscaProdutosPedido
+              <FormularioAdicionarItemPedido
                 produtos={produtosAtivos}
-                categorias={categoriasAtivas}
-                onAdicionar={onAdicionarItemPedido}
-                compacto
+                categoriasProduto={categoriasAtivas}
+                onAdicionarProduto={onAdicionarItemPedido}
+                onAdicionarPizza={onAdicionarPizzaPedido}
               />
             ) : null}
 

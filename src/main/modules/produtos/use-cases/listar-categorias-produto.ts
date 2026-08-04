@@ -12,7 +12,8 @@ export function criarListarCategoriasProduto(
     entrada?: ListarCategoriasProdutoEntrada,
   ): CategoriaProduto[] {
     return repositorio.listar({
-      apenasAtivas: entrada?.apenasAtivas,
+      // Padrao: apenas categorias sem soft delete (ativas).
+      apenasAtivas: entrada?.apenasAtivas ?? true,
     })
   }
 }

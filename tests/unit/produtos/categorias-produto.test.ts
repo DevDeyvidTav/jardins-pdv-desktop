@@ -49,20 +49,22 @@ describe('categorias de produto', () => {
     }
   })
 
-  it('lista categorias', async () => {
+  it('lista apenas categorias ativas por padrao', async () => {
     const banco = await prepararBancoTeste()
     encerrarBanco = banco.encerrar
 
     const repositorio = criarCategoriaProdutoRepository()
     const criarCategoriaProduto = criarCriarCategoriaProduto(repositorio)
+    const inativarCategoriaProduto = criarInativarCategoriaProduto(repositorio)
     const listarCategoriasProduto = criarListarCategoriasProduto(repositorio)
 
     criarCategoriaProduto({ nome: 'Bebidas' })
     criarCategoriaProduto({ nome: 'Lanches' })
+    const sobremesas = criarCategoriaProduto({ nome: 'Sobremesas' })
+    inativarCategoriaProduto({ categoriaId: sobremesas.id })
 
-    const categorias = listarCategoriasProduto()
-
-    expect(categorias).toHaveLength(2)
+    expect(listarCategoriasProduto()).toHaveLength(2)
+    expect(listarCategoriasProduto({ apenasAtivas: false })).toHaveLength(3)
   })
 
   it('inativa categoria', async () => {

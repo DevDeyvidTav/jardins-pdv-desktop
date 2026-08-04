@@ -1,4 +1,5 @@
 import type { AdicionarItemPedidoEntrada, ResumoPedido } from '@shared/types/pedido'
+import { TIPO_PEDIDO_ITEM } from '@shared/types/pizza'
 import type { ProdutoRepository } from '../../produtos/repositories/produto.repository'
 import { criarProdutoRepository } from '../../produtos/repositories/produto.repository'
 import { CODIGOS_ERRO_PEDIDOS, ErroPedidos } from '../errors/erros-pedidos'
@@ -64,6 +65,7 @@ export function criarAdicionarItemPedido(
     repositorioItem.inserir({
       pedidoId: entrada.pedidoId,
       produtoId: produto.id,
+      tipo: TIPO_PEDIDO_ITEM.PRODUTO,
       produtoNome: produto.nome,
       quantidade: entrada.quantidade,
       precoUnitarioCentavos: produto.precoCentavos,

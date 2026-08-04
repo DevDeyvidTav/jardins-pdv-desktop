@@ -32,7 +32,9 @@ export function ModalConfirmarExclusao({
         <header className="modal-produtos__cabecalho">
           <div>
             <h2>{titulo}</h2>
-            <p className="modal-produtos__alerta">Essa acao nao pode ser desfeita.</p>
+            <p className="modal-produtos__alerta">
+              Se o item estiver em uso, ele sera inativado e podera ser reativado depois.
+            </p>
           </div>
           <button
             type="button"
@@ -72,7 +74,7 @@ export function ModalConfirmarExclusao({
               })()
             }}
           >
-            {ocupado ? 'Excluindo...' : 'Excluir definitivamente'}
+            {ocupado ? 'Removendo...' : 'Confirmar remocao'}
           </button>
         </div>
       </div>

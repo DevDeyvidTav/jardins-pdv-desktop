@@ -40,6 +40,14 @@ describe('contrato da API exposta pelo preload', () => {
     )
     expect(CANAIS_IPC.DIVISAO_CONTA_CANCELAR).toBe('divisao-conta:cancelar')
     expect(CANAIS_IPC.DIVISAO_CONTA_LISTAR_HISTORICO).toBe('divisao-conta:listar-historico')
+    expect(CANAIS_IPC.PIZZAS_CRIAR_CATEGORIA).toBe('pizzas:criar-categoria')
+    expect(CANAIS_IPC.PIZZAS_LISTAR_PRECOS_SABOR).toBe('pizzas:listar-precos-sabor')
+    expect(CANAIS_IPC.PIZZAS_LISTAR_CATEGORIAS_SABOR).toBe(
+      'pizzas:listar-categorias-sabor',
+    )
+    expect(CANAIS_IPC.PIZZAS_MONTAR_PREVIEW).toBe('pizzas:montar-preview')
+    expect(CANAIS_IPC.PEDIDOS_ADICIONAR_PIZZA).toBe('pedidos:adicionar-pizza')
+    expect(CANAIS_IPC.PEDIDOS_OBTER_PIZZA_ITEM).toBe('pedidos:obter-pizza-item')
   })
 
   it('mantem formato esperado da API window.pdv', () => {
@@ -132,7 +140,7 @@ describe('contrato da API exposta pelo preload', () => {
           criadoEm: new Date().toISOString(),
           atualizadoEm: new Date().toISOString(),
         }),
-        excluirCategoria: async () => undefined,
+        excluirCategoria: async () => ({ modo: 'EXCLUIDO' as const }),
         criarProduto: async () => ({
           id: 'prod-1',
           categoriaId: 'cat-1',
@@ -175,7 +183,7 @@ describe('contrato da API exposta pelo preload', () => {
           criadoEm: new Date().toISOString(),
           atualizadoEm: new Date().toISOString(),
         }),
-        excluirProduto: async () => undefined,
+        excluirProduto: async () => ({ modo: 'EXCLUIDO' as const }),
         obterProdutoPorId: async () => ({
           id: 'prod-1',
           categoriaId: 'cat-1',
@@ -267,6 +275,119 @@ describe('contrato da API exposta pelo preload', () => {
         }),
         listarHistoricoPedidos: async () => [],
         listarHistoricoMovimentacaoMesa: async () => [],
+        adicionarPizza: async () => RESUMO_BASE,
+        obterPizzaItem: async () => ({
+          id: 'ppi-1',
+          pedidoItemId: 'item-1',
+          pizzaCategoriaId: 'pc-1',
+          pizzaTamanhoId: 'pizza-tamanho-p',
+          regraPrecificacaoSnapshot: 'MAIOR_SABOR' as const,
+          valorCalculadoCentavos: 5000,
+          observacao: null,
+          categoriaNomeSnapshot: 'Tradicional',
+          tamanhoNomeSnapshot: 'Pequena',
+          sabores: [],
+        }),
+      },
+      pizzas: {
+        listarCategorias: async () => [],
+        criarCategoria: async () => ({
+          id: 'pc-1',
+          nome: 'Tradicional',
+          descricao: null,
+          regraPrecificacao: 'MAIOR_SABOR' as const,
+          ativa: true,
+          ordem: 0,
+          criadoEm: new Date().toISOString(),
+          atualizadoEm: new Date().toISOString(),
+        }),
+        atualizarCategoria: async () => ({
+          id: 'pc-1',
+          nome: 'Tradicional',
+          descricao: null,
+          regraPrecificacao: 'MAIOR_SABOR' as const,
+          ativa: true,
+          ordem: 0,
+          criadoEm: new Date().toISOString(),
+          atualizadoEm: new Date().toISOString(),
+        }),
+        listarTamanhos: async () => [],
+        criarTamanho: async () => ({
+          id: 'pizza-tamanho-p',
+          nome: 'Pequena',
+          sigla: 'P',
+          maximoSabores: 2,
+          ativa: true,
+          ordem: 1,
+          criadoEm: new Date().toISOString(),
+          atualizadoEm: new Date().toISOString(),
+        }),
+        atualizarTamanho: async () => ({
+          id: 'pizza-tamanho-p',
+          nome: 'Pequena',
+          sigla: 'P',
+          maximoSabores: 2,
+          ativa: true,
+          ordem: 1,
+          criadoEm: new Date().toISOString(),
+          atualizadoEm: new Date().toISOString(),
+        }),
+        listarSabores: async () => [],
+        criarSabor: async () => ({
+          id: 'ps-1',
+          nome: 'Calabresa',
+          descricao: null,
+          ativa: true,
+          ordem: 0,
+          criadoEm: new Date().toISOString(),
+          atualizadoEm: new Date().toISOString(),
+        }),
+        atualizarSabor: async () => ({
+          id: 'ps-1',
+          nome: 'Calabresa',
+          descricao: null,
+          ativa: true,
+          ordem: 0,
+          criadoEm: new Date().toISOString(),
+          atualizadoEm: new Date().toISOString(),
+        }),
+        vincularSaborCategoria: async () => undefined,
+        definirPreco: async () => ({
+          id: 'psp-1',
+          pizzaSaborId: 'ps-1',
+          pizzaTamanhoId: 'pizza-tamanho-p',
+          valorCentavos: 5000,
+          ativo: true,
+          criadoEm: new Date().toISOString(),
+          atualizadoEm: new Date().toISOString(),
+        }),
+        listarPrecosSabor: async () => [
+          {
+            id: 'psp-1',
+            pizzaSaborId: 'ps-1',
+            pizzaTamanhoId: 'pizza-tamanho-p',
+            valorCentavos: 5000,
+            ativo: true,
+            criadoEm: new Date().toISOString(),
+            atualizadoEm: new Date().toISOString(),
+          },
+        ],
+        listarCategoriasDoSabor: async () => ['pc-1'],
+        montarPreview: async () => ({
+          categoria: {
+            id: 'pc-1',
+            nome: 'Tradicional',
+            regraPrecificacao: 'MAIOR_SABOR' as const,
+          },
+          tamanho: {
+            id: 'pizza-tamanho-p',
+            nome: 'Pequena',
+            sigla: 'P',
+            maximoSabores: 2,
+          },
+          sabores: [{ id: 'ps-1', nome: 'Calabresa', valorCentavos: 5000 }],
+          valorFinalCentavos: 5000,
+        }),
       },
       pagamentos: {
         registrarPagamentoPedido: async () => ({
@@ -407,5 +528,10 @@ describe('contrato da API exposta pelo preload', () => {
     expect(typeof api.divisaoConta.registrarPagamentoParte).toBe('function')
     expect(typeof api.divisaoConta.cancelar).toBe('function')
     expect(typeof api.divisaoConta.listarHistorico).toBe('function')
+    expect(typeof api.pizzas.montarPreview).toBe('function')
+    expect(typeof api.pizzas.listarPrecosSabor).toBe('function')
+    expect(typeof api.pizzas.listarCategoriasDoSabor).toBe('function')
+    expect(typeof api.pedidos.adicionarPizza).toBe('function')
+    expect(typeof api.pedidos.obterPizzaItem).toBe('function')
   })
 })

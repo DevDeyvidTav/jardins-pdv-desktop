@@ -22,6 +22,7 @@ import {
   FILTROS_STATUS_MESA,
   type FiltroStatusMesa,
 } from '../constants/mesa-status-cores'
+import { extrairMensagemErroIpc } from '@shared/utils/erro-ipc'
 
 export type AbaPedidos = 'mesas' | 'historico'
 
@@ -60,6 +61,12 @@ export interface UsePedidosResultado {
     quantidade: number,
     observacao?: string,
   ) => Promise<boolean>
+  adicionarPizza: (
+    categoriaId: string,
+    tamanhoId: string,
+    saborIds: string[],
+    observacao?: string,
+  ) => Promise<boolean>
   alterarQuantidadeItem: (itemId: string, quantidade: number) => Promise<boolean>
   removerItem: (itemId: string, motivoCancelamento: string) => Promise<boolean>
   aplicarDescontoPedido: (descontoCentavos: number, motivoDesconto?: string) => Promise<boolean>
@@ -91,11 +98,7 @@ export interface UsePedidosResultado {
 }
 
 function extrairMensagemErro(causa: unknown): string {
-  if (causa instanceof Error) {
-    return causa.message
-  }
-
-  return 'Nao foi possivel concluir a operacao de pedidos.'
+  return extrairMensagemErroIpc(causa)
 }
 
 export function usePedidos(): UsePedidosResultado {
@@ -482,6 +485,41 @@ export function usePedidos(): UsePedidosResultado {
         await carregarDados()
         setExibirFormularioItem(false)
         setSucesso('Item adicionado ao pedido.')
+        return true
+      } catch (causa) {
+        setErro(extrairMensagemErro(causa))
+        return false
+      }
+    },
+    [carregarDados, resumoPedido],
+  )
+
+  const adicionarPizza = useCallback(
+    async (
+      categoriaId: string,
+      tamanhoId: string,
+      saborIds: string[],
+      observacao?: string,
+    ): Promise<boolean> => {
+      if (!resumoPedido) {
+        return false
+      }
+
+      setErro(null)
+      setSucesso(null)
+
+      try {
+        const resumo = await window.pdv.pedidos.adicionarPizza({
+          pedidoId: resumoPedido.pedido.id,
+          categoriaId,
+          tamanhoId,
+          saborIds,
+          observacao,
+        })
+        setResumoPedido(resumo)
+        await carregarDados()
+        setExibirFormularioItem(false)
+        setSucesso('Pizza adicionada ao pedido.')
         return true
       } catch (causa) {
         setErro(extrairMensagemErro(causa))
@@ -904,6 +942,7 @@ export function usePedidos(): UsePedidosResultado {
     selecionarMesaNoGrid,
     abrirPedidoDaMesaSelecionada,
     adicionarItem,
+    adicionarPizza,
     alterarQuantidadeItem,
     removerItem,
     aplicarDescontoPedido,

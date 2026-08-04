@@ -1,3 +1,5 @@
+import { TIPO_PEDIDO_ITEM } from '@shared/types/pizza'
+
 export type {
   Pedido,
   PedidoItem,
@@ -34,7 +36,8 @@ export interface LinhaPedidoSql {
 export interface LinhaPedidoItemSql {
   id: string
   pedido_id: string
-  produto_id: string
+  produto_id: string | null
+  tipo: string | null
   produto_nome: string
   quantidade: number
   preco_unitario_centavos: number
@@ -60,7 +63,7 @@ const COLUNAS_PEDIDO = `
 `.trim()
 
 const COLUNAS_PEDIDO_ITEM = `
-  id, pedido_id, produto_id, produto_nome, quantidade,
+  id, pedido_id, produto_id, tipo, produto_nome, quantidade,
   preco_unitario_centavos, subtotal_centavos, desconto_centavos,
   total_centavos, observacao, criado_em, atualizado_em, cancelado_em,
   motivo_cancelamento
@@ -110,6 +113,9 @@ export function mapearLinhaPedidoItem(
     id: linha.id,
     pedidoId: linha.pedido_id,
     produtoId: linha.produto_id,
+    tipo:
+      (linha.tipo as import('@shared/types/pizza').TipoPedidoItem | null) ??
+      TIPO_PEDIDO_ITEM.PRODUTO,
     produtoNome: linha.produto_nome,
     quantidade: linha.quantidade,
     precoUnitarioCentavos: linha.preco_unitario_centavos,
@@ -121,5 +127,6 @@ export function mapearLinhaPedidoItem(
     atualizadoEm: linha.atualizado_em,
     canceladoEm: linha.cancelado_em,
     motivoCancelamento: linha.motivo_cancelamento ?? null,
+    pizza: null,
   }
 }

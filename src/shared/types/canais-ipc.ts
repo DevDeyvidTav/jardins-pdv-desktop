@@ -58,6 +58,22 @@ export const CANAIS_IPC = {
   DIVISAO_CONTA_REGISTRAR_PAGAMENTO_PARTE: 'divisao-conta:registrar-pagamento-parte',
   DIVISAO_CONTA_CANCELAR: 'divisao-conta:cancelar',
   DIVISAO_CONTA_LISTAR_HISTORICO: 'divisao-conta:listar-historico',
+  PIZZAS_LISTAR_CATEGORIAS: 'pizzas:listar-categorias',
+  PIZZAS_CRIAR_CATEGORIA: 'pizzas:criar-categoria',
+  PIZZAS_ATUALIZAR_CATEGORIA: 'pizzas:atualizar-categoria',
+  PIZZAS_LISTAR_TAMANHOS: 'pizzas:listar-tamanhos',
+  PIZZAS_CRIAR_TAMANHO: 'pizzas:criar-tamanho',
+  PIZZAS_ATUALIZAR_TAMANHO: 'pizzas:atualizar-tamanho',
+  PIZZAS_LISTAR_SABORES: 'pizzas:listar-sabores',
+  PIZZAS_CRIAR_SABOR: 'pizzas:criar-sabor',
+  PIZZAS_ATUALIZAR_SABOR: 'pizzas:atualizar-sabor',
+  PIZZAS_VINCULAR_SABOR_CATEGORIA: 'pizzas:vincular-sabor-categoria',
+  PIZZAS_DEFINIR_PRECO: 'pizzas:definir-preco',
+  PIZZAS_LISTAR_PRECOS_SABOR: 'pizzas:listar-precos-sabor',
+  PIZZAS_LISTAR_CATEGORIAS_SABOR: 'pizzas:listar-categorias-sabor',
+  PIZZAS_MONTAR_PREVIEW: 'pizzas:montar-preview',
+  PEDIDOS_ADICIONAR_PIZZA: 'pedidos:adicionar-pizza',
+  PEDIDOS_OBTER_PIZZA_ITEM: 'pedidos:obter-pizza-item',
 } as const
 
 export type CanalIpc = (typeof CANAIS_IPC)[keyof typeof CANAIS_IPC]

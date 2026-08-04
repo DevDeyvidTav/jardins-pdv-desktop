@@ -1,4 +1,5 @@
 import type { AlterarQuantidadeItemPedidoEntrada, ResumoPedido } from '@shared/types/pedido'
+import { TIPO_PEDIDO_ITEM } from '@shared/types/pizza'
 import { CODIGOS_ERRO_PEDIDOS, ErroPedidos } from '../errors/erros-pedidos'
 import type { PedidoRepository } from '../repositories/pedido.repository'
 import { criarPedidoRepository } from '../repositories/pedido.repository'
@@ -7,6 +8,10 @@ import { criarPedidoItemRepository } from '../repositories/pedido-item.repositor
 import { garantirPedidoSemDivisaoAtiva } from '../../divisao-conta/services/resumo-divisao-conta'
 import { recalcularTotaisPedido } from '../services/recalcular-totais-pedido'
 import { garantirPedidoAberto, obterResumoPedido } from './consultas-pedido'
+import {
+  CODIGOS_ERRO_PIZZAS,
+  ErroPizzas,
+} from '../../pizzas/errors/erros-pizzas'
 
 export function criarAlterarQuantidadeItemPedido(
   repositorioPedido: PedidoRepository = criarPedidoRepository(),
@@ -38,6 +43,13 @@ export function criarAlterarQuantidadeItemPedido(
 
     if (!item || item.pedidoId !== entrada.pedidoId || item.canceladoEm) {
       throw new ErroPedidos(CODIGOS_ERRO_PEDIDOS.ITEM_NAO_ENCONTRADO, 'Item nao encontrado.')
+    }
+
+    if (item.tipo === TIPO_PEDIDO_ITEM.PIZZA) {
+      throw new ErroPizzas(
+        CODIGOS_ERRO_PIZZAS.QUANTIDADE_PIZZA_NAO_ALTERAVEL,
+        'Quantidade de pizza nao pode ser alterada. Remova e adicione outra pizza.',
+      )
     }
 
     repositorioItem.atualizarQuantidade(entrada.itemId, entrada.quantidade)

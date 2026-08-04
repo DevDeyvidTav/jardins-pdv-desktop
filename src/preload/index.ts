@@ -95,6 +95,39 @@ const apiPdv: PdvApi = {
       ipcRenderer.invoke(CANAIS_IPC.PEDIDOS_LISTAR_HISTORICO, entrada ?? {}),
     listarHistoricoMovimentacaoMesa: (entrada) =>
       ipcRenderer.invoke(CANAIS_IPC.PEDIDOS_LISTAR_HISTORICO_MOVIMENTACAO, entrada),
+    adicionarPizza: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.PEDIDOS_ADICIONAR_PIZZA, entrada),
+    obterPizzaItem: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.PEDIDOS_OBTER_PIZZA_ITEM, entrada),
+  },
+  pizzas: {
+    listarCategorias: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.PIZZAS_LISTAR_CATEGORIAS, entrada),
+    criarCategoria: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.PIZZAS_CRIAR_CATEGORIA, entrada),
+    atualizarCategoria: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.PIZZAS_ATUALIZAR_CATEGORIA, entrada),
+    listarTamanhos: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.PIZZAS_LISTAR_TAMANHOS, entrada),
+    criarTamanho: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.PIZZAS_CRIAR_TAMANHO, entrada),
+    atualizarTamanho: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.PIZZAS_ATUALIZAR_TAMANHO, entrada),
+    listarSabores: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.PIZZAS_LISTAR_SABORES, entrada),
+    criarSabor: (entrada) => ipcRenderer.invoke(CANAIS_IPC.PIZZAS_CRIAR_SABOR, entrada),
+    atualizarSabor: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.PIZZAS_ATUALIZAR_SABOR, entrada),
+    vincularSaborCategoria: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.PIZZAS_VINCULAR_SABOR_CATEGORIA, entrada),
+    definirPreco: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.PIZZAS_DEFINIR_PRECO, entrada),
+    listarPrecosSabor: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.PIZZAS_LISTAR_PRECOS_SABOR, entrada),
+    listarCategoriasDoSabor: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.PIZZAS_LISTAR_CATEGORIAS_SABOR, entrada),
+    montarPreview: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.PIZZAS_MONTAR_PREVIEW, entrada),
   },
   pagamentos: {
     registrarPagamentoPedido: (entrada) =>

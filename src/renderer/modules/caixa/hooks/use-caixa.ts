@@ -9,6 +9,7 @@ import type {
   SessaoCaixa,
 } from '@shared/types/sessao-caixa'
 import { STATUS_SESSAO_CAIXA } from '@shared/types/sessao-caixa'
+import { extrairMensagemErroIpc } from '@shared/utils/erro-ipc'
 
 const OPERADOR_PADRAO = {
   operadorId: 'local',
@@ -39,11 +40,7 @@ export interface UseCaixaResultado {
 }
 
 function extrairMensagemErro(causa: unknown): string {
-  if (causa instanceof Error) {
-    return causa.message
-  }
-
-  return 'Nao foi possivel concluir a operacao de caixa.'
+  return extrairMensagemErroIpc(causa)
 }
 
 export function useCaixa(): UseCaixaResultado {

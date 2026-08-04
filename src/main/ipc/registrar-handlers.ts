@@ -6,6 +6,7 @@ import { registrarHandlersPedidos } from '../modules/pedidos/pedidos.ipc'
 import { registrarHandlersPagamentos } from '../modules/pagamentos/pagamentos.ipc'
 import { registrarHandlersDelivery } from '../modules/delivery/delivery.ipc'
 import { registrarHandlersDivisaoConta } from '../modules/divisao-conta/divisao-conta.ipc'
+import { registrarHandlersPizzas } from '../modules/pizzas/pizzas.ipc'
 
 export function registrarHandlersIpc(): void {
   registrarHandlersSistema()
@@ -16,4 +17,5 @@ export function registrarHandlersIpc(): void {
   registrarHandlersPagamentos()
   registrarHandlersDelivery()
   registrarHandlersDivisaoConta()
+  registrarHandlersPizzas()
 }

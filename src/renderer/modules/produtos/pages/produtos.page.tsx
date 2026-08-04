@@ -50,7 +50,7 @@ export function ProdutosPage({ produtos }: ProdutosPageProps) {
     visaoProdutos,
   ])
 
-  const categoriasAtivasCount = produtos.categorias.filter((c) => c.ativo).length
+  const categoriasVisiveisCount = produtos.categorias.length
 
   const fecharFormCategoria = () => {
     setExibirFormCategoria(false)
@@ -63,15 +63,15 @@ export function ProdutosPage({ produtos }: ProdutosPageProps) {
   }
 
   return (
-    <main className="produtos produtos--operacao" data-testid="pagina-produtos">
+    <div className="produtos produtos--operacao" data-testid="pagina-produtos">
       <div className="produtos-operacao">
         <aside className="produtos-operacao__categorias" data-testid="painel-categorias">
           <header className="produtos-operacao__painel-cabecalho">
             <div>
               <h1>Categorias</h1>
               <p className="produtos-operacao__meta">
-                {categoriasAtivasCount} ativa{categoriasAtivasCount === 1 ? '' : 's'} ·{' '}
-                {produtos.categorias.length} no total
+                {categoriasVisiveisCount} categoria
+                {categoriasVisiveisCount === 1 ? '' : 's'} no cardapio
               </p>
             </div>
             <button
@@ -271,8 +271,8 @@ export function ProdutosPage({ produtos }: ProdutosPageProps) {
 
       {categoriaParaExcluir ? (
         <ModalConfirmarExclusao
-          titulo="Excluir categoria"
-          descricao={`Deseja excluir definitivamente a categoria "${categoriaParaExcluir.nome}"? So e permitido se nao houver produtos vinculados.`}
+          titulo="Remover categoria"
+          descricao={`Remover "${categoriaParaExcluir.nome}" do cardapio? Todos os produtos vinculados tambem serao removidos do cardapio (soft delete). Os registros permanecem no banco e o historico de pedidos nao e alterado.`}
           testId="modal-confirmar-exclusao-categoria"
           excluindo={excluindo}
           onFechar={() => {
@@ -297,8 +297,8 @@ export function ProdutosPage({ produtos }: ProdutosPageProps) {
 
       {produtoParaExcluir ? (
         <ModalConfirmarExclusao
-          titulo="Excluir produto"
-          descricao={`Deseja excluir definitivamente o produto "${produtoParaExcluir.nome}"? So e permitido se ele nunca foi usado em pedidos.`}
+          titulo="Remover produto"
+          descricao={`Remover "${produtoParaExcluir.nome}" do cardapio? Se o produto ja foi usado em pedidos, ele sera apenas inativado (soft delete) e podera ser reativado depois.`}
           testId="modal-confirmar-exclusao-produto"
           excluindo={excluindo}
           onFechar={() => {
@@ -320,6 +320,6 @@ export function ProdutosPage({ produtos }: ProdutosPageProps) {
           }}
         />
       ) : null}
-    </main>
+    </div>
   )
 }

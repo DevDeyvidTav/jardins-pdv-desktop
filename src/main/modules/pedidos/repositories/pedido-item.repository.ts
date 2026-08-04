@@ -6,6 +6,8 @@ import {
 import { obterConexaoBancoLocal } from '../../../database/inicializar-banco'
 import { agoraEmIsoUtc } from '@shared/utils/data-hora'
 import type { PedidoItem } from '@shared/types/pedido'
+import type { TipoPedidoItem } from '@shared/types/pizza'
+import { TIPO_PEDIDO_ITEM } from '@shared/types/pizza'
 import {
   mapearLinhaPedidoItem,
   obterColunasPedidoItem,
@@ -78,7 +80,8 @@ export class PedidoItemRepository {
 
   inserir(dados: {
     pedidoId: string
-    produtoId: string
+    produtoId: string | null
+    tipo: TipoPedidoItem
     produtoNome: string
     quantidade: number
     precoUnitarioCentavos: number
@@ -97,6 +100,7 @@ export class PedidoItemRepository {
       id: randomUUID(),
       pedidoId: dados.pedidoId,
       produtoId: dados.produtoId,
+      tipo: dados.tipo ?? TIPO_PEDIDO_ITEM.PRODUTO,
       produtoNome: dados.produtoNome,
       quantidade: dados.quantidade,
       precoUnitarioCentavos: dados.precoUnitarioCentavos,
@@ -108,18 +112,20 @@ export class PedidoItemRepository {
       atualizadoEm: agora,
       canceladoEm: null,
       motivoCancelamento: null,
+      pizza: null,
     }
 
     conexao.instancia.run(
       `INSERT INTO pedido_item (
-         id, pedido_id, produto_id, produto_nome, quantidade,
+         id, pedido_id, produto_id, tipo, produto_nome, quantidade,
          preco_unitario_centavos, subtotal_centavos, desconto_centavos,
          total_centavos, observacao, criado_em, atualizado_em, cancelado_em
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         item.id,
         item.pedidoId,
         item.produtoId,
+        item.tipo,
         item.produtoNome,
         item.quantidade,
         item.precoUnitarioCentavos,

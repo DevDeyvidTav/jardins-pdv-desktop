@@ -210,6 +210,21 @@ export class ProdutoRepository {
     }
   }
 
+  /** Soft delete em lote de todos os produtos ativos da categoria. */
+  inativarPorCategoria(categoriaId: string): void {
+    const conexao = this.obterConexao()
+    const agora = agoraEmIsoUtc()
+
+    conexao.instancia.run(
+      `UPDATE produto
+       SET ativo = ?, atualizado_em = ?
+       WHERE categoria_id = ? AND ativo = 1`,
+      [0, agora, categoriaId],
+    )
+
+    persistirConexaoBanco(conexao)
+  }
+
   reativar(produtoId: string): Produto {
     const conexao = this.obterConexao()
     const existente = this.buscarPorId(produtoId)

@@ -26,7 +26,7 @@ export function FormularioProduto({
   categorias,
   categoriaPadraoId,
   produtoInicial = null,
-  carregando,
+  carregando: _carregando,
   onSalvar,
   onLimparFeedback,
   onCancelar,
@@ -55,6 +55,8 @@ export function FormularioProduto({
   const [erroValidacao, setErroValidacao] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
 
+  // Sincroniza o formulario so quando o produto em edicao muda (por id),
+  // evitando resetar a digitacao a cada re-render do pai.
   useEffect(() => {
     if (produtoInicial) {
       setCategoriaId(produtoInicial.categoriaId)
@@ -65,18 +67,45 @@ export function FormularioProduto({
       return
     }
 
+    setNome('')
+    setDescricao('')
+    setPreco('')
+    setErroValidacao(null)
+
     if (
       categoriaPadraoId &&
-      categoriasAtivas.some((categoria) => categoria.id === categoriaPadraoId)
+      categorias.some((categoria) => categoria.ativo && categoria.id === categoriaPadraoId)
     ) {
       setCategoriaId(categoriaPadraoId)
       return
     }
 
-    if (categoriaId === '' && categoriasAtivas[0]) {
-      setCategoriaId(categoriasAtivas[0].id)
+    const primeiraAtiva = categorias.find((categoria) => categoria.ativo)
+    setCategoriaId(primeiraAtiva?.id ?? '')
+    // Intencionalmente nao depende de `categorias`/`produtoInicial` por referencia:
+    // so reage a troca do produto (id) ou do filtro de categoria padrao.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- sync por id
+  }, [produtoInicial?.id, categoriaPadraoId])
+
+  // Em modo criacao, preenche a categoria padrao quando a lista chega do IPC.
+  useEffect(() => {
+    if (produtoInicial || categoriaId !== '') {
+      return
     }
-  }, [produtoInicial, categoriaPadraoId, categoriasAtivas, categoriaId])
+
+    if (
+      categoriaPadraoId &&
+      categorias.some((categoria) => categoria.ativo && categoria.id === categoriaPadraoId)
+    ) {
+      setCategoriaId(categoriaPadraoId)
+      return
+    }
+
+    const primeiraAtiva = categorias.find((categoria) => categoria.ativo)
+    if (primeiraAtiva) {
+      setCategoriaId(primeiraAtiva.id)
+    }
+  }, [produtoInicial, categoriaId, categoriaPadraoId, categorias])
 
   async function handleSubmit(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault()
@@ -135,7 +164,7 @@ export function FormularioProduto({
           data-testid="campo-categoria-produto"
           value={categoriaId}
           onChange={(evento) => setCategoriaId(evento.target.value)}
-          disabled={carregando || enviando || categoriasDisponiveis.length === 0}
+          disabled={enviando || categoriasDisponiveis.length === 0}
         >
           {categoriasDisponiveis.length === 0 ? (
             <option value="">Nenhuma categoria ativa</option>
@@ -158,7 +187,7 @@ export function FormularioProduto({
           type="text"
           value={nome}
           onChange={(evento) => setNome(evento.target.value)}
-          disabled={carregando || enviando}
+          disabled={enviando}
         />
       </label>
 
@@ -170,7 +199,7 @@ export function FormularioProduto({
           type="text"
           value={descricao}
           onChange={(evento) => setDescricao(evento.target.value)}
-          disabled={carregando || enviando}
+          disabled={enviando}
           placeholder="Opcional"
         />
       </label>
@@ -185,7 +214,7 @@ export function FormularioProduto({
           placeholder="0,00"
           value={preco}
           onChange={(evento) => setPreco(evento.target.value)}
-          disabled={carregando || enviando}
+          disabled={enviando}
         />
       </label>
 
@@ -207,7 +236,7 @@ export function FormularioProduto({
             type="button"
             className="produtos__botao-secundario"
             data-testid="botao-cancelar-edicao-produto"
-            disabled={carregando || enviando}
+            disabled={enviando}
             onClick={onCancelar}
           >
             Cancelar
@@ -216,7 +245,7 @@ export function FormularioProduto({
         <button
           type="submit"
           data-testid={editando ? 'botao-salvar-produto' : 'botao-criar-produto'}
-          disabled={carregando || enviando || categoriasDisponiveis.length === 0}
+          disabled={enviando || categoriasDisponiveis.length === 0}
         >
           {editando ? 'Salvar produto' : 'Criar produto'}
         </button>

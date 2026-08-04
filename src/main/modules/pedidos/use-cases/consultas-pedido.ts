@@ -1,5 +1,10 @@
-import type { ObterPedidoAbertoPorMesaEntrada, ResumoPedido } from '@shared/types/pedido'
+import type {
+  ObterPedidoAbertoPorMesaEntrada,
+  PedidoItem,
+  ResumoPedido,
+} from '@shared/types/pedido'
 import { STATUS_PEDIDO } from '@shared/types/pedido'
+import { TIPO_PEDIDO_ITEM } from '@shared/types/pizza'
 import { montarResumoDivisaoConta } from '../../divisao-conta/services/resumo-divisao-conta'
 import { CODIGOS_ERRO_PEDIDOS, ErroPedidos } from '../errors/erros-pedidos'
 import type { PedidoRepository } from '../repositories/pedido.repository'
@@ -7,10 +12,41 @@ import { criarPedidoRepository } from '../repositories/pedido.repository'
 import type { PedidoItemRepository } from '../repositories/pedido-item.repository'
 import { criarPedidoItemRepository } from '../repositories/pedido-item.repository'
 import { criarPedidoEntregaRepository } from '../../delivery/repositories/pedido-entrega.repository'
+import {
+  criarPizzaPedidoItemRepository,
+  type PizzaPedidoItemRepository,
+} from '../../pizzas/repositories/pizza-pedido-item.repository'
+
+function enriquecerItensComPizza(
+  itens: PedidoItem[],
+  repositorioPizzaItem: PizzaPedidoItemRepository,
+): PedidoItem[] {
+  const idsPizza = itens
+    .filter((item) => item.tipo === TIPO_PEDIDO_ITEM.PIZZA)
+    .map((item) => item.id)
+
+  if (idsPizza.length === 0) {
+    return itens.map((item) => ({ ...item, pizza: item.pizza ?? null }))
+  }
+
+  const pizzasPorItem = repositorioPizzaItem.listarPorPedidoItemIds(idsPizza)
+
+  return itens.map((item) => {
+    if (item.tipo !== TIPO_PEDIDO_ITEM.PIZZA) {
+      return { ...item, pizza: null }
+    }
+
+    return {
+      ...item,
+      pizza: pizzasPorItem.get(item.id) ?? null,
+    }
+  })
+}
 
 export function criarObterPedidoAbertoPorMesa(
   repositorioPedido: PedidoRepository = criarPedidoRepository(),
   repositorioItem: PedidoItemRepository = criarPedidoItemRepository(),
+  repositorioPizzaItem: PizzaPedidoItemRepository = criarPizzaPedidoItemRepository(),
 ) {
   return function obterPedidoAbertoPorMesa(
     entrada: ObterPedidoAbertoPorMesaEntrada,
@@ -23,7 +59,10 @@ export function criarObterPedidoAbertoPorMesa(
 
     return {
       pedido,
-      itens: repositorioItem.listarPorPedido(pedido.id, true),
+      itens: enriquecerItensComPizza(
+        repositorioItem.listarPorPedido(pedido.id, true),
+        repositorioPizzaItem,
+      ),
       entrega: null,
       divisao: montarResumoDivisaoConta(pedido.id, pedido.totalCentavos),
     }
@@ -45,6 +84,7 @@ export const listarPedidosAbertos = criarListarPedidosAbertos()
 export function criarObterResumoPedido(
   repositorioPedido: PedidoRepository = criarPedidoRepository(),
   repositorioItem: PedidoItemRepository = criarPedidoItemRepository(),
+  repositorioPizzaItem: PizzaPedidoItemRepository = criarPizzaPedidoItemRepository(),
 ) {
   return function obterResumoPedido(
     entrada: import('@shared/types/pedido').ObterResumoPedidoEntrada,
@@ -64,7 +104,10 @@ export function criarObterResumoPedido(
 
     return {
       pedido,
-      itens: repositorioItem.listarPorPedido(pedido.id, apenasItensAtivos),
+      itens: enriquecerItensComPizza(
+        repositorioItem.listarPorPedido(pedido.id, apenasItensAtivos),
+        repositorioPizzaItem,
+      ),
       entrega: entrega ?? null,
       divisao: montarResumoDivisaoConta(pedido.id, pedido.totalCentavos),
     }

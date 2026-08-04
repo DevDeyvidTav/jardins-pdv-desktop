@@ -95,6 +95,7 @@ apps/desktop/src/
 | 0012 | pedido_entrega (simplificado), taxa padrao | Campos reduzidos + metadata |
 | 0013 | mesa_agrupamento, mesa_agrupada, pedido_mesa_movimentacao, pedido.mesa_agrupamento_id | Transferência e agrupamento de mesas com auditoria imutável |
 | 0014 | pedido_divisao_conta, pedido_divisao_parte, pedido_divisao_movimentacao, pagamento_pedido.pedido_divisao_parte_id | Divisão de conta por valor com pagamentos vinculados às partes |
+| 0015 | pizza_categoria, pizza_tamanho, pizza_sabor, pizza_categoria_sabor, pizza_sabor_preco, pizza_pedido_item, pizza_pedido_item_sabor; pedido_item.tipo + produto_id nullable | Catálogo de pizzas, composição no pedido e snapshots |
 
 ### Transferência e agrupamento (v13)
 
@@ -112,6 +113,16 @@ apps/desktop/src/
 - Enquanto a divisão estiver ATIVA: bloqueia alterações financeiras do pedido e pagamentos “normais” sem parte.
 - Cancelamento da divisão só antes do primeiro pagamento vinculado; cancelar o pedido com divisão ativa marca a divisão como CANCELADA preservando histórico.
 - Auditoria append-only em `pedido_divisao_movimentacao`.
+
+### Pizzas (v15)
+
+- Catálogo: `pizza_categoria` (regra `MAIOR_SABOR` | `MEDIA_SABORES`), `pizza_tamanho` (máximo de sabores persistido e editável), `pizza_sabor`, vínculo N:N `pizza_categoria_sabor`, preços em centavos em `pizza_sabor_preco` (único por sabor×tamanho).
+- Seed inicial de tamanhos: **P** e **M** → máx. 2 sabores; **G** → máx. 3 (ids `pizza-tamanho-p/m/g`). Sem hardcode no domínio/UI.
+- Precificação oficial no main (`montarPreviewPizza` / `resolverComposicaoPizza`): `MAIOR_SABOR` = máximo; `MEDIA_SABORES` = `Math.round(soma / n)` em centavos.
+- No pedido: pizza vira `pedido_item` oficial com `tipo = PIZZA`, `produto_id` null, quantidade sempre 1; composição em `pizza_pedido_item` + `pizza_pedido_item_sabor` com snapshots de nomes, regra e preços.
+- Inclusão em `BEGIN IMMEDIATE`; alterações futuras no catálogo não afetam itens já lançados.
+- Divisão ATIVA bloqueia inclusão/remoção de pizza com `ALTERACAO_PIZZA_BLOQUEADA_POR_DIVISAO_ATIVA`.
+- UI: Cardápio com abas **Produtos** | **Pizzas**; no pedido **Adicionar produto** / **Adicionar pizza**.
 
 ### Schema SQL
 
@@ -214,7 +225,8 @@ CREATE TABLE IF NOT EXISTS pedido (
 CREATE TABLE IF NOT EXISTS pedido_item (
   id TEXT PRIMARY KEY NOT NULL,
   pedido_id TEXT NOT NULL,
-  produto_id TEXT NOT NULL,
+  produto_id TEXT,
+  tipo TEXT NOT NULL DEFAULT 'PRODUTO',
   produto_nome TEXT NOT NULL,
   quantidade INTEGER NOT NULL,
   preco_unitario_centavos INTEGER NOT NULL,
@@ -226,8 +238,13 @@ CREATE TABLE IF NOT EXISTS pedido_item (
   atualizado_em TEXT NOT NULL,
   cancelado_em TEXT,
   motivo_cancelamento TEXT,
-  FOREIGN KEY (pedido_id) REFERENCES pedido (id)
+  FOREIGN KEY (pedido_id) REFERENCES pedido (id),
+  FOREIGN KEY (produto_id) REFERENCES produto (id)
 );
+
+-- pizza (catalogo + composicao no pedido — ver migration 0015)
+-- pizza_categoria, pizza_tamanho, pizza_sabor, pizza_categoria_sabor,
+-- pizza_sabor_preco, pizza_pedido_item, pizza_pedido_item_sabor
 
 -- pagamento_pedido
 CREATE TABLE IF NOT EXISTS pagamento_pedido (
@@ -481,6 +498,27 @@ export interface ResumoPagamentoPedido {
 | `pedidos:cancelar` | Renderer → Main | `{ pedidoId, motivoCancelamento }` | `Pedido` |
 | `pedidos:listar-historico` | Renderer → Main | `{ status?, formaPagamento? }` | `ItemHistoricoPedido[]` |
 | `pedidos:listar-historico-mesa` | Renderer → Main | `{ pedidoId }` | `PedidoMesaMovimentacao[]` |
+| `pedidos:adicionar-pizza` | Renderer → Main | `{ pedidoId, categoriaId, tamanhoId, saborIds, observacao? }` | `ResumoPedido` |
+| `pedidos:obter-pizza-item` | Renderer → Main | `{ pedidoItemId }` | `PizzaPedidoItemResumo` |
+
+### Pizzas
+
+| Channel | Direction | Payload | Response |
+|---------|-----------|---------|----------|
+| `pizzas:listar-categorias` | Renderer → Main | `{ apenasAtivas? }` | `PizzaCategoria[]` |
+| `pizzas:criar-categoria` | Renderer → Main | `{ nome, descricao?, regraPrecificacao?, ordem? }` | `PizzaCategoria` |
+| `pizzas:atualizar-categoria` | Renderer → Main | `{ categoriaId, nome?, descricao?, regraPrecificacao?, ativa?, ordem? }` | `PizzaCategoria` |
+| `pizzas:listar-tamanhos` | Renderer → Main | `{ apenasAtivas? }` | `PizzaTamanho[]` |
+| `pizzas:criar-tamanho` | Renderer → Main | `{ nome, sigla, maximoSabores, ordem? }` | `PizzaTamanho` |
+| `pizzas:atualizar-tamanho` | Renderer → Main | `{ tamanhoId, nome?, sigla?, maximoSabores?, ativa?, ordem? }` | `PizzaTamanho` |
+| `pizzas:listar-sabores` | Renderer → Main | `{ apenasAtivos?, categoriaId? }` | `PizzaSabor[]` |
+| `pizzas:criar-sabor` | Renderer → Main | `{ nome, descricao?, ordem? }` | `PizzaSabor` |
+| `pizzas:atualizar-sabor` | Renderer → Main | `{ saborId, nome?, descricao?, ativa?, ordem? }` | `PizzaSabor` |
+| `pizzas:vincular-sabor-categoria` | Renderer → Main | `{ categoriaId, saborId, ativo? }` | `void` |
+| `pizzas:definir-preco` | Renderer → Main | `{ saborId, tamanhoId, valorCentavos }` | `PizzaSaborPreco` |
+| `pizzas:listar-precos-sabor` | Renderer → Main | `{ saborId, apenasAtivos? }` | `PizzaSaborPreco[]` |
+| `pizzas:listar-categorias-sabor` | Renderer → Main | `{ saborId }` | `string[]` |
+| `pizzas:montar-preview` | Renderer → Main | `{ categoriaId, tamanhoId, saborIds }` | `PreviewPizza` |
 
 ### Pagamentos
 
@@ -544,6 +582,23 @@ export interface ResumoPagamentoPedido {
 | `MESA_NAO_ENCONTRADA` | Mesa não encontrada | ID inválido |
 | `MESA_OCUPADA` | Mesa já possui pedido aberto | Tentar abrir pedido em mesa ocupada |
 | `MESA_INATIVA` | Não é permitido abrir pedido em mesa inativa | Mesa desativada |
+
+### ErroPizzas
+
+| Código | Situação |
+|--------|----------|
+| `PIZZA_CATEGORIA_NAO_ENCONTRADA` / `PIZZA_CATEGORIA_INATIVA` | Categoria inexistente ou inativa |
+| `PIZZA_TAMANHO_NAO_ENCONTRADO` / `PIZZA_TAMANHO_INATIVO` | Tamanho inexistente ou inativo |
+| `PIZZA_SABOR_NAO_ENCONTRADO` / `PIZZA_SABOR_INATIVO` | Sabor inexistente ou inativo |
+| `PIZZA_SABOR_NAO_PERTENCE_A_CATEGORIA` | Sabor sem vínculo ativo com a categoria |
+| `PIZZA_SABOR_DUPLICADO` | Mesmo sabor repetido na composição |
+| `PIZZA_SEM_SABOR` | Lista de sabores vazia |
+| `PIZZA_QUANTIDADE_SABORES_EXCEDE_LIMITE` | Excede `pizza_tamanho.maximo_sabores` |
+| `PIZZA_PRECO_NAO_CONFIGURADO_PARA_TAMANHO` | Sem preço ativo sabor×tamanho |
+| `PIZZA_REGRA_PRECIFICACAO_INVALIDA` | Regra da categoria inválida |
+| `ALTERACAO_PIZZA_BLOQUEADA_POR_DIVISAO_ATIVA` | Inclusão/remoção com divisão ATIVA |
+| `QUANTIDADE_PIZZA_NAO_ALTERAVEL` | Tentativa de alterar quantidade do item pizza |
+| `ENTRADA_INVALIDA` | Validação Zod |
 
 ---
 

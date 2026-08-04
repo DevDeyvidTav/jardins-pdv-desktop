@@ -33,3 +33,5 @@ export interface ListarCategoriasProdutoEntrada {
 export interface ExcluirCategoriaProdutoEntrada {
   categoriaId: string
 }
+
+export type { ResultadoRemocaoCatalogo } from './produto'
