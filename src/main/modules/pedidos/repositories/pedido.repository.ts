@@ -96,6 +96,30 @@ export class PedidoRepository {
     return pedidos
   }
 
+  contarPedidosAbertos(sessaoCaixaId?: string): number {
+    const conexao = this.obterConexao()
+    const consulta = conexao.instancia.prepare(
+      sessaoCaixaId
+        ? `SELECT COUNT(*) AS total
+           FROM pedido
+           WHERE status = ? AND sessao_caixa_id = ?`
+        : `SELECT COUNT(*) AS total
+           FROM pedido
+           WHERE status = ?`,
+    )
+    consulta.bind(
+      sessaoCaixaId
+        ? [STATUS_PEDIDO.ABERTO, sessaoCaixaId]
+        : [STATUS_PEDIDO.ABERTO],
+    )
+    consulta.step()
+    const total = Number(
+      (consulta.getAsObject() as { total: number }).total ?? 0,
+    )
+    consulta.free()
+    return total
+  }
+
   listarHistorico(filtros: {
     status: 'TODOS' | 'FINALIZADO' | 'CANCELADO'
     formaPagamento: string
@@ -108,7 +132,7 @@ export class PedidoRepository {
     const conexao = this.obterConexao()
     const consulta = conexao.instancia.prepare(
       `SELECT
-         p.id, p.sessao_caixa_id, p.mesa_id, p.mesa_agrupamento_id, p.tipo, p.status,
+         p.id, p.referencia, p.sessao_caixa_id, p.mesa_id, p.cliente_id, p.mesa_agrupamento_id, p.tipo, p.status,
          p.subtotal_centavos, p.desconto_centavos, p.total_centavos,
          p.desconto_itens_centavos, p.desconto_pedido_centavos,
          COALESCE(p.taxa_entrega_centavos, 0) AS taxa_entrega_centavos,
@@ -177,29 +201,48 @@ export class PedidoRepository {
     return itens
   }
 
+  obterProximaReferencia(): number {
+    const conexao = this.obterConexao()
+    const consulta = conexao.instancia.prepare(
+      `SELECT COALESCE(MAX(referencia), 0) + 1 AS proxima FROM pedido`,
+    )
+    consulta.step()
+    const proxima = Number(
+      (consulta.getAsObject() as { proxima: number }).proxima ?? 1,
+    )
+    consulta.free()
+    return proxima
+  }
+
   inserir(dados: {
     sessaoCaixaId: string
     mesaId: string | null
     tipo: Pedido['tipo']
+    taxaEntregaCentavos?: number
+    clienteId?: string | null
   }): Pedido {
     const conexao = this.obterConexao()
     const agora = agoraEmIsoUtc()
+    const referencia = this.obterProximaReferencia()
+    const taxaEntregaCentavos = dados.taxaEntregaCentavos ?? 0
     const pedido: Pedido = {
       id: randomUUID(),
+      referencia,
       sessaoCaixaId: dados.sessaoCaixaId,
       mesaId: dados.mesaId,
       mesaAgrupamentoId: null,
+      clienteId: dados.clienteId ?? null,
       tipo: dados.tipo,
       status: STATUS_PEDIDO.ABERTO,
       subtotalCentavos: 0,
       descontoCentavos: 0,
       descontoItensCentavos: 0,
       descontoPedidoCentavos: 0,
-      taxaEntregaCentavos: 0,
-      totalCentavos: 0,
+      taxaEntregaCentavos,
+      totalCentavos: taxaEntregaCentavos,
       valorPagoCentavos: 0,
       valorCortesiaCentavos: 0,
-      valorRestanteCentavos: 0,
+      valorRestanteCentavos: taxaEntregaCentavos,
       criadoEm: agora,
       atualizadoEm: agora,
       finalizadoEm: null,
@@ -209,16 +252,19 @@ export class PedidoRepository {
 
     conexao.instancia.run(
       `INSERT INTO pedido (
-         id, sessao_caixa_id, mesa_id, mesa_agrupamento_id, tipo, status,
+         id, referencia, sessao_caixa_id, mesa_id, cliente_id, mesa_agrupamento_id, tipo, status,
          subtotal_centavos, desconto_centavos, total_centavos,
          desconto_itens_centavos, desconto_pedido_centavos,
+         taxa_entrega_centavos,
          valor_pago_centavos, valor_cortesia_centavos, valor_restante_centavos,
          criado_em, atualizado_em, finalizado_em, cancelado_em
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         pedido.id,
+        pedido.referencia,
         pedido.sessaoCaixaId,
         pedido.mesaId,
+        pedido.clienteId,
         null,
         pedido.tipo,
         pedido.status,
@@ -227,6 +273,7 @@ export class PedidoRepository {
         pedido.totalCentavos,
         pedido.descontoItensCentavos,
         pedido.descontoPedidoCentavos,
+        pedido.taxaEntregaCentavos,
         pedido.valorPagoCentavos,
         pedido.valorCortesiaCentavos,
         pedido.valorRestanteCentavos,
@@ -380,6 +427,30 @@ export class PedidoRepository {
       ...existente,
       status: STATUS_PEDIDO.FINALIZADO,
       finalizadoEm: agora,
+      atualizadoEm: agora,
+    }
+  }
+
+  atualizarClienteId(pedidoId: string, clienteId: string | null): Pedido {
+    const existente = this.buscarPorId(pedidoId)
+
+    if (!existente) {
+      throw new Error('Pedido nao encontrado.')
+    }
+
+    const conexao = this.obterConexao()
+    const agora = agoraEmIsoUtc()
+
+    conexao.instancia.run(
+      `UPDATE pedido SET cliente_id = ?, atualizado_em = ? WHERE id = ?`,
+      [clienteId, agora, pedidoId],
+    )
+
+    persistirConexaoBanco(conexao)
+
+    return {
+      ...existente,
+      clienteId,
       atualizadoEm: agora,
     }
   }

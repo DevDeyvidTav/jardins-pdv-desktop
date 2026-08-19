@@ -24,7 +24,7 @@ describe('pagamentos de pedido', () => {
     FORMA_PAGAMENTO.DINHEIRO,
     FORMA_PAGAMENTO.CARTAO_CREDITO,
     FORMA_PAGAMENTO.CARTAO_DEBITO,
-    FORMA_PAGAMENTO.PIX,
+    FORMA_PAGAMENTO.PIX_MAQUINETA,
   ])('registra pagamento %s e finaliza pedido', async (formaPagamento) => {
     const { ambiente, pedido } = await criarPedidoComItem()
     const resumo = ambiente.registrarPagamentoPedido({
@@ -48,7 +48,7 @@ describe('pagamentos de pedido', () => {
     })
     ambiente.registrarPagamentoPedido({
       pedidoId: pedido.id,
-      formaPagamento: FORMA_PAGAMENTO.PIX,
+      formaPagamento: FORMA_PAGAMENTO.PIX_MAQUINETA,
       valorCentavos: 800,
     })
     const caixa = criarObterResumoCaixaAtual()()!
@@ -61,7 +61,7 @@ describe('pagamentos de pedido', () => {
     const { ambiente, pedido } = await criarPedidoComItem()
     expect(() => ambiente.registrarPagamentoPedido({
       pedidoId: pedido.id,
-      formaPagamento: FORMA_PAGAMENTO.PIX,
+      formaPagamento: FORMA_PAGAMENTO.PIX_MAQUINETA,
       valorCentavos: 1300,
     })).toThrow(/maior/)
   })

@@ -40,6 +40,8 @@ import {
   mesaPertenceAAgrupamentoAtivo,
   snapshotMesa,
 } from '../services/mesa-movimentacao.sql'
+import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
+import { registrarEventoPedidoSync } from '../../sincronizacao/services/registrar-evento-pedido'
 
 function garantirCaixaAberto(repositorioSessao: SessaoCaixaRepository): void {
   const sessao = repositorioSessao.buscarSessaoAberta()
@@ -61,6 +63,13 @@ export function criarTransferirPedidoMesa(
     entrada: TransferirPedidoMesaEntrada,
   ): TransferirPedidoMesaResultado {
     garantirCaixaAberto(repositorioSessao)
+
+    if (!entrada.motivo || entrada.motivo.trim().length === 0) {
+      throw new ErroMesas(
+        CODIGOS_ERRO_MESAS.ENTRADA_INVALIDA,
+        'Motivo da transferencia e obrigatorio.',
+      )
+    }
 
     const pedido = repositorioPedido.buscarPorId(entrada.pedidoId)
     if (!pedido) {
@@ -210,6 +219,7 @@ export function criarTransferirPedidoMesa(
         criadoEm: agora,
       })
 
+      registrarEventoPedidoSync(pedido.id, OPERACAO_SYNC.UPDATE, conexao)
       confirmarTransacao(conexao)
     } catch (erro) {
       reverterTransacao(conexao)
@@ -431,6 +441,7 @@ export function criarAgruparMesasPedido(
         criadoEm: agora,
       })
 
+      registrarEventoPedidoSync(pedido.id, OPERACAO_SYNC.UPDATE, conexao)
       confirmarTransacao(conexao)
     } catch (erro) {
       reverterTransacao(conexao)

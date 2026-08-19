@@ -573,4 +573,152 @@ INSERT INTO pizza_tamanho (
   ('pizza-tamanho-g', 'Grande', 'G', 3, 1, 3, datetime('now'), datetime('now'));
 `.trim(),
   },
+  {
+    versao: 16,
+    nome: '0016-pedido-referencia',
+    sql: `
+ALTER TABLE pedido ADD COLUMN referencia INTEGER;
+
+UPDATE pedido
+SET referencia = (
+  SELECT COUNT(*)
+  FROM pedido AS anterior
+  WHERE anterior.criado_em < pedido.criado_em
+     OR (anterior.criado_em = pedido.criado_em AND anterior.id <= pedido.id)
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_pedido_referencia
+  ON pedido (referencia);
+
+CREATE TRIGGER IF NOT EXISTS trg_pedido_referencia_auto
+AFTER INSERT ON pedido
+FOR EACH ROW
+WHEN NEW.referencia IS NULL
+BEGIN
+  UPDATE pedido
+  SET referencia = (
+    SELECT COALESCE(MAX(referencia), 0) + 1
+    FROM pedido
+    WHERE id != NEW.id
+  )
+  WHERE id = NEW.id;
+END;
+`.trim(),
+  },
+  {
+    versao: 17,
+    nome: '0017-pagamento-fk-divisao-parte',
+    sql: `
+CREATE TABLE pagamento_pedido_v17 (
+  id TEXT PRIMARY KEY NOT NULL,
+  pedido_id TEXT NOT NULL,
+  sessao_caixa_id TEXT NOT NULL,
+  forma_pagamento TEXT NOT NULL,
+  valor_centavos INTEGER NOT NULL,
+  status TEXT NOT NULL,
+  motivo_cortesia TEXT,
+  pedido_divisao_parte_id TEXT,
+  criado_em TEXT NOT NULL,
+  atualizado_em TEXT NOT NULL,
+  cancelado_em TEXT,
+  FOREIGN KEY (pedido_id) REFERENCES pedido (id),
+  FOREIGN KEY (sessao_caixa_id) REFERENCES sessao_caixa (id),
+  FOREIGN KEY (pedido_divisao_parte_id) REFERENCES pedido_divisao_parte (id)
+);
+
+INSERT INTO pagamento_pedido_v17 (
+  id, pedido_id, sessao_caixa_id, forma_pagamento, valor_centavos, status,
+  motivo_cortesia, pedido_divisao_parte_id, criado_em, atualizado_em, cancelado_em
+)
+SELECT
+  id, pedido_id, sessao_caixa_id, forma_pagamento, valor_centavos, status,
+  motivo_cortesia, pedido_divisao_parte_id, criado_em, atualizado_em, cancelado_em
+FROM pagamento_pedido;
+
+DROP TABLE pagamento_pedido;
+ALTER TABLE pagamento_pedido_v17 RENAME TO pagamento_pedido;
+
+CREATE INDEX IF NOT EXISTS idx_pagamento_pedido_pedido
+  ON pagamento_pedido (pedido_id);
+
+CREATE INDEX IF NOT EXISTS idx_pagamento_pedido_sessao
+  ON pagamento_pedido (sessao_caixa_id);
+
+CREATE INDEX IF NOT EXISTS idx_pagamento_pedido_divisao_parte
+  ON pagamento_pedido (pedido_divisao_parte_id);
+`.trim(),
+  },
+  {
+    versao: 18,
+    nome: '0018-clientes-talao-pagamentos',
+    sql: `
+CREATE TABLE IF NOT EXISTS cliente (
+  id TEXT PRIMARY KEY NOT NULL,
+  nome TEXT NOT NULL,
+  telefone TEXT,
+  documento TEXT,
+  endereco TEXT,
+  libera_talao INTEGER NOT NULL DEFAULT 0,
+  ativo INTEGER NOT NULL DEFAULT 1,
+  criado_em TEXT NOT NULL,
+  atualizado_em TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_cliente_nome ON cliente (nome);
+CREATE INDEX IF NOT EXISTS idx_cliente_ativo ON cliente (ativo);
+
+CREATE TABLE IF NOT EXISTS talao_baixa (
+  id TEXT PRIMARY KEY NOT NULL,
+  cliente_id TEXT NOT NULL,
+  sessao_caixa_id TEXT NOT NULL,
+  forma_pagamento TEXT NOT NULL,
+  valor_centavos INTEGER NOT NULL,
+  competencia TEXT NOT NULL,
+  observacao TEXT,
+  criado_em TEXT NOT NULL,
+  atualizado_em TEXT NOT NULL,
+  FOREIGN KEY (cliente_id) REFERENCES cliente (id),
+  FOREIGN KEY (sessao_caixa_id) REFERENCES sessao_caixa (id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_talao_baixa_cliente_competencia
+  ON talao_baixa (cliente_id, competencia);
+CREATE INDEX IF NOT EXISTS idx_talao_baixa_sessao
+  ON talao_baixa (sessao_caixa_id, criado_em);
+
+ALTER TABLE pedido ADD COLUMN cliente_id TEXT REFERENCES cliente (id);
+CREATE INDEX IF NOT EXISTS idx_pedido_cliente ON pedido (cliente_id);
+
+ALTER TABLE pedido_entrega ADD COLUMN endereco TEXT;
+
+UPDATE pagamento_pedido
+SET forma_pagamento = 'PIX_MAQUINETA'
+WHERE forma_pagamento = 'PIX';
+`.trim(),
+  },
+  {
+    versao: 19,
+    nome: '0019-sync-outbox',
+    sql: `
+CREATE TABLE IF NOT EXISTS sync_outbox (
+  id TEXT PRIMARY KEY NOT NULL,
+  entidade TEXT NOT NULL,
+  entidade_id TEXT NOT NULL,
+  operacao TEXT NOT NULL,
+  payload TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'PENDENTE',
+  tentativas INTEGER NOT NULL DEFAULT 0,
+  proxima_tentativa_em TEXT,
+  ultimo_erro TEXT,
+  criado_em TEXT NOT NULL,
+  sincronizado_em TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_sync_outbox_status_criado
+  ON sync_outbox (status, criado_em);
+
+CREATE INDEX IF NOT EXISTS idx_sync_outbox_entidade
+  ON sync_outbox (entidade, entidade_id);
+`.trim(),
+  },
 ]

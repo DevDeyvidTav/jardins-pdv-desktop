@@ -10,10 +10,8 @@ import {
 } from '@shared/types/mesa'
 import { STATUS_SESSAO_CAIXA } from '@shared/types/sessao-caixa'
 import {
-  confirmarTransacao,
-  iniciarTransacaoImediata,
+  executarEmTransacaoImediata,
   persistirConexaoBanco,
-  reverterTransacao,
 } from '../../../database/conexao-sqlite'
 import { obterConexaoBancoLocal } from '../../../database/inicializar-banco'
 import { CODIGOS_ERRO_PEDIDOS, ErroPedidos } from '../errors/erros-pedidos'
@@ -34,6 +32,8 @@ import {
 import { garantirPedidoSemDivisaoAtiva } from '../../divisao-conta/services/resumo-divisao-conta'
 import { calcularTotaisPedidoComTaxa } from '../types/pedido-calculos.types'
 import { garantirPedidoAberto, obterResumoPedido } from './consultas-pedido'
+import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
+import { registrarEventoPedidoSync } from '../../sincronizacao/services/registrar-evento-pedido'
 
 export function criarAplicarDescontoPedido(
   repositorioPedido: PedidoRepository = criarPedidoRepository(),
@@ -45,72 +45,81 @@ export function criarAplicarDescontoPedido(
   return function aplicarDescontoPedido(
     entrada: AplicarDescontoPedidoEntrada,
   ): ResumoPedido {
-    const sessao = repositorioSessao.buscarSessaoAberta()
-    if (!sessao || sessao.status !== STATUS_SESSAO_CAIXA.ABERTO) {
-      throw new ErroPedidos(
-        CODIGOS_ERRO_PEDIDOS.CAIXA_NAO_ABERTO,
-        'Abra o caixa antes de aplicar descontos no pedido.',
-      )
-    }
-
-    const pedido = repositorioPedido.buscarPorId(entrada.pedidoId)
-    if (!pedido) {
-      throw new ErroPedidos(
-        CODIGOS_ERRO_PEDIDOS.PEDIDO_NAO_ENCONTRADO,
-        'Pedido nao encontrado.',
-      )
-    }
-
-    garantirPedidoAberto(pedido)
-    garantirPedidoSemDivisaoAtiva(pedido.id)
-
-    if (entrada.descontoCentavos < 0) {
-      throw new ErroPedidos(
-        CODIGOS_ERRO_PEDIDOS.ENTRADA_INVALIDA,
-        'Desconto do pedido deve ser maior ou igual a zero.',
-      )
-    }
-
-    const itensAtivos = repositorioItem.listarPorPedido(pedido.id, true)
-    const subtotalCentavos = itensAtivos.reduce(
-      (acc, item) => acc + item.subtotalCentavos,
-      0,
-    )
-    const descontoItensCentavos = itensAtivos.reduce(
-      (acc, item) => acc + item.descontoCentavos,
-      0,
-    )
-
-    const totalAntesDescontoPedidoCentavos =
-      subtotalCentavos - descontoItensCentavos
-
-    if (entrada.descontoCentavos > totalAntesDescontoPedidoCentavos) {
-      throw new ErroPedidos(
-        CODIGOS_ERRO_PEDIDOS.ENTRADA_INVALIDA,
-        'Desconto do pedido nao pode ser maior que o total apos descontos de itens.',
-      )
-    }
-
-    let totaisCalculados: ReturnType<typeof calcularTotaisPedidoComTaxa>
-    try {
-      totaisCalculados = calcularTotaisPedidoComTaxa(
-        subtotalCentavos,
-        descontoItensCentavos,
-        entrada.descontoCentavos,
-        pedido.taxaEntregaCentavos,
-        pedido.valorPagoCentavos,
-        pedido.valorCortesiaCentavos,
-      )
-    } catch (erro) {
-      throw new ErroPedidos(
-        CODIGOS_ERRO_PEDIDOS.ENTRADA_INVALIDA,
-        erro instanceof Error ? erro.message : 'Erro ao calcular descontos do pedido.',
-      )
-    }
-
     const conexao = obterConexao()
-    iniciarTransacaoImediata(conexao)
-    try {
+    const resumo = executarEmTransacaoImediata(conexao, () => {
+      const sessao = repositorioSessao.buscarSessaoAberta()
+      if (!sessao || sessao.status !== STATUS_SESSAO_CAIXA.ABERTO) {
+        throw new ErroPedidos(
+          CODIGOS_ERRO_PEDIDOS.CAIXA_NAO_ABERTO,
+          'Abra o caixa antes de aplicar descontos no pedido.',
+        )
+      }
+
+      const pedido = repositorioPedido.buscarPorId(entrada.pedidoId)
+      if (!pedido) {
+        throw new ErroPedidos(
+          CODIGOS_ERRO_PEDIDOS.PEDIDO_NAO_ENCONTRADO,
+          'Pedido nao encontrado.',
+        )
+      }
+
+      garantirPedidoAberto(pedido)
+      garantirPedidoSemDivisaoAtiva(pedido.id)
+
+      if (entrada.descontoCentavos < 0) {
+        throw new ErroPedidos(
+          CODIGOS_ERRO_PEDIDOS.ENTRADA_INVALIDA,
+          'Desconto do pedido deve ser maior ou igual a zero.',
+        )
+      }
+
+      if (
+        entrada.descontoCentavos > 0 &&
+        (!entrada.motivoDesconto || entrada.motivoDesconto.trim().length === 0)
+      ) {
+        throw new ErroPedidos(
+          CODIGOS_ERRO_PEDIDOS.ENTRADA_INVALIDA,
+          'Motivo do desconto e obrigatorio.',
+        )
+      }
+
+      const itensAtivos = repositorioItem.listarPorPedido(pedido.id, true)
+      const subtotalCentavos = itensAtivos.reduce(
+        (acc, item) => acc + item.subtotalCentavos,
+        0,
+      )
+      const descontoItensCentavos = itensAtivos.reduce(
+        (acc, item) => acc + item.descontoCentavos,
+        0,
+      )
+
+      const totalAntesDescontoPedidoCentavos =
+        subtotalCentavos - descontoItensCentavos
+
+      if (entrada.descontoCentavos > totalAntesDescontoPedidoCentavos) {
+        throw new ErroPedidos(
+          CODIGOS_ERRO_PEDIDOS.ENTRADA_INVALIDA,
+          'Desconto do pedido nao pode ser maior que o total apos descontos de itens.',
+        )
+      }
+
+      let totaisCalculados: ReturnType<typeof calcularTotaisPedidoComTaxa>
+      try {
+        totaisCalculados = calcularTotaisPedidoComTaxa(
+          subtotalCentavos,
+          descontoItensCentavos,
+          entrada.descontoCentavos,
+          pedido.taxaEntregaCentavos,
+          pedido.valorPagoCentavos,
+          pedido.valorCortesiaCentavos,
+        )
+      } catch (erro) {
+        throw new ErroPedidos(
+          CODIGOS_ERRO_PEDIDOS.ENTRADA_INVALIDA,
+          erro instanceof Error ? erro.message : 'Erro ao calcular descontos do pedido.',
+        )
+      }
+
       repositorioPedido.atualizarTotais({
         pedidoId: pedido.id,
         subtotalCentavos: totaisCalculados.subtotalCentavos,
@@ -152,15 +161,12 @@ export function criarAplicarDescontoPedido(
         }
       }
 
-      confirmarTransacao(conexao)
-    } catch (erro) {
-      reverterTransacao(conexao)
-      throw erro
-    }
+      registrarEventoPedidoSync(pedido.id, OPERACAO_SYNC.UPDATE, conexao)
+      return obterResumoPedido({ pedidoId: pedido.id })
+    })
 
     persistirConexaoBanco(conexao)
-
-    return obterResumoPedido({ pedidoId: pedido.id })
+    return resumo
   }
 }
 

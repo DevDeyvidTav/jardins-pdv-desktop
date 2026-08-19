@@ -13,26 +13,25 @@ import {
   type SessaoCaixaRepository,
 } from '../repositories/sessao-caixa.repository'
 import {
+  criarPedidoRepository,
+  type PedidoRepository,
+} from '../../pedidos/repositories/pedido.repository'
+import {
   calcularDiferencaCentavos,
   calcularSaldoEsperadoCentavos,
 } from '../types/fechamento-caixa.types'
+import { executarEmTransacaoImediata } from '../../../database/conexao-sqlite'
+import { obterConexaoBancoLocal } from '../../../database/inicializar-banco'
 
 export function criarFecharSessaoCaixa(
   repositorioSessao: SessaoCaixaRepository = criarSessaoCaixaRepository(),
   repositorioMovimento: MovimentoCaixaRepository = criarMovimentoCaixaRepository(),
+  repositorioPedido: PedidoRepository = criarPedidoRepository(),
+  obterConexao = obterConexaoBancoLocal,
 ) {
   return function fecharSessaoCaixa(
     entrada: FecharSessaoCaixaEntrada,
   ): SessaoCaixa {
-    const sessaoAberta = repositorioSessao.buscarSessaoAberta()
-
-    if (!sessaoAberta) {
-      throw new ErroCaixa(
-        CODIGOS_ERRO_CAIXA.CAIXA_NAO_ABERTO,
-        'Nao existe sessao de caixa aberta.',
-      )
-    }
-
     if (entrada.saldoFinalInformadoCentavos < 0) {
       throw new ErroCaixa(
         CODIGOS_ERRO_CAIXA.SALDO_FINAL_INVALIDO,
@@ -40,31 +39,51 @@ export function criarFecharSessaoCaixa(
       )
     }
 
-    const totais = repositorioMovimento.calcularTotaisPorSessao(sessaoAberta.id)
-    const saldoFinalEsperadoCentavos = calcularSaldoEsperadoCentavos(
-      sessaoAberta.saldoInicialCentavos,
-      totais,
-    )
-    const diferencaCentavos = calcularDiferencaCentavos(
-      entrada.saldoFinalInformadoCentavos,
-      saldoFinalEsperadoCentavos,
-    )
-    const observacaoFechamento = entrada.observacaoFechamento?.trim() || null
+    return executarEmTransacaoImediata(obterConexao(), () => {
+      const sessaoAberta = repositorioSessao.buscarSessaoAberta()
 
-    try {
-      return repositorioSessao.fecharSessao({
-        sessaoCaixaId: sessaoAberta.id,
-        saldoFinalInformadoCentavos: entrada.saldoFinalInformadoCentavos,
-        saldoFinalEsperadoCentavos,
-        diferencaCentavos,
-        observacaoFechamento,
-      })
-    } catch {
-      throw new ErroCaixa(
-        CODIGOS_ERRO_CAIXA.CAIXA_JA_FECHADO,
-        'A sessao de caixa ja foi fechada.',
+      if (!sessaoAberta) {
+        throw new ErroCaixa(
+          CODIGOS_ERRO_CAIXA.CAIXA_NAO_ABERTO,
+          'Nao existe sessao de caixa aberta.',
+        )
+      }
+
+      const pedidosAbertos = repositorioPedido.contarPedidosAbertos(sessaoAberta.id)
+      if (pedidosAbertos > 0) {
+        const rotulo = pedidosAbertos === 1 ? 'pedido aberto' : 'pedidos abertos'
+        throw new ErroCaixa(
+          CODIGOS_ERRO_CAIXA.PEDIDOS_ABERTOS_NO_FECHAMENTO,
+          `Nao e possivel fechar o caixa com ${pedidosAbertos} ${rotulo}. Finalize ou cancele os pedidos antes.`,
+        )
+      }
+
+      const totais = repositorioMovimento.calcularTotaisPorSessao(sessaoAberta.id)
+      const saldoFinalEsperadoCentavos = calcularSaldoEsperadoCentavos(
+        sessaoAberta.saldoInicialCentavos,
+        totais,
       )
-    }
+      const diferencaCentavos = calcularDiferencaCentavos(
+        entrada.saldoFinalInformadoCentavos,
+        saldoFinalEsperadoCentavos,
+      )
+      const observacaoFechamento = entrada.observacaoFechamento?.trim() || null
+
+      try {
+        return repositorioSessao.fecharSessao({
+          sessaoCaixaId: sessaoAberta.id,
+          saldoFinalInformadoCentavos: entrada.saldoFinalInformadoCentavos,
+          saldoFinalEsperadoCentavos,
+          diferencaCentavos,
+          observacaoFechamento,
+        })
+      } catch {
+        throw new ErroCaixa(
+          CODIGOS_ERRO_CAIXA.CAIXA_JA_FECHADO,
+          'A sessao de caixa ja foi fechada.',
+        )
+      }
+    })
   }
 }
 

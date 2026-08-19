@@ -1,10 +1,8 @@
 import { TIPO_PEDIDO_ITEM, type AdicionarPizzaAoPedidoEntrada } from '@shared/types/pizza'
 import type { ResumoPedido } from '@shared/types/pedido'
 import {
-  confirmarTransacao,
-  iniciarTransacaoImediata,
+  executarEmTransacaoImediata,
   persistirConexaoBanco,
-  reverterTransacao,
 } from '../../../database/conexao-sqlite'
 import { obterConexaoBancoLocal } from '../../../database/inicializar-banco'
 import {
@@ -33,6 +31,8 @@ import { criarPizzaSaborPrecoRepository } from '../repositories/pizza-sabor-prec
 import type { PizzaTamanhoRepository } from '../repositories/pizza-tamanho.repository'
 import { criarPizzaTamanhoRepository } from '../repositories/pizza-tamanho.repository'
 import { criarResolverComposicaoPizza } from './resolver-composicao-pizza'
+import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
+import { registrarEventoPedidoSync } from '../../sincronizacao/services/registrar-evento-pedido'
 
 export function criarAdicionarPizzaAoPedido(
   repositorioPedido: PedidoRepository = criarPedidoRepository(),
@@ -55,19 +55,18 @@ export function criarAdicionarPizzaAoPedido(
   return function adicionarPizzaAoPedido(
     entrada: AdicionarPizzaAoPedidoEntrada,
   ): ResumoPedido {
-    const pedido = repositorioPedido.buscarPorId(entrada.pedidoId)
-    if (!pedido) {
-      throw new ErroPedidos(
-        CODIGOS_ERRO_PEDIDOS.PEDIDO_NAO_ENCONTRADO,
-        'Pedido nao encontrado.',
-      )
-    }
-
-    garantirPedidoAberto(pedido)
-
     const conexao = obterConexao()
-    iniciarTransacaoImediata(conexao)
-    try {
+    const resumo = executarEmTransacaoImediata(conexao, () => {
+      const pedido = repositorioPedido.buscarPorId(entrada.pedidoId)
+      if (!pedido) {
+        throw new ErroPedidos(
+          CODIGOS_ERRO_PEDIDOS.PEDIDO_NAO_ENCONTRADO,
+          'Pedido nao encontrado.',
+        )
+      }
+
+      garantirPedidoAberto(pedido)
+
       if (repositorioDivisao.buscarAtivaPorPedido(pedido.id)) {
         throw new ErroPizzas(
           CODIGOS_ERRO_PIZZAS.ALTERACAO_PIZZA_BLOQUEADA_POR_DIVISAO_ATIVA,
@@ -111,14 +110,12 @@ export function criarAdicionarPizzaAoPedido(
 
       recalcularTotaisPedido(entrada.pedidoId, repositorioPedido, repositorioItem)
 
-      confirmarTransacao(conexao)
-      persistirConexaoBanco(conexao)
-    } catch (erro) {
-      reverterTransacao(conexao)
-      throw erro
-    }
+      registrarEventoPedidoSync(entrada.pedidoId, OPERACAO_SYNC.UPDATE, conexao)
+      return obterResumoPedido({ pedidoId: entrada.pedidoId })
+    })
 
-    return obterResumoPedido({ pedidoId: entrada.pedidoId })
+    persistirConexaoBanco(conexao)
+    return resumo
   }
 }
 

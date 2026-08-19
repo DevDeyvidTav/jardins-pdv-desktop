@@ -12,26 +12,19 @@ import {
   CODIGOS_ERRO_PIZZAS,
   ErroPizzas,
 } from '../../pizzas/errors/erros-pizzas'
+import { executarEmTransacaoImediata } from '../../../database/conexao-sqlite'
+import { obterConexaoBancoLocal } from '../../../database/inicializar-banco'
+import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
+import { registrarEventoPedidoSync } from '../../sincronizacao/services/registrar-evento-pedido'
 
 export function criarAlterarQuantidadeItemPedido(
   repositorioPedido: PedidoRepository = criarPedidoRepository(),
   repositorioItem: PedidoItemRepository = criarPedidoItemRepository(),
+  obterConexao = obterConexaoBancoLocal,
 ) {
   return function alterarQuantidadeItemPedido(
     entrada: AlterarQuantidadeItemPedidoEntrada,
   ): ResumoPedido {
-    const pedido = repositorioPedido.buscarPorId(entrada.pedidoId)
-
-    if (!pedido) {
-      throw new ErroPedidos(
-        CODIGOS_ERRO_PEDIDOS.PEDIDO_NAO_ENCONTRADO,
-        'Pedido nao encontrado.',
-      )
-    }
-
-    garantirPedidoAberto(pedido)
-    garantirPedidoSemDivisaoAtiva(pedido.id)
-
     if (entrada.quantidade <= 0) {
       throw new ErroPedidos(
         CODIGOS_ERRO_PEDIDOS.QUANTIDADE_INVALIDA,
@@ -39,23 +32,39 @@ export function criarAlterarQuantidadeItemPedido(
       )
     }
 
-    const item = repositorioItem.buscarPorId(entrada.itemId)
+    const conexao = obterConexao()
+    return executarEmTransacaoImediata(conexao, () => {
+      const pedido = repositorioPedido.buscarPorId(entrada.pedidoId)
 
-    if (!item || item.pedidoId !== entrada.pedidoId || item.canceladoEm) {
-      throw new ErroPedidos(CODIGOS_ERRO_PEDIDOS.ITEM_NAO_ENCONTRADO, 'Item nao encontrado.')
-    }
+      if (!pedido) {
+        throw new ErroPedidos(
+          CODIGOS_ERRO_PEDIDOS.PEDIDO_NAO_ENCONTRADO,
+          'Pedido nao encontrado.',
+        )
+      }
 
-    if (item.tipo === TIPO_PEDIDO_ITEM.PIZZA) {
-      throw new ErroPizzas(
-        CODIGOS_ERRO_PIZZAS.QUANTIDADE_PIZZA_NAO_ALTERAVEL,
-        'Quantidade de pizza nao pode ser alterada. Remova e adicione outra pizza.',
-      )
-    }
+      garantirPedidoAberto(pedido)
+      garantirPedidoSemDivisaoAtiva(pedido.id)
 
-    repositorioItem.atualizarQuantidade(entrada.itemId, entrada.quantidade)
-    recalcularTotaisPedido(entrada.pedidoId, repositorioPedido, repositorioItem)
+      const item = repositorioItem.buscarPorId(entrada.itemId)
 
-    return obterResumoPedido({ pedidoId: entrada.pedidoId })
+      if (!item || item.pedidoId !== entrada.pedidoId || item.canceladoEm) {
+        throw new ErroPedidos(CODIGOS_ERRO_PEDIDOS.ITEM_NAO_ENCONTRADO, 'Item nao encontrado.')
+      }
+
+      if (item.tipo === TIPO_PEDIDO_ITEM.PIZZA) {
+        throw new ErroPizzas(
+          CODIGOS_ERRO_PIZZAS.QUANTIDADE_PIZZA_NAO_ALTERAVEL,
+          'Quantidade de pizza nao pode ser alterada. Remova e adicione outra pizza.',
+        )
+      }
+
+      repositorioItem.atualizarQuantidade(entrada.itemId, entrada.quantidade)
+      recalcularTotaisPedido(entrada.pedidoId, repositorioPedido, repositorioItem)
+
+      registrarEventoPedidoSync(entrada.pedidoId, OPERACAO_SYNC.UPDATE, conexao)
+      return obterResumoPedido({ pedidoId: entrada.pedidoId })
+    })
   }
 }
 

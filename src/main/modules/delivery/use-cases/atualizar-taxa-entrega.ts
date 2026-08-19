@@ -16,9 +16,11 @@ import {
 } from '../repositories/pedido-entrega.repository'
 import { agoraEmIsoUtc } from '@shared/utils/data-hora'
 import {
-  persistirConexaoBanco,
+  executarEmTransacaoImediata,
 } from '../../../database/conexao-sqlite'
 import { obterConexaoBancoLocal } from '../../../database/inicializar-banco'
+import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
+import { registrarEventoPedidoSync } from '../../sincronizacao/services/registrar-evento-pedido'
 
 export function criarAtualizarTaxaEntrega(
   repositorioPedido: PedidoRepository = criarPedidoRepository(),
@@ -29,26 +31,6 @@ export function criarAtualizarTaxaEntrega(
   return function atualizarTaxaEntrega(
     entrada: AtualizarTaxaEntregaEntrada,
   ): ResumoPedido {
-    const pedido = repositorioPedido.buscarPorId(entrada.pedidoId)
-    if (!pedido) {
-      throw new ErroDelivery(
-        CODIGOS_ERRO_DELIVERY.PEDIDO_NAO_ENCONTRADO,
-        'Pedido nao encontrado.',
-      )
-    }
-    if (pedido.tipo !== TIPO_PEDIDO.DELIVERY) {
-      throw new ErroDelivery(
-        CODIGOS_ERRO_DELIVERY.PEDIDO_NAO_E_DELIVERY,
-        'Apenas pedidos delivery possuem taxa de entrega.',
-      )
-    }
-    if (pedido.status !== STATUS_PEDIDO.ABERTO) {
-      throw new ErroDelivery(
-        CODIGOS_ERRO_DELIVERY.PEDIDO_NAO_ABERTO,
-        'A taxa de entrega so pode ser alterada enquanto o pedido estiver aberto.',
-      )
-    }
-    garantirPedidoSemDivisaoAtiva(pedido.id)
     if (entrada.taxaEntregaCentavos < 0) {
       throw new ErroDelivery(
         CODIGOS_ERRO_DELIVERY.TAXA_ENTREGA_INVALIDA,
@@ -56,54 +38,73 @@ export function criarAtualizarTaxaEntrega(
       )
     }
 
-    // Recalcular total com nova taxa
-    const subtotalLiquido =
-      pedido.subtotalCentavos -
-      pedido.descontoItensCentavos -
-      pedido.descontoPedidoCentavos
-
-    const novoTotal = subtotalLiquido + entrada.taxaEntregaCentavos
-
-    // Garantir que o total não caia abaixo do valor já pago
-    const valorQuitado = pedido.valorPagoCentavos + pedido.valorCortesiaCentavos
-    if (novoTotal < valorQuitado) {
-      throw new ErroDelivery(
-        CODIGOS_ERRO_DELIVERY.TOTAL_MENOR_QUE_VALOR_JA_QUITADO,
-        'Nao e possivel reduzir o total abaixo do valor ja quitado.',
-      )
-    }
-
-    const novoRestante = novoTotal - valorQuitado
-    const agora = agoraEmIsoUtc()
     const conexao = obterConexao()
+    return executarEmTransacaoImediata(conexao, () => {
+      const pedido = repositorioPedido.buscarPorId(entrada.pedidoId)
+      if (!pedido) {
+        throw new ErroDelivery(
+          CODIGOS_ERRO_DELIVERY.PEDIDO_NAO_ENCONTRADO,
+          'Pedido nao encontrado.',
+        )
+      }
+      if (pedido.tipo !== TIPO_PEDIDO.DELIVERY) {
+        throw new ErroDelivery(
+          CODIGOS_ERRO_DELIVERY.PEDIDO_NAO_E_DELIVERY,
+          'Apenas pedidos delivery possuem taxa de entrega.',
+        )
+      }
+      if (pedido.status !== STATUS_PEDIDO.ABERTO) {
+        throw new ErroDelivery(
+          CODIGOS_ERRO_DELIVERY.PEDIDO_NAO_ABERTO,
+          'A taxa de entrega so pode ser alterada enquanto o pedido estiver aberto.',
+        )
+      }
+      garantirPedidoSemDivisaoAtiva(pedido.id)
 
-    conexao.instancia.run(
-      `UPDATE pedido
-       SET taxa_entrega_centavos = ?, total_centavos = ?,
-           valor_restante_centavos = ?, atualizado_em = ?
-       WHERE id = ?`,
-      [entrada.taxaEntregaCentavos, novoTotal, novoRestante, agora, pedido.id],
-    )
+      const subtotalLiquido =
+        pedido.subtotalCentavos -
+        pedido.descontoItensCentavos -
+        pedido.descontoPedidoCentavos
 
-    if (novoRestante === 0) {
+      const novoTotal = subtotalLiquido + entrada.taxaEntregaCentavos
+      const valorQuitado = pedido.valorPagoCentavos + pedido.valorCortesiaCentavos
+      if (novoTotal < valorQuitado) {
+        throw new ErroDelivery(
+          CODIGOS_ERRO_DELIVERY.TOTAL_MENOR_QUE_VALOR_JA_QUITADO,
+          'Nao e possivel reduzir o total abaixo do valor ja quitado.',
+        )
+      }
+
+      const novoRestante = novoTotal - valorQuitado
+      const agora = agoraEmIsoUtc()
+
       conexao.instancia.run(
-        `UPDATE pedido SET status = ?, finalizado_em = ?, atualizado_em = ? WHERE id = ?`,
-        [STATUS_PEDIDO.FINALIZADO, agora, agora, pedido.id],
+        `UPDATE pedido
+         SET taxa_entrega_centavos = ?, total_centavos = ?,
+             valor_restante_centavos = ?, atualizado_em = ?
+         WHERE id = ?`,
+        [entrada.taxaEntregaCentavos, novoTotal, novoRestante, agora, pedido.id],
       )
-    }
 
-    persistirConexaoBanco(conexao)
+      if (novoRestante === 0) {
+        conexao.instancia.run(
+          `UPDATE pedido SET status = ?, finalizado_em = ?, atualizado_em = ? WHERE id = ?`,
+          [STATUS_PEDIDO.FINALIZADO, agora, agora, pedido.id],
+        )
+      }
 
-    const pedidoAtualizado = repositorioPedido.buscarPorId(pedido.id)!
-    const itens = repositorioItem.listarPorPedido(pedido.id, true)
-    const entrega = repositorioEntrega.buscarPorPedidoId(pedido.id)
+      const pedidoAtualizado = repositorioPedido.buscarPorId(pedido.id)!
+      const itens = repositorioItem.listarPorPedido(pedido.id, true)
+      const entrega = repositorioEntrega.buscarPorPedidoId(pedido.id)
 
-    return {
-      pedido: pedidoAtualizado,
-      itens,
-      entrega,
-      divisao: montarResumoDivisaoConta(pedido.id, pedidoAtualizado.totalCentavos),
-    }
+      registrarEventoPedidoSync(pedido.id, OPERACAO_SYNC.UPDATE, conexao)
+      return {
+        pedido: pedidoAtualizado,
+        itens,
+        entrega,
+        divisao: montarResumoDivisaoConta(pedido.id, pedidoAtualizado.totalCentavos),
+      }
+    })
   }
 }
 

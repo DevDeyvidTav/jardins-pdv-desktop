@@ -34,12 +34,16 @@ async function garantirProdutoAtivo(janela: Page) {
   await expect(janela.getByTestId('pagina-produtos')).toBeVisible()
 
   if ((await janela.getByTestId('item-produto').count()) === 0) {
+    await janela.getByTestId('botao-toggle-categoria').click()
+    await expect(janela.getByTestId('formulario-categoria')).toBeVisible()
     await janela.getByTestId('campo-nome-categoria').fill('Pratos Principais')
     await janela.getByTestId('botao-criar-categoria').click()
     await expect(janela.getByTestId('feedback-sucesso-produtos')).toBeVisible({
       timeout: 10_000,
     })
 
+    await janela.getByTestId('botao-toggle-produto').click()
+    await expect(janela.getByTestId('formulario-produto')).toBeVisible()
     await janela.getByTestId('campo-nome-produto').fill('Almoco Executivo')
     await janela.getByTestId('campo-preco-produto').fill('30,00')
     await janela.getByTestId('botao-criar-produto').click()
@@ -83,7 +87,7 @@ test.describe('Evolucao da Etapa 7 - Pagamentos parciais, desconto e cortesia', 
       await janela.getByTestId('campo-quantidade-item').fill('2')
       await janela.getByTestId('botao-adicionar-item').click()
       await expect(janela.getByTestId('item-pedido')).toHaveCount(1)
-      await expect(janela.getByTestId('pedido-subtotal')).toHaveText(/Subtotal:\s*R\$\s*60,00/)
+      await expect(janela.getByTestId('pedido-subtotal')).toHaveText(/R\$\s*60,00/)
 
       // Aplicar Desconto Geral no Pedido: R$ 10,00 -> Total fica 50,00
       await janela.getByTestId('botao-abrir-desconto').click()
@@ -93,9 +97,9 @@ test.describe('Evolucao da Etapa 7 - Pagamentos parciais, desconto e cortesia', 
       await janela.getByTestId('botao-confirmar-desconto').click()
       await expect(janela.getByTestId('modal-desconto-pedido')).toBeHidden()
 
-      await expect(janela.getByTestId('pedido-desconto-geral')).toHaveText(/Desc\. Pedido:\s*R\$\s*10,00/)
-      await expect(janela.getByTestId('pedido-total')).toHaveText(/Total:\s*R\$\s*50,00/)
-      await expect(janela.getByTestId('pedido-valor-restante')).toHaveText(/Restante:\s*R\$\s*50,00/)
+      await expect(janela.getByTestId('pedido-desconto-geral')).toHaveText(/R\$\s*10,00/)
+      await expect(janela.getByTestId('pedido-total')).toHaveText(/R\$\s*50,00/)
+      await expect(janela.getByTestId('pedido-valor-restante')).toHaveText(/R\$\s*50,00/)
 
       // 1º Pagamento Parcial: R$ 20,00 em Dinheiro
       await janela.getByTestId('botao-abrir-pagamento').click()
@@ -105,8 +109,8 @@ test.describe('Evolucao da Etapa 7 - Pagamentos parciais, desconto e cortesia', 
       await janela.getByTestId('botao-confirmar-pagamento').click()
       await expect(janela.getByTestId('modal-pagamento')).toBeHidden()
 
-      await expect(janela.getByTestId('pedido-valor-pago')).toHaveText(/Pago:\s*R\$\s*20,00/)
-      await expect(janela.getByTestId('pedido-valor-restante')).toHaveText(/Restante:\s*R\$\s*30,00/)
+      await expect(janela.getByTestId('pedido-valor-pago')).toHaveText(/R\$\s*20,00/)
+      await expect(janela.getByTestId('pedido-valor-restante')).toHaveText(/R\$\s*30,00/)
 
       // 2º Pagamento Parcial: Cortesia de R$ 10,00 com motivo
       await janela.getByTestId('botao-abrir-pagamento').click()
@@ -117,20 +121,21 @@ test.describe('Evolucao da Etapa 7 - Pagamentos parciais, desconto e cortesia', 
       await janela.getByTestId('botao-confirmar-pagamento').click()
       await expect(janela.getByTestId('modal-pagamento')).toBeHidden()
 
-      await expect(janela.getByTestId('pedido-valor-cortesia')).toHaveText(/Cortesia:\s*R\$\s*10,00/)
-      await expect(janela.getByTestId('pedido-valor-restante')).toHaveText(/Restante:\s*R\$\s*20,00/)
+      await expect(janela.getByTestId('pedido-valor-cortesia')).toHaveText(/R\$\s*10,00/)
+      await expect(janela.getByTestId('pedido-valor-restante')).toHaveText(/R\$\s*20,00/)
 
       // 3º Pagamento Final: R$ 20,00 via PIX (Zera o saldo restante e finaliza o pedido)
       await janela.getByTestId('botao-abrir-pagamento').click()
       await expect(janela.getByTestId('modal-pagamento')).toBeVisible()
-      await janela.getByTestId('campo-forma-pagamento').selectOption('PIX')
+      await janela.getByTestId('campo-forma-pagamento').selectOption('PIX_MAQUINETA')
       await janela.getByTestId('campo-valor-pagamento').fill('20,00')
       await janela.getByTestId('botao-confirmar-pagamento').click()
       await expect(janela.getByTestId('modal-pagamento')).toBeHidden()
 
-      // Verificar que o pedido foi finalizado
-      await expect(janela.getByTestId('pedido-finalizado')).toBeVisible()
-      await expect(janela.getByTestId('pedido-valor-restante')).toHaveText(/Restante:\s*R\$\s*0,00/)
+      await expect(janela.getByTestId('feedback-sucesso-pedidos')).toContainText(
+        /finalizado/i,
+        { timeout: 10_000 },
+      )
 
       // Reiniciar aplicativo para checar persistencia dos dados
       await aplicativo.close()

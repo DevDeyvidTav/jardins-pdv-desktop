@@ -6,7 +6,7 @@ interface ModalTransferirMesaProps {
   mesaAtual: Mesa
   mesas: Mesa[]
   carregando: boolean
-  onConfirmar: (mesaDestinoId: string, motivo?: string) => Promise<boolean>
+  onConfirmar: (mesaDestinoId: string, motivo: string) => Promise<boolean>
   onFechar: () => void
 }
 
@@ -34,9 +34,10 @@ export function ModalTransferirMesa({
 
   async function handleConfirmar() {
     if (!mesaDestinoId) return
+    if (!motivo.trim()) return
     setEnviando(true)
     try {
-      const ok = await onConfirmar(mesaDestinoId, motivo.trim() || undefined)
+      const ok = await onConfirmar(mesaDestinoId, motivo.trim())
       if (ok) onFechar()
     } finally {
       setEnviando(false)
@@ -84,14 +85,14 @@ export function ModalTransferirMesa({
         </div>
 
         <div className="modal-mesa-operacao__campo">
-          <label htmlFor="motivo-transferencia">Motivo (opcional)</label>
+          <label htmlFor="motivo-transferencia">Motivo *</label>
           <input
             id="motivo-transferencia"
             data-testid="motivo-transferencia"
             value={motivo}
             onChange={(e) => setMotivo(e.target.value)}
             disabled={carregando || enviando}
-            placeholder="Ex.: cliente pediu mudanca"
+            placeholder="Obrigatorio"
           />
         </div>
 
@@ -108,7 +109,7 @@ export function ModalTransferirMesa({
             type="button"
             className="modal-pagamento__botao-primario"
             data-testid="confirmar-transferencia"
-            disabled={!mesaDestinoId || carregando || enviando}
+            disabled={!mesaDestinoId || !motivo.trim() || carregando || enviando}
             onClick={() => void handleConfirmar()}
           >
             Confirmar transferencia

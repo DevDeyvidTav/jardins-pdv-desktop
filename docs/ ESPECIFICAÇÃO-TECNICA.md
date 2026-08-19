@@ -32,10 +32,13 @@ Este documento descreve a arquitetura, estrutura de dados, interfaces e padrões
 │                    ↓                                    │
 │              ┌──────────────┐                           │
 │              │   SQLite     │                           │
-│              │   (sql.js)   │                           │
+│              │(better-sqlite3)                          │
 │              └──────────────┘                           │
 └─────────────────────────────────────────────────────────┘
 ```
+
+> Persistência, backup, logs e migrations: ver `HARDENING-BANCO-BACKUP-LOGS.md`.
+> Banco em `{userData}/pdv-local.sqlite`. Fonte de verdade de módulos: `src/main/modules/`.
 
 ### Estrutura de Diretórios
 

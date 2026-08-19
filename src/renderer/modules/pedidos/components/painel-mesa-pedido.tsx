@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { Mesa, ResumoMesaAgrupamento } from '@shared/types/mesa'
+import type { Cliente } from '@shared/types/cliente'
 import { STATUS_MESA } from '@shared/types/mesa'
 import type { ResumoPedido } from '@shared/types/pedido'
 import { TIPO_PEDIDO } from '@shared/types/pedido'
@@ -22,6 +23,8 @@ import { ModalAgruparMesas } from './modal-agrupar-mesas'
 import { ModalDividirConta } from './modal-dividir-conta'
 import { PainelDivisaoConta } from './painel-divisao-conta'
 import type { PagamentoInformado } from '@shared/types/pagamento-pedido'
+import { itemPedidoEstaAtivo } from '@shared/types/pedido'
+import { useImpressaoPedido } from '../../impressao/hooks/use-impressao-pedido'
 
 interface PainelMesaPedidoProps {
   mesaSelecionada: Mesa | null
@@ -60,10 +63,12 @@ interface PainelMesaPedidoProps {
     pagamento: PagamentoInformado,
   ) => Promise<boolean>
   onCancelarDivisaoConta: (motivo?: string) => Promise<boolean>
-  onTransferirMesa?: (mesaDestinoId: string, motivo?: string) => Promise<boolean>
+  onTransferirMesa?: (mesaDestinoId: string, motivo: string) => Promise<boolean>
   onAgruparMesas?: (mesaIds: string[], motivo?: string) => Promise<boolean>
   onEncerrarAgrupamento?: (observacao?: string) => Promise<boolean>
   onRecarregarResumo?: () => Promise<void>
+  onVincularCliente?: (clienteId: string | null) => Promise<boolean>
+  clientes?: Cliente[]
   erroPagamento?: string | null
 }
 
@@ -93,6 +98,8 @@ export function PainelMesaPedido({
   onAgruparMesas,
   onEncerrarAgrupamento,
   onRecarregarResumo,
+  onVincularCliente,
+  clientes = [],
   erroPagamento = null,
 }: PainelMesaPedidoProps) {
   const pedidoAtivo = resumoPedido !== null
@@ -100,6 +107,10 @@ export function PainelMesaPedido({
   const pedidoDelivery = resumoPedido?.pedido.tipo === TIPO_PEDIDO.DELIVERY
   const pedidoMesa = resumoPedido?.pedido.tipo === TIPO_PEDIDO.MESA
   const temAgrupamentoAtivo = Boolean(resumoAgrupamento)
+  const clienteVinculado = clientes.find((c) => c.id === resumoPedido?.pedido.clienteId)
+  const permitirTalao = Boolean(
+    clienteVinculado?.ativo && clienteVinculado.liberaTalao,
+  )
   const divisaoAtiva =
     resumoPedido?.divisao?.divisao.status === STATUS_DIVISAO_CONTA.ATIVA
   const podeDividirConta =
@@ -109,6 +120,7 @@ export function PainelMesaPedido({
     resumoPedido!.pedido.valorPagoCentavos === 0 &&
     resumoPedido!.pedido.valorCortesiaCentavos === 0 &&
     !resumoPedido!.divisao
+  const impressao = useImpressaoPedido()
   const [mostrarPagamento, setMostrarPagamento] = useState(false)
   const [mostrarDesconto, setMostrarDesconto] = useState(false)
   const [mostrarConfirmacaoCancelar, setMostrarConfirmacaoCancelar] = useState(false)
@@ -160,8 +172,18 @@ export function PainelMesaPedido({
       return
     }
 
+    if (centavos <= 0) {
+      setErroDesconto('Informe um valor valido de desconto em reais.')
+      return
+    }
+
+    if (!motivoDesconto.trim()) {
+      setErroDesconto('Informe o motivo do desconto.')
+      return
+    }
+
     if (onAplicarDesconto) {
-      const ok = await onAplicarDesconto(centavos, motivoDesconto.trim() || undefined)
+      const ok = await onAplicarDesconto(centavos, motivoDesconto.trim())
       if (ok) {
         setMostrarDesconto(false)
         setValorDescontoReais('')
@@ -181,6 +203,14 @@ export function PainelMesaPedido({
           <span className="painel-mesa-pedido__numero" data-testid="painel-mesa-numero">
             {numeroExibido}
           </span>
+          {pedidoAtivo && resumoPedido.pedido.referencia > 0 ? (
+            <span
+              className="painel-mesa-pedido__referencia"
+              data-testid="pedido-referencia"
+            >
+              #{resumoPedido.pedido.referencia}
+            </span>
+          ) : null}
           {statusExibido ? (
             <span
               className={`painel-mesa-pedido__status painel-mesa-pedido__status--${
@@ -225,6 +255,7 @@ export function PainelMesaPedido({
         ) : null}
       </header>
 
+      <div className="painel-mesa-pedido__conteudo">
       {mesaSelecionada && !pedidoAtivo && mesaSelecionada.ativo ? (
         <div className="painel-mesa-pedido__acoes" data-testid="painel-mesa-acoes">
           {mesaSelecionada.status === STATUS_MESA.LIVRE ? (
@@ -256,6 +287,32 @@ export function PainelMesaPedido({
 
       {pedidoAtivo && resumoPedido ? (
         <>
+          {resumoPedido.pedido.status === 'ABERTO' && onVincularCliente ? (
+            <label className="painel-mesa-pedido__campo-cliente" htmlFor="pedido-cliente">
+              Cliente
+              <select
+                id="pedido-cliente"
+                data-testid="select-cliente-pedido"
+                value={resumoPedido.pedido.clienteId ?? ''}
+                disabled={carregandoPedido}
+                onChange={(evento) => {
+                  const valor = evento.target.value
+                  void onVincularCliente(valor ? valor : null)
+                }}
+              >
+                <option value="">Sem cliente</option>
+                {clientes
+                  .filter((cliente) => cliente.ativo)
+                  .map((cliente) => (
+                    <option key={cliente.id} value={cliente.id}>
+                      {cliente.nome}
+                      {cliente.liberaTalao ? ' · talão' : ''}
+                    </option>
+                  ))}
+              </select>
+            </label>
+          ) : null}
+
           {resumoPedido.entrega ? <DadosEntrega entrega={resumoPedido.entrega} /> : null}
 
           {temAgrupamentoAtivo && resumoAgrupamento ? (
@@ -295,6 +352,7 @@ export function PainelMesaPedido({
             <PainelDivisaoConta
               resumo={resumoPedido.divisao}
               erroExterno={erroPagamento}
+              permitirTalao={permitirTalao}
               onRegistrarPagamentoParte={onRegistrarPagamentoParte}
               onCancelarDivisao={onCancelarDivisaoConta}
             />
@@ -350,6 +408,33 @@ export function PainelMesaPedido({
                     </button>
                   )}
 
+                  {resumoPedido.itens.some(itemPedidoEstaAtivo) ? (
+                    <>
+                      <button
+                        type="button"
+                        className="painel-mesa-pedido__acao-secundaria"
+                        data-testid="botao-imprimir-conta"
+                        disabled={impressao.carregando}
+                        onClick={() =>
+                          void impressao.imprimirConta(resumoPedido.pedido.id)
+                        }
+                      >
+                        Imprimir conta
+                      </button>
+                      <button
+                        type="button"
+                        className="painel-mesa-pedido__acao-secundaria"
+                        data-testid="botao-imprimir-comanda"
+                        disabled={impressao.carregando}
+                        onClick={() =>
+                          void impressao.imprimirComanda(resumoPedido.pedido.id)
+                        }
+                      >
+                        Imprimir comanda
+                      </button>
+                    </>
+                  ) : null}
+
                   <button
                     type="button"
                     className="painel-mesa-pedido__acao-secundaria"
@@ -401,6 +486,25 @@ export function PainelMesaPedido({
                     Cancelar pedido
                   </button>
                 </div>
+              ) : null}
+
+              {impressao.sucesso ? (
+                <p
+                  className="painel-mesa-pedido__feedback-impressao"
+                  role="status"
+                  data-testid="feedback-sucesso-impressao"
+                >
+                  {impressao.sucesso}
+                </p>
+              ) : null}
+              {impressao.erro ? (
+                <p
+                  className="painel-mesa-pedido__feedback-impressao painel-mesa-pedido__feedback-impressao--erro"
+                  role="alert"
+                  data-testid="feedback-erro-impressao"
+                >
+                  {impressao.erro}
+                </p>
               ) : null}
 
               <div className="painel-mesa-pedido__cupom" data-testid="pedido-totais">
@@ -459,6 +563,7 @@ export function PainelMesaPedido({
           </div>
         </>
       ) : null}
+      </div>
 
       {mostrarConfirmacaoCancelar ? (
         <ModalMotivoCancelamento
@@ -506,7 +611,7 @@ export function PainelMesaPedido({
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '14px', marginBottom: '4px' }}>
-                  Motivo (opcional):
+                  Motivo *:
                 </label>
                 <input
                   type="text"
@@ -561,6 +666,7 @@ export function PainelMesaPedido({
             <FormularioPagamentoPedido
               totalCentavos={resumoPedido.pedido.valorRestanteCentavos}
               erroExterno={erroPagamento}
+              permitirTalao={permitirTalao}
               onConfirmar={async (pagamento) => {
                 const ok = await onRegistrarPagamento(pagamento)
                 if (ok) setMostrarPagamento(false)

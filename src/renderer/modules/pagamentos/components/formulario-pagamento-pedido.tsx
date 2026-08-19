@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import {
   FORMA_PAGAMENTO,
+  ROTULOS_FORMA_PAGAMENTO,
   type PagamentoInformado,
 } from '@shared/types/pagamento-pedido'
 import { converterReaisParaCentavos, formatarMoeda } from '@shared/utils/moeda'
@@ -8,6 +9,7 @@ import { converterReaisParaCentavos, formatarMoeda } from '@shared/utils/moeda'
 interface Props {
   totalCentavos: number
   erroExterno?: string | null
+  permitirTalao?: boolean
   onConfirmar: (pagamento: PagamentoInformado) => Promise<boolean>
 }
 
@@ -15,9 +17,19 @@ function formatarCentavosParaInput(centavos: number): string {
   return (centavos / 100).toFixed(2).replace('.', ',')
 }
 
+const FORMAS_BASE: PagamentoInformado['formaPagamento'][] = [
+  FORMA_PAGAMENTO.DINHEIRO,
+  FORMA_PAGAMENTO.CARTAO_CREDITO,
+  FORMA_PAGAMENTO.CARTAO_DEBITO,
+  FORMA_PAGAMENTO.PIX_MAQUINETA,
+  FORMA_PAGAMENTO.PIX_CNPJ,
+  FORMA_PAGAMENTO.CORTESIA,
+]
+
 export function FormularioPagamentoPedido({
   totalCentavos,
   erroExterno = null,
+  permitirTalao = false,
   onConfirmar,
 }: Props) {
   const [formaPagamento, setFormaPagamento] = useState<PagamentoInformado['formaPagamento']>(
@@ -28,9 +40,19 @@ export function FormularioPagamentoPedido({
   const [erro, setErro] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
 
+  const formas = permitirTalao
+    ? [...FORMAS_BASE.slice(0, 5), FORMA_PAGAMENTO.TALAO, FORMA_PAGAMENTO.CORTESIA]
+    : FORMAS_BASE
+
   useEffect(() => {
     setValor(formatarCentavosParaInput(totalCentavos))
   }, [totalCentavos])
+
+  useEffect(() => {
+    if (!permitirTalao && formaPagamento === FORMA_PAGAMENTO.TALAO) {
+      setFormaPagamento(FORMA_PAGAMENTO.DINHEIRO)
+    }
+  }, [permitirTalao, formaPagamento])
 
   async function confirmar(evento: FormEvent) {
     evento.preventDefault()
@@ -93,11 +115,11 @@ export function FormularioPagamentoPedido({
           }
           disabled={enviando}
         >
-          <option value={FORMA_PAGAMENTO.DINHEIRO}>Dinheiro</option>
-          <option value={FORMA_PAGAMENTO.CARTAO_CREDITO}>Cartão crédito</option>
-          <option value={FORMA_PAGAMENTO.CARTAO_DEBITO}>Cartão débito</option>
-          <option value={FORMA_PAGAMENTO.PIX}>Pix</option>
-          <option value={FORMA_PAGAMENTO.CORTESIA}>Cortesia</option>
+          {formas.map((forma) => (
+            <option key={forma} value={forma}>
+              {ROTULOS_FORMA_PAGAMENTO[forma]}
+            </option>
+          ))}
         </select>
         <input
           data-testid="campo-valor-pagamento"

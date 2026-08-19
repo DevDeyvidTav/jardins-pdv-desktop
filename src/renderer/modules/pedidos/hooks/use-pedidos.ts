@@ -11,6 +11,7 @@ import type {
 import { FILTRO_STATUS_HISTORICO_PEDIDO } from '@shared/types/pedido'
 import type { ProdutoComCategoria } from '@shared/types/produto'
 import type { CategoriaProduto } from '@shared/types/categoria-produto'
+import type { Cliente } from '@shared/types/cliente'
 import type { FormaPagamento, PagamentoInformado } from '@shared/types/pagamento-pedido'
 import type {
   CriarParteDivisaoEntrada,
@@ -89,12 +90,14 @@ export interface UsePedidosResultado {
   limparSelecaoMesa: () => void
   recarregar: () => Promise<void>
   limparFeedback: () => void
-  transferirPedidoMesa: (mesaDestinoId: string, motivo?: string) => Promise<boolean>
+  transferirPedidoMesa: (mesaDestinoId: string, motivo: string) => Promise<boolean>
   agruparMesasPedido: (mesaIds: string[], motivo?: string) => Promise<boolean>
   encerrarAgrupamentoManual: (observacao?: string) => Promise<boolean>
   resumoAgrupamento: ResumoMesaAgrupamento | null
   historicoMovimentacaoPedido: PedidoMesaMovimentacao[]
   historicoDivisaoConta: PedidoDivisaoMovimentacao[]
+  clientes: Cliente[]
+  vincularClientePedido: (clienteId: string | null) => Promise<boolean>
 }
 
 function extrairMensagemErro(causa: unknown): string {
@@ -139,6 +142,7 @@ export function usePedidos(): UsePedidosResultado {
   const [historicoDivisaoConta, setHistoricoDivisaoConta] = useState<
     PedidoDivisaoMovimentacao[]
   >([])
+  const [clientes, setClientes] = useState<Cliente[]>([])
 
   const carregarHistorico = useCallback(async () => {
     const historico = await window.pdv.pedidos.listarHistoricoPedidos({
@@ -153,7 +157,7 @@ export function usePedidos(): UsePedidosResultado {
     setErro(null)
 
     try {
-      const [sessao, listaMesas, abertos, produtos, categorias, deliveries, taxaPadrao] =
+      const [sessao, listaMesas, abertos, produtos, categorias, deliveries, taxaPadrao, listaClientes] =
         await Promise.all([
           window.pdv.caixa.obterSessaoCaixaAberta(),
           window.pdv.mesas.listarMesas(),
@@ -162,6 +166,7 @@ export function usePedidos(): UsePedidosResultado {
           window.pdv.produtos.listarCategorias({ apenasAtivas: true }),
           window.pdv.delivery.listarDeliveryAbertos(),
           window.pdv.delivery.obterTaxaEntregaPadrao(),
+          window.pdv.clientes.listar({ apenasAtivos: false }),
         ])
 
       setSessaoCaixa(sessao)
@@ -171,6 +176,7 @@ export function usePedidos(): UsePedidosResultado {
       setCategoriasAtivas(categorias)
       setDeliveriesAbertos(deliveries)
       setTaxaEntregaPadraoCentavos(taxaPadrao.taxaEntregaPadraoCentavos)
+      setClientes(listaClientes)
 
       setMesaSelecionada((atual) => {
         if (!atual) {
@@ -815,7 +821,7 @@ export function usePedidos(): UsePedidosResultado {
   }, [])
 
   const transferirPedidoMesa = useCallback(
-    async (mesaDestinoId: string, motivo?: string): Promise<boolean> => {
+    async (mesaDestinoId: string, motivo: string): Promise<boolean> => {
       if (!resumoPedido) return false
       setErro(null)
       setSucesso(null)
@@ -846,6 +852,27 @@ export function usePedidos(): UsePedidosResultado {
       }
     },
     [carregarDados, carregarPedidoAbertoDaMesa, resumoPedido],
+  )
+
+  const vincularClientePedido = useCallback(
+    async (clienteId: string | null): Promise<boolean> => {
+      if (!resumoPedido) return false
+      setErro(null)
+      setSucesso(null)
+      try {
+        await window.pdv.clientes.vincularPedido({
+          pedidoId: resumoPedido.pedido.id,
+          clienteId,
+        })
+        await atualizarResumo(resumoPedido.pedido.id)
+        setSucesso(clienteId ? 'Cliente vinculado ao pedido.' : 'Cliente removido do pedido.')
+        return true
+      } catch (causa) {
+        setErro(extrairMensagemErro(causa))
+        return false
+      }
+    },
+    [atualizarResumo, resumoPedido],
   )
 
   const agruparMesasPedido = useCallback(
@@ -968,5 +995,7 @@ export function usePedidos(): UsePedidosResultado {
     resumoAgrupamento,
     historicoMovimentacaoPedido,
     historicoDivisaoConta,
+    clientes,
+    vincularClientePedido,
   }
 }

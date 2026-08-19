@@ -93,6 +93,7 @@ test.describe('transferencia e agrupamento de mesas', () => {
       await janela.getByTestId('botao-transferir-mesa').click()
       await expect(janela.getByTestId('modal-transferir-mesa')).toBeVisible()
       await janela.getByTestId('select-mesa-destino').selectOption({ label: 'Mesa 2' })
+      await janela.getByTestId('motivo-transferencia').fill('Cliente pediu troca de mesa')
       await janela.getByTestId('confirmar-transferencia').click()
 
       await expect(janela.getByTestId('feedback-sucesso-pedidos')).toContainText(

@@ -144,7 +144,7 @@ async function adicionarPizzaComSabores(
 
   await expect(janela.getByTestId('preview-pizza-preco')).not.toHaveText('—', { timeout: 10_000 })
   await janela.getByTestId('botao-confirmar-pizza').click()
-  await expect(janela.getByTestId('preview-pizza-preco')).toHaveText('—', { timeout: 10_000 })
+  await expect(janela.getByTestId('formulario-adicionar-pizza')).toBeHidden({ timeout: 10_000 })
 }
 
 test.describe('pizzas', () => {

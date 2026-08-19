@@ -235,6 +235,7 @@ describe('obterResumoCaixaAtual', () => {
     expect(resumo?.totalSangriasCentavos).toBe(2000)
     expect(resumo?.totalRetiradasCentavos).toBe(1000)
     expect(resumo?.saldoAtualEsperadoCentavos).toBe(32000)
+    expect(resumo?.quantidadePedidosAbertos).toBe(0)
   })
 
   it('retorna null sem caixa aberto', async () => {

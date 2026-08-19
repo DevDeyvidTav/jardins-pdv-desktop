@@ -1,14 +1,6 @@
 import type { ItemHistoricoPedido } from '@shared/types/pedido'
 import { formatarMoeda } from '@shared/utils/moeda'
-import type { FormaPagamento } from '@shared/types/pagamento-pedido'
-
-const ROTULOS_FORMA: Record<FormaPagamento, string> = {
-  DINHEIRO: 'Dinheiro',
-  CARTAO_CREDITO: 'Crédito',
-  CARTAO_DEBITO: 'Débito',
-  PIX: 'Pix',
-  CORTESIA: 'Cortesia',
-}
+import { ROTULOS_FORMA_PAGAMENTO } from '@shared/types/pagamento-pedido'
 
 interface HistoricoPedidosListaProps {
   itens: ItemHistoricoPedido[]
@@ -51,9 +43,13 @@ export function HistoricoPedidosLista({
           const origem =
             item.pedido.tipo === 'BALCAO'
               ? 'Balcao'
-              : item.mesaNumero != null
-                ? `Mesa ${item.mesaNumero}`
-                : 'Mesa'
+              : item.pedido.tipo === 'DELIVERY'
+                ? 'Delivery'
+                : item.mesaNumero != null
+                  ? `Mesa ${item.mesaNumero}`
+                  : 'Mesa'
+          const origemComRef =
+            item.pedido.referencia > 0 ? `#${item.pedido.referencia} · ${origem}` : origem
 
           return (
             <li key={item.pedido.id}>
@@ -70,10 +66,11 @@ export function HistoricoPedidosLista({
                   .join(' ')}
                 data-testid="item-historico-pedido"
                 data-status={item.pedido.status}
+                data-referencia={item.pedido.referencia}
                 onClick={() => onSelecionar(item)}
               >
                 <span className="historico-pedidos__quando">{formatarQuando(item)}</span>
-                <span className="historico-pedidos__origem">{origem}</span>
+                <span className="historico-pedidos__origem">{origemComRef}</span>
                 <span
                   className={`historico-pedidos__status historico-pedidos__status--${item.pedido.status.toLowerCase()}`}
                 >
@@ -82,7 +79,7 @@ export function HistoricoPedidosLista({
                 <span className="historico-pedidos__formas">
                   {item.formasPagamento.length > 0
                     ? item.formasPagamento
-                        .map((forma) => ROTULOS_FORMA[forma] ?? forma)
+                        .map((forma) => ROTULOS_FORMA_PAGAMENTO[forma] ?? forma)
                         .join(', ')
                     : '—'}
                 </span>

@@ -89,6 +89,30 @@ import type {
   ResumoDivisaoConta,
 } from './divisao-conta'
 import type {
+  AtualizarClienteEntrada,
+  Cliente,
+  CriarClienteEntrada,
+  InativarClienteEntrada,
+  ListarClientesEntrada,
+  ObterClienteEntrada,
+  ReativarClienteEntrada,
+  VincularClientePedidoEntrada,
+} from './cliente'
+import type {
+  ContaTalaoCliente,
+  ListarContasTalaoEntrada,
+  ObterContaTalaoEntrada,
+  RegistrarBaixaTalaoEntrada,
+  TalaoBaixa,
+} from './talao'
+import type { EstadoSincronizacao } from './sincronizacao'
+import type {
+  ImprimirAmostraEntrada,
+  ImprimirPedidoEntrada,
+  ResultadoImpressao,
+  ResultadoImpressaoAmostra,
+} from './impressao'
+import type {
   AdicionarPizzaAoPedidoEntrada,
   AtualizarPizzaCategoriaEntrada,
   AtualizarPizzaSaborEntrada,
@@ -259,6 +283,30 @@ export interface PdvApi {
     listarHistorico: (
       entrada: ListarHistoricoDivisaoContaEntrada,
     ) => Promise<PedidoDivisaoMovimentacao[]>
+  }
+  clientes: {
+    criar: (entrada: CriarClienteEntrada) => Promise<Cliente>
+    listar: (entrada?: ListarClientesEntrada) => Promise<Cliente[]>
+    obter: (entrada: ObterClienteEntrada) => Promise<Cliente>
+    atualizar: (entrada: AtualizarClienteEntrada) => Promise<Cliente>
+    inativar: (entrada: InativarClienteEntrada) => Promise<Cliente>
+    reativar: (entrada: ReativarClienteEntrada) => Promise<Cliente>
+    vincularPedido: (entrada: VincularClientePedidoEntrada) => Promise<import('./pedido').Pedido>
+  }
+  talao: {
+    obterConta: (entrada: ObterContaTalaoEntrada) => Promise<ContaTalaoCliente>
+    listarContas: (entrada?: ListarContasTalaoEntrada) => Promise<ContaTalaoCliente[]>
+    registrarBaixa: (entrada: RegistrarBaixaTalaoEntrada) => Promise<TalaoBaixa>
+  }
+  impressao: {
+    imprimirAmostra: (
+      entrada: ImprimirAmostraEntrada,
+    ) => Promise<ResultadoImpressaoAmostra>
+    imprimirConta: (entrada: ImprimirPedidoEntrada) => Promise<ResultadoImpressao>
+    imprimirComanda: (entrada: ImprimirPedidoEntrada) => Promise<ResultadoImpressao>
+  }
+  sync: {
+    obterEstado: () => Promise<EstadoSincronizacao>
   }
 }
 

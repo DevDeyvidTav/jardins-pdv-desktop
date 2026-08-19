@@ -3,10 +3,8 @@ import { STATUS_PEDIDO } from '@shared/types/pedido'
 import { STATUS_SESSAO_CAIXA } from '@shared/types/sessao-caixa'
 import { TIPO_MOVIMENTACAO_DIVISAO } from '@shared/types/divisao-conta'
 import {
-  confirmarTransacao,
-  iniciarTransacaoImediata,
+  executarEmTransacaoImediata,
   persistirConexaoBanco,
-  reverterTransacao,
 } from '../../../database/conexao-sqlite'
 import { obterConexaoBancoLocal } from '../../../database/inicializar-banco'
 import {
@@ -52,81 +50,80 @@ export function criarCriarDivisaoConta(
   )
 
   return function criarDivisaoConta(entrada: CriarDivisaoContaEntrada): ResumoDivisaoConta {
-    const sessao = repositorioSessao.buscarSessaoAberta()
-    if (!sessao || sessao.status !== STATUS_SESSAO_CAIXA.ABERTO) {
-      throw new ErroDivisaoConta(
-        CODIGOS_ERRO_DIVISAO_CONTA.CAIXA_NAO_ABERTO,
-        'Abra o caixa antes de dividir a conta.',
-      )
-    }
-
-    const pedido = repositorioPedido.buscarPorId(entrada.pedidoId)
-    if (!pedido) {
-      throw new ErroDivisaoConta(
-        CODIGOS_ERRO_DIVISAO_CONTA.PEDIDO_NAO_ENCONTRADO,
-        'Pedido nao encontrado.',
-      )
-    }
-
-    if (pedido.status !== STATUS_PEDIDO.ABERTO) {
-      throw new ErroDivisaoConta(
-        CODIGOS_ERRO_DIVISAO_CONTA.PEDIDO_NAO_ABERTO,
-        'Pedido nao esta aberto para divisao de conta.',
-      )
-    }
-
-    if (pedido.totalCentavos <= 0) {
-      throw new ErroDivisaoConta(
-        CODIGOS_ERRO_DIVISAO_CONTA.PEDIDO_TOTAL_INVALIDO,
-        'Pedido precisa ter total maior que zero para divisao.',
-      )
-    }
-
-    if (repositorioDivisao.buscarPorPedido(pedido.id)) {
-      throw new ErroDivisaoConta(
-        CODIGOS_ERRO_DIVISAO_CONTA.DIVISAO_JA_EXISTE,
-        'Pedido ja possui divisao de conta (ativa, quitada ou cancelada).',
-      )
-    }
-
-    const pagamentos = repositorioPagamento.listarPorPedido(pedido.id)
-    if (pagamentos.some((p) => p.canceladoEm === null)) {
-      throw new ErroDivisaoConta(
-        CODIGOS_ERRO_DIVISAO_CONTA.DIVISAO_NAO_PERMITIDA_COM_PAGAMENTOS_EXISTENTES,
-        'Nao e permitido iniciar divisao com pagamentos ja registrados.',
-      )
-    }
-
-    if (entrada.partes.length < 2) {
-      throw new ErroDivisaoConta(
-        CODIGOS_ERRO_DIVISAO_CONTA.DIVISAO_PRECISA_DE_DUAS_OU_MAIS_PARTES,
-        'Divisao precisa de duas ou mais partes.',
-      )
-    }
-
-    for (const parte of entrada.partes) {
-      if (!parte.identificacao.trim() || parte.valorDefinidoCentavos <= 0) {
+    const conexao = obterConexao()
+    const resumo = executarEmTransacaoImediata(conexao, () => {
+      const sessao = repositorioSessao.buscarSessaoAberta()
+      if (!sessao || sessao.status !== STATUS_SESSAO_CAIXA.ABERTO) {
         throw new ErroDivisaoConta(
-          CODIGOS_ERRO_DIVISAO_CONTA.DIVISAO_VALOR_PARTE_INVALIDO,
-          'Cada parte precisa de identificacao e valor maior que zero.',
+          CODIGOS_ERRO_DIVISAO_CONTA.CAIXA_NAO_ABERTO,
+          'Abra o caixa antes de dividir a conta.',
         )
       }
-    }
 
-    const somaPartes = entrada.partes.reduce(
-      (acc, parte) => acc + parte.valorDefinidoCentavos,
-      0,
-    )
-    if (somaPartes !== pedido.totalCentavos) {
-      throw new ErroDivisaoConta(
-        CODIGOS_ERRO_DIVISAO_CONTA.DIVISAO_VALORES_NAO_FECHAM_COM_TOTAL_PEDIDO,
-        `Soma das partes (${somaPartes}) deve ser igual ao total do pedido (${pedido.totalCentavos}).`,
+      const pedido = repositorioPedido.buscarPorId(entrada.pedidoId)
+      if (!pedido) {
+        throw new ErroDivisaoConta(
+          CODIGOS_ERRO_DIVISAO_CONTA.PEDIDO_NAO_ENCONTRADO,
+          'Pedido nao encontrado.',
+        )
+      }
+
+      if (pedido.status !== STATUS_PEDIDO.ABERTO) {
+        throw new ErroDivisaoConta(
+          CODIGOS_ERRO_DIVISAO_CONTA.PEDIDO_NAO_ABERTO,
+          'Pedido nao esta aberto para divisao de conta.',
+        )
+      }
+
+      if (pedido.totalCentavos <= 0) {
+        throw new ErroDivisaoConta(
+          CODIGOS_ERRO_DIVISAO_CONTA.PEDIDO_TOTAL_INVALIDO,
+          'Pedido precisa ter total maior que zero para divisao.',
+        )
+      }
+
+      if (repositorioDivisao.buscarPorPedido(pedido.id)) {
+        throw new ErroDivisaoConta(
+          CODIGOS_ERRO_DIVISAO_CONTA.DIVISAO_JA_EXISTE,
+          'Pedido ja possui divisao de conta (ativa, quitada ou cancelada).',
+        )
+      }
+
+      const pagamentos = repositorioPagamento.listarPorPedido(pedido.id)
+      if (pagamentos.some((p) => p.canceladoEm === null)) {
+        throw new ErroDivisaoConta(
+          CODIGOS_ERRO_DIVISAO_CONTA.DIVISAO_NAO_PERMITIDA_COM_PAGAMENTOS_EXISTENTES,
+          'Nao e permitido iniciar divisao com pagamentos ja registrados.',
+        )
+      }
+
+      if (entrada.partes.length < 2) {
+        throw new ErroDivisaoConta(
+          CODIGOS_ERRO_DIVISAO_CONTA.DIVISAO_PRECISA_DE_DUAS_OU_MAIS_PARTES,
+          'Divisao precisa de duas ou mais partes.',
+        )
+      }
+
+      for (const parte of entrada.partes) {
+        if (!parte.identificacao.trim() || parte.valorDefinidoCentavos <= 0) {
+          throw new ErroDivisaoConta(
+            CODIGOS_ERRO_DIVISAO_CONTA.DIVISAO_VALOR_PARTE_INVALIDO,
+            'Cada parte precisa de identificacao e valor maior que zero.',
+          )
+        }
+      }
+
+      const somaPartes = entrada.partes.reduce(
+        (acc, parte) => acc + parte.valorDefinidoCentavos,
+        0,
       )
-    }
+      if (somaPartes !== pedido.totalCentavos) {
+        throw new ErroDivisaoConta(
+          CODIGOS_ERRO_DIVISAO_CONTA.DIVISAO_VALORES_NAO_FECHAM_COM_TOTAL_PEDIDO,
+          `Soma das partes (${somaPartes}) deve ser igual ao total do pedido (${pedido.totalCentavos}).`,
+        )
+      }
 
-    const conexao = obterConexao()
-    iniciarTransacaoImediata(conexao)
-    try {
       if (repositorioDivisao.buscarAtivaPorPedido(pedido.id)) {
         throw new ErroDivisaoConta(
           CODIGOS_ERRO_DIVISAO_CONTA.DIVISAO_JA_EXISTE,
@@ -172,20 +169,17 @@ export function criarCriarDivisaoConta(
         })
       }
 
-      confirmarTransacao(conexao)
-      persistirConexaoBanco(conexao)
-    } catch (erro) {
-      reverterTransacao(conexao)
-      throw erro
-    }
+      const resumoCriado = montarResumo(pedido.id, pedido.totalCentavos)
+      if (!resumoCriado) {
+        throw new ErroDivisaoConta(
+          CODIGOS_ERRO_DIVISAO_CONTA.DIVISAO_NAO_ENCONTRADA,
+          'Divisao criada nao encontrada.',
+        )
+      }
+      return resumoCriado
+    })
 
-    const resumo = montarResumo(pedido.id, pedido.totalCentavos)
-    if (!resumo) {
-      throw new ErroDivisaoConta(
-        CODIGOS_ERRO_DIVISAO_CONTA.DIVISAO_NAO_ENCONTRADA,
-        'Divisao criada nao encontrada.',
-      )
-    }
+    persistirConexaoBanco(conexao)
     return resumo
   }
 }

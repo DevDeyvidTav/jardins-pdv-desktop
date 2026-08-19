@@ -1,0 +1,2 @@
+-- Historico: clientes, talao, endereco delivery e formas PIX (versao 18).
+-- Conteudo canonico em registro-migracoes.ts.

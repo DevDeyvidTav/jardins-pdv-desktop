@@ -11,6 +11,7 @@ import { FormularioPagamentoPedido } from '../../pagamentos/components/formulari
 interface PainelDivisaoContaProps {
   resumo: ResumoDivisaoConta
   erroExterno?: string | null
+  permitirTalao?: boolean
   onRegistrarPagamentoParte: (
     parteId: string,
     pagamento: PagamentoInformado,
@@ -33,6 +34,7 @@ const ROTULO_STATUS_DIVISAO: Record<string, string> = {
 export function PainelDivisaoConta({
   resumo,
   erroExterno = null,
+  permitirTalao = false,
   onRegistrarPagamentoParte,
   onCancelarDivisao,
 }: PainelDivisaoContaProps) {
@@ -136,6 +138,7 @@ export function PainelDivisaoConta({
           <FormularioPagamentoPedido
             totalCentavos={parteSelecionada.valorRestanteCentavos}
             erroExterno={erroExterno}
+            permitirTalao={permitirTalao}
             onConfirmar={(pagamento) =>
               onRegistrarPagamentoParte(parteSelecionada.id, pagamento)
             }

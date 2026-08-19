@@ -2,7 +2,7 @@ import type {
   RegistrarPagamentoPedidoEntrada,
   ResumoPagamentoPedido,
 } from '@shared/types/pagamento-pedido'
-import { FORMA_PAGAMENTO } from '@shared/types/pagamento-pedido'
+import { FORMA_PAGAMENTO, pagamentoEntraNoValorPago } from '@shared/types/pagamento-pedido'
 import { STATUS_PEDIDO, TIPO_PEDIDO } from '@shared/types/pedido'
 import { STATUS_SESSAO_CAIXA } from '@shared/types/sessao-caixa'
 import {
@@ -11,10 +11,8 @@ import {
   TIPO_MOVIMENTACAO_MESA,
 } from '@shared/types/mesa'
 import {
-  confirmarTransacao,
-  iniciarTransacaoImediata,
+  executarEmTransacaoImediata,
   persistirConexaoBanco,
-  reverterTransacao,
 } from '../../../database/conexao-sqlite'
 import { obterConexaoBancoLocal } from '../../../database/inicializar-banco'
 import { garantirPagamentoSemDivisaoAtiva } from '../../divisao-conta/services/resumo-divisao-conta'
@@ -23,6 +21,10 @@ import { criarPedidoItemRepository, type PedidoItemRepository } from '../../pedi
 import { criarPedidoRepository, type PedidoRepository } from '../../pedidos/repositories/pedido.repository'
 import { criarMesaRepository, type MesaRepository } from '../../mesas/repositories/mesa.repository'
 import { criarSessaoCaixaRepository, type SessaoCaixaRepository } from '../../caixa/repositories/sessao-caixa.repository'
+import {
+  criarClienteRepository,
+  type ClienteRepository,
+} from '../../clientes/repositories/cliente.repository'
 import {
   atualizarStatusMesaNaConexao,
   encerrarAgrupamentoAtivoNaConexao,
@@ -33,6 +35,9 @@ import {
   criarPagamentoPedidoRepository,
   type PagamentoPedidoRepository,
 } from '../repositories/pagamento-pedido.repository'
+import { registrarErro } from '../../../logging/logger'
+import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
+import { registrarEventoPedidoSync } from '../../sincronizacao/services/registrar-evento-pedido'
 
 export function criarRegistrarPagamentoPedido(
   repositorioPedido: PedidoRepository = criarPedidoRepository(),
@@ -41,29 +46,11 @@ export function criarRegistrarPagamentoPedido(
   repositorioMesa: MesaRepository = criarMesaRepository(),
   repositorioPagamento: PagamentoPedidoRepository = criarPagamentoPedidoRepository(),
   obterConexao = obterConexaoBancoLocal,
+  repositorioCliente: ClienteRepository = criarClienteRepository(),
 ) {
   return function registrarPagamentoPedido(
     entrada: RegistrarPagamentoPedidoEntrada,
   ): ResumoPagamentoPedido {
-    const sessao = repositorioSessao.buscarSessaoAberta()
-    if (!sessao || sessao.status !== STATUS_SESSAO_CAIXA.ABERTO) {
-      throw new ErroPedidos(CODIGOS_ERRO_PEDIDOS.CAIXA_NAO_ABERTO, 'Abra o caixa antes de receber pagamentos.')
-    }
-
-    const pedido = repositorioPedido.buscarPorId(entrada.pedidoId)
-    if (!pedido) {
-      throw new ErroPedidos(CODIGOS_ERRO_PEDIDOS.PEDIDO_NAO_ENCONTRADO, 'Pedido nao encontrado.')
-    }
-    garantirPagamentoSemDivisaoAtiva(pedido.id)
-    if (pedido.status !== STATUS_PEDIDO.ABERTO) {
-      throw new ErroPedidos(CODIGOS_ERRO_PEDIDOS.PEDIDO_NAO_ABERTO, 'Pedido nao esta aberto para pagamento.')
-    }
-
-    const itensAtivos = repositorioItem.listarPorPedido(pedido.id, true)
-    if (itensAtivos.length === 0) {
-      throw new ErroPedidos(CODIGOS_ERRO_PEDIDOS.ITEM_NAO_ENCONTRADO, 'Pedido precisa possuir ao menos um item ativo.')
-    }
-
     if (entrada.valorCentavos <= 0) {
       throw new ErroPedidos(
         CODIGOS_ERRO_PEDIDOS.ENTRADA_INVALIDA,
@@ -81,118 +68,159 @@ export function criarRegistrarPagamentoPedido(
       )
     }
 
-    const valorPagoAtual = Number(pedido.valorPagoCentavos) || 0
-    const valorCortesiaAtual = Number(pedido.valorCortesiaCentavos) || 0
-    const totalPedidoCentavos = Number(pedido.totalCentavos) || 0
-
-    const valorAtualQuitado = valorPagoAtual + valorCortesiaAtual
-    const valorRestanteAntes = totalPedidoCentavos - valorAtualQuitado
-
-    if (valorRestanteAntes <= 0) {
-      throw new ErroPedidos(
-        CODIGOS_ERRO_PEDIDOS.ENTRADA_INVALIDA,
-        'Pedido ja esta quitado.',
-      )
-    }
-
-    if (entrada.valorCentavos > valorRestanteAntes) {
-      throw new ErroPedidos(
-        CODIGOS_ERRO_PEDIDOS.ENTRADA_INVALIDA,
-        'Pagamento nao pode ser maior que o valor restante.',
-      )
-    }
-
-    const pagamentoInformado = {
-      formaPagamento: entrada.formaPagamento,
-      valorCentavos: entrada.valorCentavos,
-      motivoCortesia: entrada.motivoCortesia,
-    }
-
-    const valorPagoCentavos =
-      valorPagoAtual +
-      (entrada.formaPagamento === FORMA_PAGAMENTO.CORTESIA
-        ? 0
-        : entrada.valorCentavos)
-    const valorCortesiaCentavos =
-      valorCortesiaAtual +
-      (entrada.formaPagamento === FORMA_PAGAMENTO.CORTESIA
-        ? entrada.valorCentavos
-        : 0)
-
-    const valorQuitadoCentavos = valorPagoCentavos + valorCortesiaCentavos
-    const valorRestanteCentavos = totalPedidoCentavos - valorQuitadoCentavos
-
     const conexao = obterConexao()
-    iniciarTransacaoImediata(conexao)
+
     try {
-      repositorioPagamento.inserir(
-        pedido.id,
-        sessao.id,
-        pagamentoInformado,
-      )
-
-      repositorioPedido.atualizarValoresPagamento({
-        pedidoId: pedido.id,
-        valorPagoCentavos,
-        valorCortesiaCentavos,
-      })
-
-      repositorioPedido.atualizarTotais({
-        pedidoId: pedido.id,
-        subtotalCentavos: Number(pedido.subtotalCentavos) || 0,
-        descontoItensCentavos: Number(pedido.descontoItensCentavos) || 0,
-        descontoPedidoCentavos: Number(pedido.descontoPedidoCentavos) || 0,
-        totalCentavos: totalPedidoCentavos,
-        valorRestanteCentavos,
-      })
-
-      if (valorRestanteCentavos === 0) {
-        repositorioPedido.finalizar(pedido.id)
-
-        if (pedido.tipo === TIPO_PEDIDO.MESA && pedido.mesaId) {
-          const mesaAntes = repositorioMesa.buscarPorId(pedido.mesaId)
-          const encerrado = encerrarAgrupamentoAtivoNaConexao(conexao, {
-            pedidoId: pedido.id,
-            motivo: MOTIVO_ENCERRAMENTO_AGRUPAMENTO.PEDIDO_FINALIZADO,
-            liberarMesaPrincipal: true,
-          })
-
-          if (!encerrado) {
-            atualizarStatusMesaNaConexao(conexao, pedido.mesaId, STATUS_MESA.LIVRE)
-          }
-
-          inserirMovimentacaoNaConexao(conexao, {
-            pedidoId: pedido.id,
-            tipo: TIPO_MOVIMENTACAO_MESA.PEDIDO_FINALIZADO,
-            mesaOrigemId: pedido.mesaId,
-            mesaAgrupamentoId: pedido.mesaAgrupamentoId,
-            dadosAntes: {
-              pedidoId: pedido.id,
-              status: pedido.status,
-              mesa: mesaAntes ? snapshotMesa(mesaAntes) : null,
-            },
-            dadosDepois: {
-              pedidoId: pedido.id,
-              status: STATUS_PEDIDO.FINALIZADO,
-            },
-          })
+      const resultado = executarEmTransacaoImediata(conexao, () => {
+        const sessao = repositorioSessao.buscarSessaoAberta()
+        if (!sessao || sessao.status !== STATUS_SESSAO_CAIXA.ABERTO) {
+          throw new ErroPedidos(CODIGOS_ERRO_PEDIDOS.CAIXA_NAO_ABERTO, 'Abra o caixa antes de receber pagamentos.')
         }
+
+        const pedido = repositorioPedido.buscarPorId(entrada.pedidoId)
+        if (!pedido) {
+          throw new ErroPedidos(CODIGOS_ERRO_PEDIDOS.PEDIDO_NAO_ENCONTRADO, 'Pedido nao encontrado.')
+        }
+        garantirPagamentoSemDivisaoAtiva(pedido.id)
+        if (pedido.status !== STATUS_PEDIDO.ABERTO) {
+          throw new ErroPedidos(CODIGOS_ERRO_PEDIDOS.PEDIDO_NAO_ABERTO, 'Pedido nao esta aberto para pagamento.')
+        }
+
+        const itensAtivos = repositorioItem.listarPorPedido(pedido.id, true)
+        if (itensAtivos.length === 0) {
+          throw new ErroPedidos(CODIGOS_ERRO_PEDIDOS.ITEM_NAO_ENCONTRADO, 'Pedido precisa possuir ao menos um item ativo.')
+        }
+
+        const valorPagoAtual = Number(pedido.valorPagoCentavos) || 0
+        const valorCortesiaAtual = Number(pedido.valorCortesiaCentavos) || 0
+        const totalPedidoCentavos = Number(pedido.totalCentavos) || 0
+        const valorRestanteAntes = totalPedidoCentavos - (valorPagoAtual + valorCortesiaAtual)
+
+        if (valorRestanteAntes <= 0) {
+          throw new ErroPedidos(
+            CODIGOS_ERRO_PEDIDOS.ENTRADA_INVALIDA,
+            'Pedido ja esta quitado.',
+          )
+        }
+
+        if (entrada.valorCentavos > valorRestanteAntes) {
+          throw new ErroPedidos(
+            CODIGOS_ERRO_PEDIDOS.ENTRADA_INVALIDA,
+            'Pagamento nao pode ser maior que o valor restante.',
+          )
+        }
+
+        if (entrada.formaPagamento === FORMA_PAGAMENTO.TALAO) {
+          if (!pedido.clienteId) {
+            throw new ErroPedidos(
+              CODIGOS_ERRO_PEDIDOS.PEDIDO_SEM_CLIENTE,
+              'Vincule um cliente cadastrado antes de pagar no talao.',
+            )
+          }
+          const cliente = repositorioCliente.buscarPorId(pedido.clienteId)
+          if (!cliente || !cliente.ativo) {
+            throw new ErroPedidos(
+              CODIGOS_ERRO_PEDIDOS.PEDIDO_SEM_CLIENTE,
+              'Cliente vinculado ao pedido nao esta disponivel.',
+            )
+          }
+          if (!cliente.liberaTalao) {
+            throw new ErroPedidos(
+              CODIGOS_ERRO_PEDIDOS.TALAO_NAO_LIBERADO,
+              'Este cliente nao tem talao liberado.',
+            )
+          }
+        }
+
+        const pagamentoInformado = {
+          formaPagamento: entrada.formaPagamento,
+          valorCentavos: entrada.valorCentavos,
+          motivoCortesia: entrada.motivoCortesia,
+        }
+
+        const valorPagoCentavos =
+          valorPagoAtual +
+          (pagamentoEntraNoValorPago(entrada.formaPagamento) ? entrada.valorCentavos : 0)
+        const valorCortesiaCentavos =
+          valorCortesiaAtual +
+          (entrada.formaPagamento === FORMA_PAGAMENTO.CORTESIA ? entrada.valorCentavos : 0)
+        const valorRestanteCentavos =
+          totalPedidoCentavos - (valorPagoCentavos + valorCortesiaCentavos)
+
+        repositorioPagamento.inserir(pedido.id, sessao.id, pagamentoInformado)
+
+        repositorioPedido.atualizarValoresPagamento({
+          pedidoId: pedido.id,
+          valorPagoCentavos,
+          valorCortesiaCentavos,
+        })
+
+        repositorioPedido.atualizarTotais({
+          pedidoId: pedido.id,
+          subtotalCentavos: Number(pedido.subtotalCentavos) || 0,
+          descontoItensCentavos: Number(pedido.descontoItensCentavos) || 0,
+          descontoPedidoCentavos: Number(pedido.descontoPedidoCentavos) || 0,
+          totalCentavos: totalPedidoCentavos,
+          valorRestanteCentavos,
+        })
+
+        if (valorRestanteCentavos === 0) {
+          repositorioPedido.finalizar(pedido.id)
+
+          if (pedido.tipo === TIPO_PEDIDO.MESA && pedido.mesaId) {
+            const mesaAntes = repositorioMesa.buscarPorId(pedido.mesaId)
+            const encerrado = encerrarAgrupamentoAtivoNaConexao(conexao, {
+              pedidoId: pedido.id,
+              motivo: MOTIVO_ENCERRAMENTO_AGRUPAMENTO.PEDIDO_FINALIZADO,
+              liberarMesaPrincipal: true,
+            })
+
+            if (!encerrado) {
+              atualizarStatusMesaNaConexao(conexao, pedido.mesaId, STATUS_MESA.LIVRE)
+            }
+
+            inserirMovimentacaoNaConexao(conexao, {
+              pedidoId: pedido.id,
+              tipo: TIPO_MOVIMENTACAO_MESA.PEDIDO_FINALIZADO,
+              mesaOrigemId: pedido.mesaId,
+              mesaAgrupamentoId: pedido.mesaAgrupamentoId,
+              dadosAntes: {
+                pedidoId: pedido.id,
+                status: pedido.status,
+                mesa: mesaAntes ? snapshotMesa(mesaAntes) : null,
+              },
+              dadosDepois: {
+                pedidoId: pedido.id,
+                status: STATUS_PEDIDO.FINALIZADO,
+              },
+            })
+          }
+        }
+
+        registrarEventoPedidoSync(pedido.id, OPERACAO_SYNC.UPDATE, conexao)
+        return {
+          pedidoId: pedido.id,
+          totalPedidoCentavos,
+          totalPagoCentavos: valorPagoCentavos,
+          valorRestanteCentavos,
+        }
+      })
+
+      persistirConexaoBanco(conexao)
+
+      return {
+        ...resultado,
+        pagamentos: repositorioPagamento.listarPorPedido(resultado.pedidoId),
       }
-
-      confirmarTransacao(conexao)
     } catch (erro) {
-      reverterTransacao(conexao)
+      if (!(erro instanceof ErroPedidos)) {
+        registrarErro(
+          'Falha ao registrar pagamento',
+          { operacao: 'pagamento.registrar', pedidoId: entrada.pedidoId },
+          erro,
+        )
+      }
       throw erro
-    }
-
-    persistirConexaoBanco(conexao)
-
-    return {
-      pedidoId: pedido.id,
-      totalPedidoCentavos,
-      totalPagoCentavos: valorPagoCentavos,
-      valorRestanteCentavos,
-      pagamentos: repositorioPagamento.listarPorPedido(pedido.id),
     }
   }
 }

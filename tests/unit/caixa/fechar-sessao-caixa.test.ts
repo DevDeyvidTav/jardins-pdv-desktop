@@ -10,6 +10,7 @@ import { STATUS_SESSAO_CAIXA } from '../../../src/shared/types/sessao-caixa'
 import { TIPO_MOVIMENTO_CAIXA } from '../../../src/shared/types/movimento-caixa'
 import { prepararCaixaAbertoTeste } from '../../helpers/caixa-teste'
 import { prepararBancoTeste } from '../../helpers/banco-teste'
+import { prepararAmbientePedidos } from '../../helpers/pedido-teste'
 
 describe('fecharSessaoCaixa', () => {
   let encerrarBanco: (() => void) | undefined
@@ -132,6 +133,25 @@ describe('fecharSessaoCaixa', () => {
 
     expect(ultima?.observacaoFechamento).toBe('Conferido pelo operador')
     expect(ultima?.status).toBe(STATUS_SESSAO_CAIXA.FECHADO)
+  })
+
+  it('impede fechamento com pedidos abertos da sessao', async () => {
+    const ambiente = await prepararAmbientePedidos()
+    encerrarBanco = ambiente.encerrar
+
+    ambiente.criarPedidoMesa({ mesaId: ambiente.mesa.id })
+
+    const fecharSessaoCaixa = criarFecharSessaoCaixa()
+
+    try {
+      fecharSessaoCaixa({ saldoFinalInformadoCentavos: 30000 })
+      expect.unreachable('deveria bloquear fechamento')
+    } catch (erro) {
+      expect((erro as ErroCaixa).codigo).toBe(
+        CODIGOS_ERRO_CAIXA.PEDIDOS_ABERTOS_NO_FECHAMENTO,
+      )
+      expect((erro as ErroCaixa).message).toMatch(/1 pedido aberto/i)
+    }
   })
 
   it('impede novo movimento apos fechamento', async () => {

@@ -165,6 +165,34 @@ const apiPdv: PdvApi = {
     listarHistorico: (entrada) =>
       ipcRenderer.invoke(CANAIS_IPC.DIVISAO_CONTA_LISTAR_HISTORICO, entrada),
   },
+  clientes: {
+    criar: (entrada) => ipcRenderer.invoke(CANAIS_IPC.CLIENTES_CRIAR, entrada),
+    listar: (entrada) => ipcRenderer.invoke(CANAIS_IPC.CLIENTES_LISTAR, entrada ?? {}),
+    obter: (entrada) => ipcRenderer.invoke(CANAIS_IPC.CLIENTES_OBTER, entrada),
+    atualizar: (entrada) => ipcRenderer.invoke(CANAIS_IPC.CLIENTES_ATUALIZAR, entrada),
+    inativar: (entrada) => ipcRenderer.invoke(CANAIS_IPC.CLIENTES_INATIVAR, entrada),
+    reativar: (entrada) => ipcRenderer.invoke(CANAIS_IPC.CLIENTES_REATIVAR, entrada),
+    vincularPedido: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.CLIENTES_VINCULAR_PEDIDO, entrada),
+  },
+  talao: {
+    obterConta: (entrada) => ipcRenderer.invoke(CANAIS_IPC.TALAO_OBTER_CONTA, entrada),
+    listarContas: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.TALAO_LISTAR_CONTAS, entrada ?? {}),
+    registrarBaixa: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.TALAO_REGISTRAR_BAIXA, entrada),
+  },
+  impressao: {
+    imprimirAmostra: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.IMPRESSAO_IMPRIMIR_AMOSTRA, entrada),
+    imprimirConta: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.IMPRESSAO_IMPRIMIR_CONTA, entrada),
+    imprimirComanda: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.IMPRESSAO_IMPRIMIR_COMANDA, entrada),
+  },
+  sync: {
+    obterEstado: () => ipcRenderer.invoke(CANAIS_IPC.SYNC_OBTER_ESTADO),
+  },
 }
 
 contextBridge.exposeInMainWorld('pdv', apiPdv)

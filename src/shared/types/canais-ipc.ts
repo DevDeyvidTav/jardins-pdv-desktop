@@ -74,6 +74,20 @@ export const CANAIS_IPC = {
   PIZZAS_MONTAR_PREVIEW: 'pizzas:montar-preview',
   PEDIDOS_ADICIONAR_PIZZA: 'pedidos:adicionar-pizza',
   PEDIDOS_OBTER_PIZZA_ITEM: 'pedidos:obter-pizza-item',
+  CLIENTES_CRIAR: 'clientes:criar',
+  CLIENTES_LISTAR: 'clientes:listar',
+  CLIENTES_OBTER: 'clientes:obter',
+  CLIENTES_ATUALIZAR: 'clientes:atualizar',
+  CLIENTES_INATIVAR: 'clientes:inativar',
+  CLIENTES_REATIVAR: 'clientes:reativar',
+  CLIENTES_VINCULAR_PEDIDO: 'clientes:vincular-pedido',
+  TALAO_OBTER_CONTA: 'talao:obter-conta',
+  TALAO_LISTAR_CONTAS: 'talao:listar-contas',
+  TALAO_REGISTRAR_BAIXA: 'talao:registrar-baixa',
+  IMPRESSAO_IMPRIMIR_AMOSTRA: 'impressao:imprimir-amostra',
+  IMPRESSAO_IMPRIMIR_CONTA: 'impressao:imprimir-conta',
+  IMPRESSAO_IMPRIMIR_COMANDA: 'impressao:imprimir-comanda',
+  SYNC_OBTER_ESTADO: 'sync:obter-estado',
 } as const
 
 export type CanalIpc = (typeof CANAIS_IPC)[keyof typeof CANAIS_IPC]

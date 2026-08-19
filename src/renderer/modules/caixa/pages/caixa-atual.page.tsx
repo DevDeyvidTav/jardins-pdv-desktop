@@ -52,40 +52,59 @@ export function CaixaAtualPage({ caixa }: CaixaAtualPageProps) {
             </button>
           </header>
 
-          <ResumoCaixa resumo={caixa.resumo} compacto />
+          <div className="caixa-operacao__painel-conteudo">
+            {caixa.sucesso ? (
+              <p
+                className="caixa-atual__sucesso"
+                role="status"
+                data-testid="feedback-sucesso"
+              >
+                {caixa.sucesso}
+              </p>
+            ) : null}
 
-          {caixa.sucesso ? (
-            <p className="caixa-atual__sucesso" role="status" data-testid="feedback-sucesso">
-              {caixa.sucesso}
-            </p>
-          ) : null}
+            <ResumoCaixa resumo={caixa.resumo} compacto />
 
-          <div className="caixa-operacao__acoes">
-            <button
-              type="button"
-              className="caixa-operacao__botao-principal"
-              data-testid="botao-toggle-movimento"
-              onClick={() => setExibirFormMovimento((atual) => !atual)}
-            >
-              {exibirFormMovimento ? 'Fechar formulario' : 'Novo movimento'}
-            </button>
+            {!exibirFormMovimento ? (
+              <div className="caixa-operacao__acoes">
+                <button
+                  type="button"
+                  className="caixa-operacao__botao-principal"
+                  data-testid="botao-toggle-movimento"
+                  onClick={() => setExibirFormMovimento(true)}
+                >
+                  Novo movimento
+                </button>
+              </div>
+            ) : null}
+
+            {exibirFormMovimento ? (
+              <div className="caixa-operacao__form-painel">
+                <div className="caixa-operacao__form-cabecalho">
+                  <h2>Novo movimento</h2>
+                  <button
+                    type="button"
+                    className="caixa-atual__botao-secundario"
+                    data-testid="botao-toggle-movimento"
+                    onClick={() => {
+                      setExibirFormMovimento(false)
+                      caixa.limparFeedback()
+                    }}
+                  >
+                    Fechar
+                  </button>
+                </div>
+
+                <FormularioMovimentoCaixa
+                  carregando={caixa.carregando}
+                  erroExterno={caixa.erro}
+                  onRegistrar={caixa.registrarMovimento}
+                  onLimparFeedback={caixa.limparFeedback}
+                  compacto
+                />
+              </div>
+            ) : null}
           </div>
-
-          {exibirFormMovimento ? (
-            <div className="caixa-operacao__form-painel">
-              <FormularioMovimentoCaixa
-                carregando={caixa.carregando}
-                erroExterno={caixa.erro}
-                onRegistrar={async (entrada) => {
-                  const ok = await caixa.registrarMovimento(entrada)
-                  if (ok) setExibirFormMovimento(false)
-                  return ok
-                }}
-                onLimparFeedback={caixa.limparFeedback}
-                compacto
-              />
-            </div>
-          ) : null}
         </aside>
 
         <section className="caixa-operacao__movimentos">

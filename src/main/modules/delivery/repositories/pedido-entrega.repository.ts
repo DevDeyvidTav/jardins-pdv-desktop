@@ -12,6 +12,7 @@ interface LinhaPedidoEntregaSql {
   pedido_id: string
   cliente_nome: string
   telefone: string | null
+  endereco: string | null
   observacao: string | null
   status: string
   saiu_para_entrega_em: string | null
@@ -28,6 +29,7 @@ function mapear(linha: LinhaPedidoEntregaSql): PedidoEntrega {
     pedidoId: linha.pedido_id,
     clienteNome: linha.cliente_nome,
     telefone: linha.telefone ?? null,
+    endereco: linha.endereco ?? null,
     observacao: linha.observacao ?? null,
     status: linha.status as StatusEntrega,
     saiuParaEntregaEm: linha.saiu_para_entrega_em,
@@ -40,7 +42,7 @@ function mapear(linha: LinhaPedidoEntregaSql): PedidoEntrega {
 }
 
 const COLUNAS = `
-  id, pedido_id, cliente_nome, telefone, observacao, status,
+  id, pedido_id, cliente_nome, telefone, endereco, observacao, status,
   saiu_para_entrega_em, entregue_em, cancelado_em, motivo_cancelamento,
   criado_em, atualizado_em
 `.trim()
@@ -91,6 +93,7 @@ export class PedidoEntregaRepository {
     pedidoId: string
     clienteNome: string
     telefone?: string | null
+    endereco?: string | null
     observacao?: string | null
   }): PedidoEntrega {
     const conexao = this.obterConexao()
@@ -100,6 +103,7 @@ export class PedidoEntregaRepository {
       pedidoId: dados.pedidoId,
       clienteNome: dados.clienteNome,
       telefone: dados.telefone?.trim() ? dados.telefone.trim() : null,
+      endereco: dados.endereco?.trim() ? dados.endereco.trim() : null,
       observacao: dados.observacao?.trim() ? dados.observacao.trim() : null,
       status: 'AGUARDANDO_PREPARO',
       saiuParaEntregaEm: null,
@@ -112,15 +116,16 @@ export class PedidoEntregaRepository {
 
     conexao.instancia.run(
       `INSERT INTO pedido_entrega (
-        id, pedido_id, cliente_nome, telefone, observacao, status,
+        id, pedido_id, cliente_nome, telefone, endereco, observacao, status,
         saiu_para_entrega_em, entregue_em, cancelado_em, motivo_cancelamento,
         criado_em, atualizado_em
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         entrega.id,
         entrega.pedidoId,
         entrega.clienteNome,
         entrega.telefone,
+        entrega.endereco,
         entrega.observacao,
         entrega.status,
         null,
@@ -141,6 +146,7 @@ export class PedidoEntregaRepository {
     dados: {
       clienteNome?: string
       telefone?: string | null
+      endereco?: string | null
       observacao?: string | null
     },
   ): PedidoEntrega {
@@ -157,6 +163,12 @@ export class PedidoEntregaRepository {
             ? dados.telefone.trim()
             : null
           : existente.telefone,
+      endereco:
+        dados.endereco !== undefined
+          ? dados.endereco?.trim()
+            ? dados.endereco.trim()
+            : null
+          : existente.endereco,
       observacao:
         dados.observacao !== undefined
           ? dados.observacao?.trim()
@@ -169,11 +181,12 @@ export class PedidoEntregaRepository {
     const conexao = this.obterConexao()
     conexao.instancia.run(
       `UPDATE pedido_entrega
-       SET cliente_nome = ?, telefone = ?, observacao = ?, atualizado_em = ?
+       SET cliente_nome = ?, telefone = ?, endereco = ?, observacao = ?, atualizado_em = ?
        WHERE pedido_id = ?`,
       [
         atualizado.clienteNome,
         atualizado.telefone,
+        atualizado.endereco,
         atualizado.observacao,
         agora,
         pedidoId,

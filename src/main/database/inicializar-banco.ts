@@ -7,9 +7,13 @@ import {
   bancoEstaInicializado,
   executarMigracoes,
   fecharConexaoSqlite,
+  prepararBootBanco,
   reiniciarControleTransacao,
   type ConexaoSqlite,
+  ErroIntegridadeBanco,
 } from './conexao-sqlite'
+import { rotacionarLogsAntigos, registrarErro, registrarInfo } from '../logging/logger'
+import { obterBackupMaisRecente } from './backup-banco'
 
 let conexaoAtual: ConexaoSqlite | null = null
 
@@ -39,11 +43,29 @@ export async function inicializarBancoLocal(
   const caminho = caminhoArquivo ?? obterCaminhoBancoLocal()
 
   try {
+    rotacionarLogsAntigos()
     conexaoAtual = await abrirConexaoSqlite(caminho)
     executarMigracoes(conexaoAtual)
+    prepararBootBanco(conexaoAtual)
+    registrarInfo('Banco local inicializado', {
+      operacao: 'banco.inicializar',
+      caminho,
+    })
     return conexaoAtual
   } catch (erro) {
     conexaoAtual = null
+    if (erro instanceof ErroIntegridadeBanco) {
+      registrarErro(
+        'Integridade do banco falhou na inicializacao',
+        {
+          operacao: 'banco.integridade',
+          backupMaisRecente: erro.backupMaisRecente ?? obterBackupMaisRecente(),
+        },
+        erro,
+      )
+    } else {
+      registrarErro('Falha ao inicializar banco local', { operacao: 'banco.inicializar' }, erro)
+    }
     throw erro
   }
 }

@@ -97,7 +97,7 @@ export interface PedidoMesaMovimentacao {
 export interface TransferirPedidoMesaEntrada {
   pedidoId: string
   mesaDestinoId: string
-  motivo?: string
+  motivo: string
 }
 
 export interface AgruparMesasPedidoEntrada {

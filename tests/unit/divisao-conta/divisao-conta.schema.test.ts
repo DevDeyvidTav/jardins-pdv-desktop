@@ -80,7 +80,7 @@ describe('divisao-conta.schema', () => {
     const ok = registrarPagamentoParteDivisaoSchema.parse({
       pedidoId: PEDIDO_ID,
       parteId: PARTE_ID,
-      formaPagamento: FORMA_PAGAMENTO.PIX,
+      formaPagamento: FORMA_PAGAMENTO.PIX_MAQUINETA,
       valorCentavos: 1000,
     })
     expect(ok.valorCentavos).toBe(1000)

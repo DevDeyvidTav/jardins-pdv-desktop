@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { FORMA_PAGAMENTO } from '@shared/types/pagamento-pedido'
+import { FORMA_PAGAMENTO, FORMAS_PAGAMENTO_PEDIDO } from '@shared/types/pagamento-pedido'
 
 export const criarDivisaoContaSchema = z.object({
   pedidoId: z.string().uuid('pedidoId invalido.'),
@@ -24,13 +24,7 @@ export const registrarPagamentoParteDivisaoSchema = z
   .object({
     pedidoId: z.string().uuid('pedidoId invalido.'),
     parteId: z.string().uuid('parteId invalido.'),
-    formaPagamento: z.enum([
-      FORMA_PAGAMENTO.DINHEIRO,
-      FORMA_PAGAMENTO.CARTAO_CREDITO,
-      FORMA_PAGAMENTO.CARTAO_DEBITO,
-      FORMA_PAGAMENTO.PIX,
-      FORMA_PAGAMENTO.CORTESIA,
-    ]),
+    formaPagamento: z.enum(FORMAS_PAGAMENTO_PEDIDO),
     valorCentavos: z
       .number()
       .int('Valor deve ser inteiro.')

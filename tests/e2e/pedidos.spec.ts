@@ -34,12 +34,16 @@ async function garantirProdutoAtivo(janela: Page) {
   await expect(janela.getByTestId('pagina-produtos')).toBeVisible()
 
   if ((await janela.getByTestId('item-produto').count()) === 0) {
+    await janela.getByTestId('botao-toggle-categoria').click()
+    await expect(janela.getByTestId('formulario-categoria')).toBeVisible()
     await janela.getByTestId('campo-nome-categoria').fill('Bebidas')
     await janela.getByTestId('botao-criar-categoria').click()
     await expect(janela.getByTestId('feedback-sucesso-produtos')).toBeVisible({
       timeout: 10_000,
     })
 
+    await janela.getByTestId('botao-toggle-produto').click()
+    await expect(janela.getByTestId('formulario-produto')).toBeVisible()
     await janela.getByTestId('campo-nome-produto').fill('Coca-Cola lata')
     await janela.getByTestId('campo-preco-produto').fill('6,00')
     await janela.getByTestId('botao-criar-produto').click()

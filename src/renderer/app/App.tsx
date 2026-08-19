@@ -5,16 +5,19 @@ import { FechamentoCaixaPage } from '../modules/caixa/pages/fechamento-caixa.pag
 import { PosFechamentoCaixaPage } from '../modules/caixa/pages/pos-fechamento-caixa.page'
 import { CardapioPage } from '../modules/produtos/pages/cardapio.page'
 import { PedidosPage } from '../modules/pedidos/pages/pedidos.page'
+import { ClientesPage } from '../modules/clientes/pages/clientes.page'
 import { useCaixa } from '../modules/caixa/hooks/use-caixa'
 import { useProdutos } from '../modules/produtos/hooks/use-produtos'
 import { usePizzas } from '../modules/pizzas/hooks/use-pizzas'
 import { usePedidos } from '../modules/pedidos/hooks/use-pedidos'
+import { useClientes } from '../modules/clientes/hooks/use-clientes'
 import { STATUS_SESSAO_CAIXA } from '@shared/types/sessao-caixa'
 import '../modules/produtos/pages/produtos.css'
 import '../modules/pedidos/pages/pedidos.css'
 import '../modules/pizzas/pages/pizzas.css'
+import '../modules/clientes/pages/clientes.css'
 
-type SecaoApp = 'caixa' | 'produtos' | 'pedidos'
+type SecaoApp = 'caixa' | 'produtos' | 'pedidos' | 'clientes'
 
 function NavegacaoPrincipal({
   secaoAtiva,
@@ -48,6 +51,14 @@ function NavegacaoPrincipal({
         onClick={() => onMudarSecao('pedidos')}
       >
         Pedidos
+      </button>
+      <button
+        type="button"
+        data-testid="nav-clientes"
+        data-ativo={secaoAtiva === 'clientes'}
+        onClick={() => onMudarSecao('clientes')}
+      >
+        Clientes
       </button>
     </nav>
   )
@@ -88,6 +99,7 @@ export function App() {
   const produtos = useProdutos()
   const pizzas = usePizzas()
   const pedidos = usePedidos()
+  const clientes = useClientes()
 
   return (
     <>
@@ -96,6 +108,8 @@ export function App() {
         <CardapioPage produtos={produtos} pizzas={pizzas} />
       ) : secaoAtiva === 'pedidos' ? (
         <PedidosPage pedidos={pedidos} />
+      ) : secaoAtiva === 'clientes' ? (
+        <ClientesPage clientes={clientes} />
       ) : (
         <FluxoCaixa />
       )}

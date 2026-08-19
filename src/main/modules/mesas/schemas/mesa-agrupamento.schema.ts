@@ -4,7 +4,7 @@ import { MOTIVO_ENCERRAMENTO_AGRUPAMENTO } from '@shared/types/mesa'
 export const transferirPedidoMesaSchema = z.object({
   pedidoId: z.string().uuid('pedidoId invalido.'),
   mesaDestinoId: z.string().uuid('mesaDestinoId invalido.'),
-  motivo: z.string().trim().min(1).max(500).optional(),
+  motivo: z.string().trim().min(1, 'Motivo da transferencia e obrigatorio.').max(500),
 })
 
 export const agruparMesasPedidoSchema = z.object({

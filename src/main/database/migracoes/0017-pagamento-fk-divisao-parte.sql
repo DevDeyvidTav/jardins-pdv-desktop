@@ -1,0 +1,2 @@
+-- Historico: FK pagamento_pedido.pedido_divisao_parte_id (versao 17).
+-- Conteudo canônico em registro-migracoes.ts.

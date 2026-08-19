@@ -16,8 +16,12 @@ export type StatusPedido = (typeof STATUS_PEDIDO)[keyof typeof STATUS_PEDIDO]
 
 export interface Pedido {
   id: string
+  /** Numero sequencial organizacional (auto incremento por data de criacao). */
+  referencia: number
   sessaoCaixaId: string
   mesaId: string | null
+  /** Cliente cadastrado vinculado ao pedido, se houver. */
+  clienteId: string | null
   /** Agrupamento ativo vinculado ao pedido de mesa, se houver. */
   mesaAgrupamentoId: string | null
   tipo: TipoPedido
@@ -163,6 +167,7 @@ export interface PedidoEntrega {
   pedidoId: string
   clienteNome: string
   telefone: string | null
+  endereco: string | null
   observacao: string | null
   status: StatusEntrega
   saiuParaEntregaEm: string | null
@@ -174,9 +179,11 @@ export interface PedidoEntrega {
 }
 
 export interface CriarPedidoDeliveryEntrada {
-  clienteNome: string
+  clienteNome?: string
   telefone?: string
+  endereco?: string
   observacao?: string
+  clienteId?: string
   /** Se omitido, usa a taxa padrao configurada. */
   taxaEntregaCentavos?: number
 }
@@ -189,6 +196,7 @@ export interface AtualizarDadosEntregaEntrada {
   pedidoId: string
   clienteNome?: string
   telefone?: string | null
+  endereco?: string | null
   observacao?: string | null
 }
 

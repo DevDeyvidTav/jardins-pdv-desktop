@@ -7,7 +7,7 @@ import {
   STATUS_PARTE_DIVISAO,
   TIPO_MOVIMENTACAO_DIVISAO,
 } from '@shared/types/divisao-conta'
-import { FORMA_PAGAMENTO } from '@shared/types/pagamento-pedido'
+import { FORMA_PAGAMENTO, pagamentoEntraNoValorPago } from '@shared/types/pagamento-pedido'
 import { STATUS_PEDIDO, TIPO_PEDIDO } from '@shared/types/pedido'
 import { STATUS_SESSAO_CAIXA } from '@shared/types/sessao-caixa'
 import {
@@ -17,12 +17,12 @@ import {
 } from '@shared/types/mesa'
 import { agoraEmIsoUtc } from '@shared/utils/data-hora'
 import {
-  confirmarTransacao,
-  iniciarTransacaoImediata,
+  executarEmTransacaoImediata,
   persistirConexaoBanco,
-  reverterTransacao,
 } from '../../../database/conexao-sqlite'
 import { obterConexaoBancoLocal } from '../../../database/inicializar-banco'
+import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
+import { registrarEventoPedidoSync } from '../../sincronizacao/services/registrar-evento-pedido'
 import {
   criarSessaoCaixaRepository,
   type SessaoCaixaRepository,
@@ -49,6 +49,10 @@ import {
   criarPagamentoPedidoRepository,
   type PagamentoPedidoRepository,
 } from '../../pagamentos/repositories/pagamento-pedido.repository'
+import {
+  criarClienteRepository,
+  type ClienteRepository,
+} from '../../clientes/repositories/cliente.repository'
 import {
   CODIGOS_ERRO_DIVISAO_CONTA,
   ErroDivisaoConta,
@@ -77,6 +81,7 @@ export function criarRegistrarPagamentoParteDivisao(
   repositorioMovimentacao: PedidoDivisaoMovimentacaoRepository =
     criarPedidoDivisaoMovimentacaoRepository(),
   obterConexao = obterConexaoBancoLocal,
+  repositorioCliente: ClienteRepository = criarClienteRepository(),
 ) {
   const montarResumo = criarMontarResumoDivisaoConta(
     repositorioDivisao,
@@ -87,108 +92,123 @@ export function criarRegistrarPagamentoParteDivisao(
   return function registrarPagamentoParteDivisao(
     entrada: RegistrarPagamentoParteDivisaoEntrada,
   ): ResumoDivisaoConta {
-    const sessao = repositorioSessao.buscarSessaoAberta()
-    if (!sessao || sessao.status !== STATUS_SESSAO_CAIXA.ABERTO) {
-      throw new ErroDivisaoConta(
-        CODIGOS_ERRO_DIVISAO_CONTA.CAIXA_NAO_ABERTO,
-        'Abra o caixa antes de registrar pagamentos.',
-      )
-    }
-
-    const pedido = repositorioPedido.buscarPorId(entrada.pedidoId)
-    if (!pedido) {
-      throw new ErroDivisaoConta(
-        CODIGOS_ERRO_DIVISAO_CONTA.PEDIDO_NAO_ENCONTRADO,
-        'Pedido nao encontrado.',
-      )
-    }
-    if (pedido.status !== STATUS_PEDIDO.ABERTO) {
-      throw new ErroDivisaoConta(
-        CODIGOS_ERRO_DIVISAO_CONTA.PEDIDO_NAO_ABERTO,
-        'Pedido nao esta aberto para pagamento.',
-      )
-    }
-
-    const itensAtivos = repositorioItem.listarPorPedido(pedido.id, true)
-    if (itensAtivos.length === 0) {
-      throw new ErroDivisaoConta(
-        CODIGOS_ERRO_DIVISAO_CONTA.ENTRADA_INVALIDA,
-        'Pedido precisa possuir ao menos um item ativo.',
-      )
-    }
-
-    const divisao = repositorioDivisao.buscarAtivaPorPedido(pedido.id)
-    if (!divisao) {
-      throw new ErroDivisaoConta(
-        CODIGOS_ERRO_DIVISAO_CONTA.DIVISAO_NAO_ESTA_ATIVA,
-        'Divisao ativa nao encontrada para o pedido.',
-      )
-    }
-
-    const parte = repositorioParte.buscarPorId(entrada.parteId)
-    if (!parte) {
-      throw new ErroDivisaoConta(
-        CODIGOS_ERRO_DIVISAO_CONTA.PARTE_DIVISAO_NAO_ENCONTRADA,
-        'Parte da divisao nao encontrada.',
-      )
-    }
-    if (parte.pedidoDivisaoContaId !== divisao.id) {
-      throw new ErroDivisaoConta(
-        CODIGOS_ERRO_DIVISAO_CONTA.PARTE_NAO_PERTENCE_A_DIVISAO,
-        'Parte nao pertence a divisao do pedido.',
-      )
-    }
-
-    if (
-      entrada.formaPagamento === FORMA_PAGAMENTO.CORTESIA &&
-      (!entrada.motivoCortesia || entrada.motivoCortesia.trim().length === 0)
-    ) {
-      throw new ErroDivisaoConta(
-        CODIGOS_ERRO_DIVISAO_CONTA.ENTRADA_INVALIDA,
-        'Motivo da cortesia e obrigatorio.',
-      )
-    }
-
-    const resumoAntes = montarResumo(pedido.id, pedido.totalCentavos)!
-    const parteResumo = resumoAntes.partes.find((p) => p.id === parte.id)!
-
-    if (parteResumo.status === STATUS_PARTE_DIVISAO.QUITADA) {
-      throw new ErroDivisaoConta(
-        CODIGOS_ERRO_DIVISAO_CONTA.PARTE_JA_ESTA_QUITADA,
-        'Parte ja esta quitada.',
-      )
-    }
-
-    if (entrada.valorCentavos > parteResumo.valorRestanteCentavos) {
-      throw new ErroDivisaoConta(
-        CODIGOS_ERRO_DIVISAO_CONTA.PAGAMENTO_EXCEDE_VALOR_RESTANTE_DA_PARTE,
-        'Pagamento excede o valor restante da parte.',
-      )
-    }
-
-    if (entrada.valorCentavos > pedido.valorRestanteCentavos) {
-      throw new ErroDivisaoConta(
-        CODIGOS_ERRO_DIVISAO_CONTA.PAGAMENTO_EXCEDE_VALOR_RESTANTE_DO_PEDIDO,
-        'Pagamento excede o valor restante do pedido.',
-      )
-    }
-
-    const valorPagoAtual = Number(pedido.valorPagoCentavos) || 0
-    const valorCortesiaAtual = Number(pedido.valorCortesiaCentavos) || 0
-    const totalPedidoCentavos = Number(pedido.totalCentavos) || 0
-
-    const valorPagoCentavos =
-      valorPagoAtual +
-      (entrada.formaPagamento === FORMA_PAGAMENTO.CORTESIA ? 0 : entrada.valorCentavos)
-    const valorCortesiaCentavos =
-      valorCortesiaAtual +
-      (entrada.formaPagamento === FORMA_PAGAMENTO.CORTESIA ? entrada.valorCentavos : 0)
-    const valorRestanteCentavos =
-      totalPedidoCentavos - (valorPagoCentavos + valorCortesiaCentavos)
-
     const conexao = obterConexao()
-    iniciarTransacaoImediata(conexao)
-    try {
+    const resumo = executarEmTransacaoImediata(conexao, () => {
+      const sessao = repositorioSessao.buscarSessaoAberta()
+      if (!sessao || sessao.status !== STATUS_SESSAO_CAIXA.ABERTO) {
+        throw new ErroDivisaoConta(
+          CODIGOS_ERRO_DIVISAO_CONTA.CAIXA_NAO_ABERTO,
+          'Abra o caixa antes de registrar pagamentos.',
+        )
+      }
+
+      const pedido = repositorioPedido.buscarPorId(entrada.pedidoId)
+      if (!pedido) {
+        throw new ErroDivisaoConta(
+          CODIGOS_ERRO_DIVISAO_CONTA.PEDIDO_NAO_ENCONTRADO,
+          'Pedido nao encontrado.',
+        )
+      }
+      if (pedido.status !== STATUS_PEDIDO.ABERTO) {
+        throw new ErroDivisaoConta(
+          CODIGOS_ERRO_DIVISAO_CONTA.PEDIDO_NAO_ABERTO,
+          'Pedido nao esta aberto para pagamento.',
+        )
+      }
+
+      const itensAtivos = repositorioItem.listarPorPedido(pedido.id, true)
+      if (itensAtivos.length === 0) {
+        throw new ErroDivisaoConta(
+          CODIGOS_ERRO_DIVISAO_CONTA.ENTRADA_INVALIDA,
+          'Pedido precisa possuir ao menos um item ativo.',
+        )
+      }
+
+      const divisao = repositorioDivisao.buscarAtivaPorPedido(pedido.id)
+      if (!divisao) {
+        throw new ErroDivisaoConta(
+          CODIGOS_ERRO_DIVISAO_CONTA.DIVISAO_NAO_ESTA_ATIVA,
+          'Divisao ativa nao encontrada para o pedido.',
+        )
+      }
+
+      const parte = repositorioParte.buscarPorId(entrada.parteId)
+      if (!parte) {
+        throw new ErroDivisaoConta(
+          CODIGOS_ERRO_DIVISAO_CONTA.PARTE_DIVISAO_NAO_ENCONTRADA,
+          'Parte da divisao nao encontrada.',
+        )
+      }
+      if (parte.pedidoDivisaoContaId !== divisao.id) {
+        throw new ErroDivisaoConta(
+          CODIGOS_ERRO_DIVISAO_CONTA.PARTE_NAO_PERTENCE_A_DIVISAO,
+          'Parte nao pertence a divisao do pedido.',
+        )
+      }
+
+      if (entrada.formaPagamento === FORMA_PAGAMENTO.TALAO) {
+        if (!pedido.clienteId) {
+          throw new ErroDivisaoConta(
+            CODIGOS_ERRO_DIVISAO_CONTA.ENTRADA_INVALIDA,
+            'Vincule um cliente cadastrado antes de pagar no talao.',
+          )
+        }
+        const cliente = repositorioCliente.buscarPorId(pedido.clienteId)
+        if (!cliente?.ativo || !cliente.liberaTalao) {
+          throw new ErroDivisaoConta(
+            CODIGOS_ERRO_DIVISAO_CONTA.ENTRADA_INVALIDA,
+            'Este cliente nao tem talao liberado.',
+          )
+        }
+      }
+
+      if (
+        entrada.formaPagamento === FORMA_PAGAMENTO.CORTESIA &&
+        (!entrada.motivoCortesia || entrada.motivoCortesia.trim().length === 0)
+      ) {
+        throw new ErroDivisaoConta(
+          CODIGOS_ERRO_DIVISAO_CONTA.ENTRADA_INVALIDA,
+          'Motivo da cortesia e obrigatorio.',
+        )
+      }
+
+      const resumoAntes = montarResumo(pedido.id, pedido.totalCentavos)!
+      const parteResumo = resumoAntes.partes.find((p) => p.id === parte.id)!
+
+      if (parteResumo.status === STATUS_PARTE_DIVISAO.QUITADA) {
+        throw new ErroDivisaoConta(
+          CODIGOS_ERRO_DIVISAO_CONTA.PARTE_JA_ESTA_QUITADA,
+          'Parte ja esta quitada.',
+        )
+      }
+
+      if (entrada.valorCentavos > parteResumo.valorRestanteCentavos) {
+        throw new ErroDivisaoConta(
+          CODIGOS_ERRO_DIVISAO_CONTA.PAGAMENTO_EXCEDE_VALOR_RESTANTE_DA_PARTE,
+          'Pagamento excede o valor restante da parte.',
+        )
+      }
+
+      if (entrada.valorCentavos > pedido.valorRestanteCentavos) {
+        throw new ErroDivisaoConta(
+          CODIGOS_ERRO_DIVISAO_CONTA.PAGAMENTO_EXCEDE_VALOR_RESTANTE_DO_PEDIDO,
+          'Pagamento excede o valor restante do pedido.',
+        )
+      }
+
+      const valorPagoAtual = Number(pedido.valorPagoCentavos) || 0
+      const valorCortesiaAtual = Number(pedido.valorCortesiaCentavos) || 0
+      const totalPedidoCentavos = Number(pedido.totalCentavos) || 0
+
+      const valorPagoCentavos =
+        valorPagoAtual +
+        (pagamentoEntraNoValorPago(entrada.formaPagamento) ? entrada.valorCentavos : 0)
+      const valorCortesiaCentavos =
+        valorCortesiaAtual +
+        (entrada.formaPagamento === FORMA_PAGAMENTO.CORTESIA ? entrada.valorCentavos : 0)
+      const valorRestanteCentavos =
+        totalPedidoCentavos - (valorPagoCentavos + valorCortesiaCentavos)
+
       const pagamento = repositorioPagamento.inserir(
         pedido.id,
         sessao.id,
@@ -323,15 +343,13 @@ export function criarRegistrarPagamentoParteDivisao(
         }
       }
 
-      confirmarTransacao(conexao)
-      persistirConexaoBanco(conexao)
-    } catch (erro) {
-      reverterTransacao(conexao)
-      throw erro
-    }
+      const pedidoAtualizado = repositorioPedido.buscarPorId(pedido.id)!
+      registrarEventoPedidoSync(pedido.id, OPERACAO_SYNC.UPDATE, conexao)
+      return montarResumo(pedido.id, pedidoAtualizado.totalCentavos)!
+    })
 
-    const pedidoAtualizado = repositorioPedido.buscarPorId(pedido.id)!
-    return montarResumo(pedido.id, pedidoAtualizado.totalCentavos)!
+    persistirConexaoBanco(conexao)
+    return resumo
   }
 }
 

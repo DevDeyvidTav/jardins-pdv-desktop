@@ -4,8 +4,10 @@ import type { PdvApi } from '../../src/shared/types/pdv-api'
 
 const PEDIDO_BASE = {
   id: 'ped-1',
+  referencia: 1,
   sessaoCaixaId: '1',
   mesaId: 'mesa-1' as string | null,
+  clienteId: null as string | null,
   mesaAgrupamentoId: null as string | null,
   tipo: 'MESA' as const,
   status: 'ABERTO' as const,
@@ -48,6 +50,12 @@ describe('contrato da API exposta pelo preload', () => {
     expect(CANAIS_IPC.PIZZAS_MONTAR_PREVIEW).toBe('pizzas:montar-preview')
     expect(CANAIS_IPC.PEDIDOS_ADICIONAR_PIZZA).toBe('pedidos:adicionar-pizza')
     expect(CANAIS_IPC.PEDIDOS_OBTER_PIZZA_ITEM).toBe('pedidos:obter-pizza-item')
+    expect(CANAIS_IPC.CLIENTES_CRIAR).toBe('clientes:criar')
+    expect(CANAIS_IPC.TALAO_REGISTRAR_BAIXA).toBe('talao:registrar-baixa')
+    expect(CANAIS_IPC.IMPRESSAO_IMPRIMIR_AMOSTRA).toBe('impressao:imprimir-amostra')
+    expect(CANAIS_IPC.IMPRESSAO_IMPRIMIR_CONTA).toBe('impressao:imprimir-conta')
+    expect(CANAIS_IPC.IMPRESSAO_IMPRIMIR_COMANDA).toBe('impressao:imprimir-comanda')
+    expect(CANAIS_IPC.SYNC_OBTER_ESTADO).toBe('sync:obter-estado')
   })
 
   it('mantem formato esperado da API window.pdv', () => {
@@ -413,6 +421,7 @@ describe('contrato da API exposta pelo preload', () => {
           pedidoId: 'ped-1',
           clienteNome: 'Cliente',
           telefone: '81999999999',
+          endereco: null,
           observacao: null,
           status: 'AGUARDANDO_PREPARO' as const,
           saiuParaEntregaEm: null,
@@ -427,6 +436,7 @@ describe('contrato da API exposta pelo preload', () => {
           pedidoId: 'ped-1',
           clienteNome: 'Cliente Novo',
           telefone: '81999999999',
+          endereco: 'Rua A',
           observacao: 'Obs',
           status: 'AGUARDANDO_PREPARO' as const,
           saiuParaEntregaEm: null,
@@ -442,6 +452,7 @@ describe('contrato da API exposta pelo preload', () => {
           pedidoId: 'ped-1',
           clienteNome: 'Cliente',
           telefone: '81999999999',
+          endereco: null,
           observacao: null,
           status: 'EM_PREPARO' as const,
           saiuParaEntregaEm: null,
@@ -507,6 +518,134 @@ describe('contrato da API exposta pelo preload', () => {
         }),
         listarHistorico: async () => [],
       },
+      clientes: {
+        criar: async () => ({
+          id: 'cli-1',
+          nome: 'Maria',
+          telefone: null,
+          documento: null,
+          endereco: null,
+          liberaTalao: true,
+          ativo: true,
+          criadoEm: new Date().toISOString(),
+          atualizadoEm: new Date().toISOString(),
+        }),
+        listar: async () => [],
+        obter: async () => ({
+          id: 'cli-1',
+          nome: 'Maria',
+          telefone: null,
+          documento: null,
+          endereco: null,
+          liberaTalao: true,
+          ativo: true,
+          criadoEm: new Date().toISOString(),
+          atualizadoEm: new Date().toISOString(),
+        }),
+        atualizar: async () => ({
+          id: 'cli-1',
+          nome: 'Maria',
+          telefone: null,
+          documento: null,
+          endereco: null,
+          liberaTalao: true,
+          ativo: true,
+          criadoEm: new Date().toISOString(),
+          atualizadoEm: new Date().toISOString(),
+        }),
+        inativar: async () => ({
+          id: 'cli-1',
+          nome: 'Maria',
+          telefone: null,
+          documento: null,
+          endereco: null,
+          liberaTalao: true,
+          ativo: false,
+          criadoEm: new Date().toISOString(),
+          atualizadoEm: new Date().toISOString(),
+        }),
+        reativar: async () => ({
+          id: 'cli-1',
+          nome: 'Maria',
+          telefone: null,
+          documento: null,
+          endereco: null,
+          liberaTalao: true,
+          ativo: true,
+          criadoEm: new Date().toISOString(),
+          atualizadoEm: new Date().toISOString(),
+        }),
+        vincularPedido: async () => PEDIDO_BASE,
+      },
+      talao: {
+        obterConta: async () => ({
+          cliente: {
+            id: 'cli-1',
+            nome: 'Maria',
+            telefone: null,
+            documento: null,
+            endereco: null,
+            liberaTalao: true,
+            ativo: true,
+            criadoEm: new Date().toISOString(),
+            atualizadoEm: new Date().toISOString(),
+          },
+          competencia: '2026-08',
+          totalLancadoCentavos: 0,
+          totalBaixadoCentavos: 0,
+          saldoCentavos: 0,
+          lancamentos: [],
+          baixas: [],
+        }),
+        listarContas: async () => [],
+        registrarBaixa: async () => ({
+          id: 'baixa-1',
+          clienteId: 'cli-1',
+          sessaoCaixaId: '1',
+          formaPagamento: 'DINHEIRO' as const,
+          valorCentavos: 100,
+          competencia: '2026-08',
+          observacao: null,
+          criadoEm: new Date().toISOString(),
+          atualizadoEm: new Date().toISOString(),
+        }),
+      },
+      impressao: {
+        imprimirAmostra: async () => ({
+          tipo: 'CONTA' as const,
+          setor: null,
+          linhas: ['CONTA'],
+          texto: 'CONTA',
+          impresso: true,
+          aviso: null,
+        }),
+        imprimirConta: async () => ({
+          tipo: 'CONTA' as const,
+          setor: null,
+          linhas: ['CONTA'],
+          texto: 'CONTA',
+          impresso: true,
+          aviso: null,
+        }),
+        imprimirComanda: async () => ({
+          tipo: 'COMANDA' as const,
+          setor: 'COZINHA',
+          linhas: ['COZINHA'],
+          texto: 'COZINHA',
+          impresso: true,
+          aviso: null,
+        }),
+      },
+      sync: {
+        obterEstado: async () => ({
+          pendente: 0,
+          sincronizado: 0,
+          apiConfigurada: false,
+          ultimaTentativaEm: null,
+          ultimoSucessoEm: null,
+          ultimoErro: null,
+        }),
+      },
     }
 
     expect(typeof api.caixa.fecharSessaoCaixa).toBe('function')
@@ -533,5 +672,11 @@ describe('contrato da API exposta pelo preload', () => {
     expect(typeof api.pizzas.listarCategoriasDoSabor).toBe('function')
     expect(typeof api.pedidos.adicionarPizza).toBe('function')
     expect(typeof api.pedidos.obterPizzaItem).toBe('function')
+    expect(typeof api.clientes.criar).toBe('function')
+    expect(typeof api.talao.registrarBaixa).toBe('function')
+    expect(typeof api.impressao.imprimirAmostra).toBe('function')
+    expect(typeof api.impressao.imprimirConta).toBe('function')
+    expect(typeof api.impressao.imprimirComanda).toBe('function')
+    expect(typeof api.sync.obterEstado).toBe('function')
   })
 })

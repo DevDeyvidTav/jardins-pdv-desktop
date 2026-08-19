@@ -54,6 +54,16 @@
   padding: 0.875rem;
 }
 
+.caixa-operacao__painel-conteudo {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  overflow-y: auto;
+  margin-top: 0.625rem;
+}
+
 .caixa-operacao__movimentos {
   padding: 0.875rem 1rem 1rem;
 }
@@ -104,7 +114,7 @@
 }
 
 .caixa-atual__sucesso {
-  margin: 0.625rem 0 0;
+  margin: 0;
   padding: 0.5rem 0.75rem;
   border-radius: 8px;
   background: #ecfdf5;
@@ -115,7 +125,6 @@
 }
 
 .caixa-operacao__acoes {
-  margin-top: 0.75rem;
   flex-shrink: 0;
 }
 
@@ -132,14 +141,26 @@
 }
 
 .caixa-operacao__form-painel {
-  margin-top: 0.625rem;
+  display: grid;
+  gap: 0.625rem;
   padding: 0.75rem;
   border: 1px solid #e5e7eb;
   border-radius: 10px;
   background: #fafafa;
   flex-shrink: 0;
-  max-height: 45%;
-  overflow: auto;
+}
+
+.caixa-operacao__form-cabecalho {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.caixa-operacao__form-cabecalho h2 {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: #111827;
 }
 
 .caixa-operacao__filtros {
@@ -291,7 +312,8 @@
   font-size: 0.8125rem;
 }
 
-.formulario-movimento-caixa button {
+.formulario-movimento-caixa button[type='submit'] {
+  width: 100%;
   padding: 0.625rem 0.75rem;
   border: none;
   border-radius: 8px;
@@ -302,7 +324,7 @@
   cursor: pointer;
 }
 
-.formulario-movimento-caixa button:disabled {
+.formulario-movimento-caixa button[type='submit']:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }

@@ -45,14 +45,27 @@ export const cancelarItemPedidoSchema = z.object({
 
 export const removerItemPedidoSchema = cancelarItemPedidoSchema
 
-export const aplicarDescontoPedidoSchema = z.object({
-  pedidoId: z.string().trim().min(1, 'Pedido e obrigatorio.'),
-  descontoCentavos: z
-    .number()
-    .int('Desconto deve ser inteiro.')
-    .min(0, 'Desconto deve ser maior ou igual a zero.'),
-  motivoDesconto: z.string().trim().optional(),
-})
+export const aplicarDescontoPedidoSchema = z
+  .object({
+    pedidoId: z.string().trim().min(1, 'Pedido e obrigatorio.'),
+    descontoCentavos: z
+      .number()
+      .int('Desconto deve ser inteiro.')
+      .min(0, 'Desconto deve ser maior ou igual a zero.'),
+    motivoDesconto: z.string().trim().optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (
+      value.descontoCentavos > 0 &&
+      (!value.motivoDesconto || value.motivoDesconto.trim().length === 0)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['motivoDesconto'],
+        message: 'Motivo do desconto e obrigatorio.',
+      })
+    }
+  })
 
 export const obterResumoPedidoSchema = z.object({
   pedidoId: z.string().trim().min(1, 'Pedido e obrigatorio.'),
@@ -67,6 +80,15 @@ export const cancelarPedidoSchema = z.object({
 export const listarHistoricoPedidosSchema = z.object({
   status: z.enum(['TODOS', 'FINALIZADO', 'CANCELADO']).optional(),
   formaPagamento: z
-    .enum(['', 'DINHEIRO', 'CARTAO_CREDITO', 'CARTAO_DEBITO', 'PIX', 'CORTESIA'])
+    .enum([
+      '',
+      'DINHEIRO',
+      'CARTAO_CREDITO',
+      'CARTAO_DEBITO',
+      'PIX_MAQUINETA',
+      'PIX_CNPJ',
+      'TALAO',
+      'CORTESIA',
+    ])
     .optional(),
 })

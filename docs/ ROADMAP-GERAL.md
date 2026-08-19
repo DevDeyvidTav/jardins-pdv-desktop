@@ -12,6 +12,7 @@ Sistema PDV desktop construído com Electron + React + TypeScript + SQLite, foca
 |-----------|-----------|
 | [ROADMAP-SPRINTS.md](ROADMAP-SPRINTS.md) | Planejamento detalhado em sprints (7 semanas) |
 | [ESPECIFICAÇÃO-TECNICA.md](ESPECIFICAÇÃO-TECNICA.md) | Arquitetura, schemas, IPC, erros |
+| [HARDENING-BANCO-BACKUP-LOGS.md](HARDENING-BANCO-BACKUP-LOGS.md) | Banco nativo, migrations, backup, logs, txs |
 | [layout-pedidos-mesas.md](layout-pedidos-mesas.md) | Layout UX de pedidos e mesas |
 | [layout-produtos-caixa.md](layout-produtos-caixa.md) | Layout UX de produtos e caixa |
 
@@ -25,7 +26,7 @@ Sistema PDV desktop construído com Electron + React + TypeScript + SQLite, foca
 |--------|------------|
 | Framework | Electron (main + renderer process) |
 | UI | React 19 + TypeScript |
-| Database | SQLite (sql.js) |
+| Database | SQLite (`better-sqlite3` 11.x, local em `userData`) |
 | Validação | Zod |
 | Testes | Vitest + Playwright |
 
@@ -184,7 +185,7 @@ apps/desktop/src/
 | Semana | Item | Status |
 |--------|------|--------|
 | 5-6 | Configurações | Dados da empresa, impressão, turnos |
-| 7 | Backups | Automático + manual |
+| 7 | Backups | Automático local concluído (restore manual; sem tela admin) |
 
 ### FASE 3 - RECURSOS AVANÇADOS (Prioridade Baixa)
 

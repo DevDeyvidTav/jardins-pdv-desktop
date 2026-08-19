@@ -74,6 +74,23 @@ describe('aplicarDescontoPedido e pagamentos com cortesia', () => {
     expect(resumo.pedido.status).toBe('ABERTO')
   })
 
+  it('impede desconto geral sem motivo', async () => {
+    const { ambiente, pedido } = await criarAmbienteComItem()
+    const aplicarDesconto = criarAplicarDescontoPedido(
+      ambiente.repositorioPedido,
+      ambiente.repositorioItem,
+      ambiente.repositorioSessao,
+      ambiente.repositorioMesa,
+    )
+
+    expect(() =>
+      aplicarDesconto({
+        pedidoId: pedido.id,
+        descontoCentavos: 100,
+      }),
+    ).toThrow(/Motivo do desconto/)
+  })
+
   it('finaliza o pedido e libera a mesa se desconto cobrir todo o valor restante', async () => {
     const { ambiente, pedido } = await criarAmbienteComItem()
     const aplicarDesconto = criarAplicarDescontoPedido(
@@ -86,6 +103,7 @@ describe('aplicarDescontoPedido e pagamentos com cortesia', () => {
     const resumo = aplicarDesconto({
       pedidoId: pedido.id,
       descontoCentavos: 1200,
+      motivoDesconto: 'Cortesia total',
     })
 
     expect(resumo.pedido.totalCentavos).toBe(0)
@@ -107,6 +125,7 @@ describe('aplicarDescontoPedido e pagamentos com cortesia', () => {
       aplicarDesconto({
         pedidoId: pedido.id,
         descontoCentavos: 1500,
+        motivoDesconto: 'Erro de valor',
       }),
     ).toThrow(/Desconto do pedido nao pode ser maior/)
   })

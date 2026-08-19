@@ -1,0 +1,2 @@
+-- Historico: referencia sequencial do pedido (versao 16).
+-- Conteudo aplicado em registro-migracoes.ts.

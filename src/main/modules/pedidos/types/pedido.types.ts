@@ -11,8 +11,10 @@ export { STATUS_PEDIDO, TIPO_PEDIDO } from '@shared/types/pedido'
 
 export interface LinhaPedidoSql {
   id: string
+  referencia: number | null
   sessao_caixa_id: string
   mesa_id: string | null
+  cliente_id: string | null
   mesa_agrupamento_id: string | null
   tipo: string
   status: string
@@ -52,7 +54,7 @@ export interface LinhaPedidoItemSql {
 }
 
 const COLUNAS_PEDIDO = `
-  id, sessao_caixa_id, mesa_id,
+  id, referencia, sessao_caixa_id, mesa_id, cliente_id,
   mesa_agrupamento_id,
   tipo, status,
   subtotal_centavos, desconto_centavos, total_centavos,
@@ -82,8 +84,10 @@ export function mapearLinhaPedido(
 ): import('@shared/types/pedido').Pedido {
   return {
     id: linha.id,
+    referencia: Number(linha.referencia) || 0,
     sessaoCaixaId: linha.sessao_caixa_id,
     mesaId: linha.mesa_id,
+    clienteId: linha.cliente_id ?? null,
     mesaAgrupamentoId: linha.mesa_agrupamento_id ?? null,
     tipo: linha.tipo as import('@shared/types/pedido').TipoPedido,
     status: linha.status as import('@shared/types/pedido').StatusPedido,

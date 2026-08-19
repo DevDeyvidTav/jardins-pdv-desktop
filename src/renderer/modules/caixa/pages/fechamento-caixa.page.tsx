@@ -12,6 +12,7 @@ interface FormularioFechamentoCaixaProps {
   resumo: NonNullable<UseCaixaResultado['resumo']>
   carregando: boolean
   erroExterno: string | null
+  bloqueadoPorPedidos?: boolean
   onFechar: (saldoFinalInformadoCentavos: number, observacao?: string) => Promise<boolean>
   onLimparFeedback: () => void
 }
@@ -20,6 +21,7 @@ function FormularioFechamentoCaixa({
   resumo,
   carregando,
   erroExterno,
+  bloqueadoPorPedidos = false,
   onFechar,
   onLimparFeedback,
 }: FormularioFechamentoCaixaProps) {
@@ -49,6 +51,13 @@ function FormularioFechamentoCaixa({
 
     if (saldoInformadoCentavos === null) {
       setErroValidacao('Informe um valor contado valido e nao negativo.')
+      return
+    }
+
+    if (bloqueadoPorPedidos) {
+      setErroValidacao(
+        'Finalize ou cancele os pedidos abertos antes de fechar o caixa.',
+      )
       return
     }
 
@@ -121,7 +130,7 @@ function FormularioFechamentoCaixa({
       <button
         type="submit"
         data-testid="botao-fechar-caixa"
-        disabled={carregando || enviando}
+        disabled={carregando || enviando || bloqueadoPorPedidos}
       >
         Fechar caixa
       </button>
@@ -164,10 +173,25 @@ export function FechamentoCaixaPage({ caixa }: FechamentoCaixaPageProps) {
         <ResumoCaixa resumo={caixa.resumo} />
         <ListaMovimentosResumo movimentos={caixa.movimentos.length} />
 
+        {caixa.resumo.quantidadePedidosAbertos > 0 ? (
+          <p
+            className="fechamento-caixa__alerta-pedidos"
+            role="alert"
+            data-testid="alerta-pedidos-abertos-fechamento"
+          >
+            Existem {caixa.resumo.quantidadePedidosAbertos}{' '}
+            {caixa.resumo.quantidadePedidosAbertos === 1
+              ? 'pedido aberto'
+              : 'pedidos abertos'}{' '}
+            vinculados a este caixa. Finalize ou cancele antes de fechar.
+          </p>
+        ) : null}
+
         <FormularioFechamentoCaixa
           resumo={caixa.resumo}
           carregando={caixa.carregando}
           erroExterno={caixa.erro}
+          bloqueadoPorPedidos={caixa.resumo.quantidadePedidosAbertos > 0}
           onFechar={async (saldoFinalInformadoCentavos, observacaoFechamento) =>
             caixa.fecharSessao({
               saldoFinalInformadoCentavos,

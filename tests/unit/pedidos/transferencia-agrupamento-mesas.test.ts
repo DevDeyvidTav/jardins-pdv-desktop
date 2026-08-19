@@ -109,6 +109,7 @@ describe('transferencia e agrupamento de mesas', () => {
       const resultado = ambiente.transferir({
         pedidoId: pedido.id,
         mesaDestinoId: ambiente.mesa2.id,
+        motivo: 'Troca de mesa',
       })
 
       expect(resultado.pedidoId).toBe(pedido.id)
@@ -141,7 +142,7 @@ describe('transferencia e agrupamento de mesas', () => {
       })
       ambiente.registrarPagamentoPedido({
         pedidoId: pedido.id,
-        formaPagamento: FORMA_PAGAMENTO.PIX,
+        formaPagamento: FORMA_PAGAMENTO.PIX_MAQUINETA,
         valorCentavos: 300,
       })
 
@@ -151,6 +152,7 @@ describe('transferencia e agrupamento de mesas', () => {
       ambiente.transferir({
         pedidoId: pedido.id,
         mesaDestinoId: ambiente.mesa2.id,
+        motivo: 'Troca de mesa',
       })
 
       const depois = ambiente.obterResumo(pedido.id)
@@ -169,7 +171,7 @@ describe('transferencia e agrupamento de mesas', () => {
       expect(depois.itens[0]?.descontoCentavos).toBe(antes.itens[0]?.descontoCentavos)
       expect(pagamentosDepois).toHaveLength(pagamentosAntes.length)
       expect(pagamentosDepois[0]?.valorCentavos).toBe(pagamentosAntes[0]?.valorCentavos)
-      expect(pagamentosDepois[0]?.formaPagamento).toBe(FORMA_PAGAMENTO.PIX)
+      expect(pagamentosDepois[0]?.formaPagamento).toBe(FORMA_PAGAMENTO.PIX_MAQUINETA)
     })
 
     it('bloqueia transferencia para a mesma mesa', async () => {
@@ -181,6 +183,7 @@ describe('transferencia e agrupamento de mesas', () => {
           ambiente.transferir({
             pedidoId: pedido.id,
             mesaDestinoId: ambiente.mesa1.id,
+            motivo: 'Troca de mesa',
           }),
         CODIGOS_ERRO_MESAS.MESA_DESTINO_IGUAL_ORIGEM,
       )
@@ -196,6 +199,7 @@ describe('transferencia e agrupamento de mesas', () => {
           ambiente.transferir({
             pedidoId: pedido.id,
             mesaDestinoId: ambiente.mesa2.id,
+            motivo: 'Troca de mesa',
           }),
         CODIGOS_ERRO_MESAS.MESA_DESTINO_INATIVA,
       )
@@ -211,6 +215,7 @@ describe('transferencia e agrupamento de mesas', () => {
           ambiente.transferir({
             pedidoId: pedido.id,
             mesaDestinoId: ambiente.mesa2.id,
+            motivo: 'Troca de mesa',
           }),
         CODIGOS_ERRO_MESAS.MESA_DESTINO_NAO_ESTA_LIVRE,
       )
@@ -229,6 +234,7 @@ describe('transferencia e agrupamento de mesas', () => {
           ambiente.transferir({
             pedidoId: pedido.id,
             mesaDestinoId: ambiente.mesa2.id,
+            motivo: 'Troca de mesa',
           }),
         CODIGOS_ERRO_MESAS.PEDIDO_NAO_ESTA_ABERTO,
       )
@@ -260,6 +266,7 @@ describe('transferencia e agrupamento de mesas', () => {
           ambiente.transferir({
             pedidoId: pedido.id,
             mesaDestinoId: ambiente.mesa2.id,
+            motivo: 'Troca de mesa',
           }),
         CODIGOS_ERRO_MESAS.PEDIDO_NAO_ESTA_ABERTO,
       )
@@ -278,6 +285,7 @@ describe('transferencia e agrupamento de mesas', () => {
           ambiente.transferir({
             pedidoId: pedido.id,
             mesaDestinoId: ambiente.mesa3.id,
+            motivo: 'Troca de mesa',
           }),
         CODIGOS_ERRO_MESAS.TRANSFERENCIA_DE_PEDIDO_AGRUPADO_NAO_SUPORTADA,
       )
@@ -577,6 +585,7 @@ describe('transferencia e agrupamento de mesas', () => {
       ambiente.transferir({
         pedidoId: pedido.id,
         mesaDestinoId: ambiente.mesa2.id,
+        motivo: 'Troca de mesa',
       })
       ambiente.agrupar({
         pedidoId: pedido.id,
@@ -618,6 +627,7 @@ describe('transferencia e agrupamento de mesas', () => {
           ambiente.transferir({
             pedidoId: pedidoOrigem.id,
             mesaDestinoId: ambiente.mesa2.id,
+            motivo: 'Troca de mesa',
           }),
         CODIGOS_ERRO_MESAS.MESA_DESTINO_NAO_ESTA_LIVRE,
       )

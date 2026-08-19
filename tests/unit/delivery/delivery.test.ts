@@ -121,13 +121,27 @@ describe('delivery', () => {
     expect(() => criarPedidoDelivery(DADOS_ENTREGA_PADRAO)).toThrow('sessao de caixa')
   })
 
-  it('impede criar delivery sem nome de cliente', async () => {
+  it('impede criar delivery com nome de 1 caractere', async () => {
     const env = await prepararAmbiente()
     encerrar = env.encerrar
 
     expect(() =>
       env.criarPedidoDelivery({ ...DADOS_ENTREGA_PADRAO, clienteNome: 'A' }),
     ).toThrow()
+  })
+
+  it('cria delivery sem nome e com endereco opcional', async () => {
+    const env = await prepararAmbiente()
+    encerrar = env.encerrar
+
+    const resultado = env.criarPedidoDelivery({
+      endereco: 'Rua das Flores, 100',
+      taxaEntregaCentavos: 500,
+    })
+
+    expect(resultado.pedido.tipo).toBe(TIPO_PEDIDO.DELIVERY)
+    expect(resultado.entrega?.clienteNome).toBe('')
+    expect(resultado.entrega?.endereco).toBe('Rua das Flores, 100')
   })
 
   it('impede taxa de entrega negativa', async () => {
@@ -370,6 +384,14 @@ describe('delivery schemas', () => {
 
     const semNome = criarPedidoDeliverySchema.safeParse({ ...DADOS_ENTREGA_PADRAO, clienteNome: 'A' })
     expect(semNome.success).toBe(false)
+
+    const nomeVazio = criarPedidoDeliverySchema.safeParse({})
+    expect(nomeVazio.success).toBe(true)
+
+    const comEndereco = criarPedidoDeliverySchema.safeParse({
+      endereco: 'Rua das Flores, 100',
+    })
+    expect(comEndereco.success).toBe(true)
 
     const soNome = criarPedidoDeliverySchema.safeParse({ clienteNome: 'Joao' })
     expect(soNome.success).toBe(true)

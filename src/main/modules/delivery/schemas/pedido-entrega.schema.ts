@@ -1,13 +1,21 @@
 import { z } from 'zod'
 import { STATUS_ENTREGA } from '@shared/types/pedido'
 
+const nomeClienteOpcionalSchema = z
+  .string()
+  .trim()
+  .refine(
+    (valor) => valor.length === 0 || valor.length >= 2,
+    'Nome do cliente deve ter no minimo 2 caracteres quando informado.',
+  )
+  .optional()
+
 export const criarPedidoDeliverySchema = z.object({
-  clienteNome: z
-    .string()
-    .trim()
-    .min(2, 'Nome do cliente deve ter no minimo 2 caracteres.'),
+  clienteNome: nomeClienteOpcionalSchema,
   telefone: z.string().trim().optional(),
+  endereco: z.string().trim().max(500).optional(),
   observacao: z.string().trim().optional(),
+  clienteId: z.string().uuid('clienteId invalido.').optional(),
   taxaEntregaCentavos: z
     .number()
     .int('Taxa de entrega deve ser um valor inteiro em centavos.')
@@ -21,12 +29,9 @@ export const obterEntregaPorPedidoSchema = z.object({
 
 export const atualizarDadosEntregaSchema = z.object({
   pedidoId: z.string().trim().min(1, 'Pedido e obrigatorio.'),
-  clienteNome: z
-    .string()
-    .trim()
-    .min(2, 'Nome do cliente deve ter no minimo 2 caracteres.')
-    .optional(),
+  clienteNome: nomeClienteOpcionalSchema,
   telefone: z.string().trim().nullable().optional(),
+  endereco: z.string().trim().max(500).nullable().optional(),
   observacao: z.string().trim().nullable().optional(),
 })
 

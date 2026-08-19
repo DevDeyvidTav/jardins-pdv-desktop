@@ -204,6 +204,7 @@
 }
 
 .formulario-delivery__campo input,
+.formulario-delivery__campo select,
 .formulario-delivery__campo textarea {
   font-size: 0.88rem;
   padding: 4px 7px;

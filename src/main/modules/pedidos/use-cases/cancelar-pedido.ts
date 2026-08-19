@@ -6,10 +6,8 @@ import {
   TIPO_MOVIMENTACAO_MESA,
 } from '@shared/types/mesa'
 import {
-  confirmarTransacao,
-  iniciarTransacaoImediata,
+  executarEmTransacaoImediata,
   persistirConexaoBanco,
-  reverterTransacao,
 } from '../../../database/conexao-sqlite'
 import { obterConexaoBancoLocal } from '../../../database/inicializar-banco'
 import type { MesaRepository } from '../../mesas/repositories/mesa.repository'
@@ -35,6 +33,8 @@ import {
   TIPO_MOVIMENTACAO_DIVISAO,
 } from '@shared/types/divisao-conta'
 import { agoraEmIsoUtc } from '@shared/utils/data-hora'
+import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
+import { registrarEventoPedidoSync } from '../../sincronizacao/services/registrar-evento-pedido'
 
 export function criarCancelarPedido(
   repositorioPedido: PedidoRepository = criarPedidoRepository(),
@@ -43,30 +43,29 @@ export function criarCancelarPedido(
   obterConexao = obterConexaoBancoLocal,
 ) {
   return function cancelarPedido(entrada: CancelarPedidoEntrada): Pedido {
-    const pedido = repositorioPedido.buscarPorId(entrada.pedidoId)
-
-    if (!pedido) {
-      throw new ErroPedidos(
-        CODIGOS_ERRO_PEDIDOS.PEDIDO_NAO_ENCONTRADO,
-        'Pedido nao encontrado.',
-      )
-    }
-
-    if (pedido.status !== STATUS_PEDIDO.ABERTO) {
-      throw new ErroPedidos(
-        CODIGOS_ERRO_PEDIDOS.PEDIDO_NAO_ABERTO,
-        'Pedido nao esta aberto para cancelamento.',
-      )
-    }
-
     const conexao = obterConexao()
-    const mesaAntes =
-      pedido.tipo === TIPO_PEDIDO.MESA && pedido.mesaId
-        ? repositorioMesa.buscarPorId(pedido.mesaId)
-        : null
+    const pedidoCancelado = executarEmTransacaoImediata(conexao, () => {
+      const pedido = repositorioPedido.buscarPorId(entrada.pedidoId)
 
-    iniciarTransacaoImediata(conexao)
-    try {
+      if (!pedido) {
+        throw new ErroPedidos(
+          CODIGOS_ERRO_PEDIDOS.PEDIDO_NAO_ENCONTRADO,
+          'Pedido nao encontrado.',
+        )
+      }
+
+      if (pedido.status !== STATUS_PEDIDO.ABERTO) {
+        throw new ErroPedidos(
+          CODIGOS_ERRO_PEDIDOS.PEDIDO_NAO_ABERTO,
+          'Pedido nao esta aberto para cancelamento.',
+        )
+      }
+
+      const mesaAntes =
+        pedido.tipo === TIPO_PEDIDO.MESA && pedido.mesaId
+          ? repositorioMesa.buscarPorId(pedido.mesaId)
+          : null
+
       const repositorioDivisao = criarPedidoDivisaoContaRepository()
       const repositorioMovimentacaoDivisao = criarPedidoDivisaoMovimentacaoRepository()
       const divisaoAtiva = repositorioDivisao.buscarAtivaPorPedido(pedido.id)
@@ -91,7 +90,7 @@ export function criarCancelarPedido(
         entrada.motivoCancelamento,
       )
 
-      const pedidoCancelado = repositorioPedido.cancelar(
+      const cancelado = repositorioPedido.cancelar(
         entrada.pedidoId,
         entrada.motivoCancelamento,
       )
@@ -139,13 +138,12 @@ export function criarCancelarPedido(
         }
       }
 
-      confirmarTransacao(conexao)
-      persistirConexaoBanco(conexao)
-      return pedidoCancelado
-    } catch (erro) {
-      reverterTransacao(conexao)
-      throw erro
-    }
+      registrarEventoPedidoSync(entrada.pedidoId, OPERACAO_SYNC.CANCEL, conexao)
+      return cancelado
+    })
+
+    persistirConexaoBanco(conexao)
+    return pedidoCancelado
   }
 }
 

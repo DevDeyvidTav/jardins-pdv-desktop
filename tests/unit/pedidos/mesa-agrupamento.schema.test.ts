@@ -29,16 +29,13 @@ describe('mesa-agrupamento.schema', () => {
       })
     })
 
-    it('aceita transferencia sem motivo', () => {
-      expect(
+    it('rejeita transferencia sem motivo', () => {
+      expect(() =>
         transferirPedidoMesaSchema.parse({
           pedidoId: PEDIDO_ID,
           mesaDestinoId: MESA_1,
         }),
-      ).toEqual({
-        pedidoId: PEDIDO_ID,
-        mesaDestinoId: MESA_1,
-      })
+      ).toThrow(/motivo/i)
     })
 
     it('rejeita pedidoId invalido', () => {

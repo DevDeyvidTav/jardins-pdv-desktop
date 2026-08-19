@@ -7,6 +7,9 @@ import { registrarHandlersPagamentos } from '../modules/pagamentos/pagamentos.ip
 import { registrarHandlersDelivery } from '../modules/delivery/delivery.ipc'
 import { registrarHandlersDivisaoConta } from '../modules/divisao-conta/divisao-conta.ipc'
 import { registrarHandlersPizzas } from '../modules/pizzas/pizzas.ipc'
+import { registrarHandlersClientes } from '../modules/clientes/clientes.ipc'
+import { registrarHandlersImpressao } from '../modules/impressao/impressao.ipc'
+import { registrarHandlersSincronizacao } from '../modules/sincronizacao/sincronizacao.ipc'
 
 export function registrarHandlersIpc(): void {
   registrarHandlersSistema()
@@ -18,4 +21,7 @@ export function registrarHandlersIpc(): void {
   registrarHandlersDelivery()
   registrarHandlersDivisaoConta()
   registrarHandlersPizzas()
+  registrarHandlersClientes()
+  registrarHandlersImpressao()
+  registrarHandlersSincronizacao()
 }

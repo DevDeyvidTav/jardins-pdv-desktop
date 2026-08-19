@@ -55,10 +55,11 @@ Barra de chips espelhando o sistema antigo:
 |--------|--------------|----------------|
 | Livres | `#e8f5e9` | `LIVRE` |
 | Ocupadas | `#fff9c4` | `OCUPADA` |
+| Agrupadas | `#bbdefb` | `AGRUPADA` |
 | Inativas | `#ffcdd2` | `INATIVA` ou mesa desativada |
 | Todas | `#eceff1` | Sem filtro |
 
-> Status futuros do legado (Agrupadas, Fechadas, Recebidas) serao adicionados quando existirem no dominio.
+> Status futuros do legado (Fechadas, Recebidas) serao adicionados quando existirem no dominio.
 
 ## Paleta de cores por status de mesa
 
@@ -68,6 +69,7 @@ Tokens CSS definidos em `pedidos.css`:
 |--------|-------------------------|-------|-------------------|
 | Livre | `#f1f8e9` → `#c8e6c9` | `#1b5e20` | Verde claro |
 | Ocupada | `#fffde7` → `#ffe082` | `#e65100` | Amarelo/laranja |
+| Agrupada | `#e3f2fd` → `#90caf9` | `#0d47a1` | Azul |
 | Inativa | `#ffebee` → `#ffcdd2` | `#b71c1c` | Rosa/vermelho claro |
 | Selecionada | Borda `#1976d2` + sombra azul | — | Destaque azul |
 

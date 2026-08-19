@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   adicionarItemPedidoSchema,
+  aplicarDescontoPedidoSchema,
   criarPedidoMesaSchema,
 } from '../../../src/main/modules/pedidos/schemas/pedido.schema'
 import { criarMesasPorIntervaloSchema } from '../../../src/main/modules/mesas/schemas/mesa.schema'
@@ -45,5 +46,22 @@ describe('pedido.schema', () => {
         quantidade: -1,
       }),
     ).toThrow()
+  })
+
+  it('exige motivo quando o desconto e maior que zero', () => {
+    expect(() =>
+      aplicarDescontoPedidoSchema.parse({
+        pedidoId: 'p1',
+        descontoCentavos: 100,
+      }),
+    ).toThrow(/Motivo do desconto/)
+
+    expect(
+      aplicarDescontoPedidoSchema.parse({
+        pedidoId: 'p1',
+        descontoCentavos: 100,
+        motivoDesconto: 'Promocao',
+      }).motivoDesconto,
+    ).toBe('Promocao')
   })
 })

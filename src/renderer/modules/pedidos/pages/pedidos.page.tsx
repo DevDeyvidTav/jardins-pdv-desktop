@@ -75,6 +75,8 @@ export function PedidosPage({ pedidos }: PedidosPageProps) {
           onTransferirMesa={pedidos.transferirPedidoMesa}
           onAgruparMesas={pedidos.agruparMesasPedido}
           onEncerrarAgrupamento={pedidos.encerrarAgrupamentoManual}
+          clientes={pedidos.clientes}
+          onVincularCliente={pedidos.vincularClientePedido}
           onRecarregarResumo={async () => {
             if (pedidos.resumoPedido) {
               await pedidos.selecionarDelivery(pedidos.resumoPedido.pedido.id)
@@ -193,17 +195,6 @@ export function PedidosPage({ pedidos }: PedidosPageProps) {
                 </section>
               ) : null}
 
-              {pedidos.deliveriesAbertos.length > 0 ? (
-                <section className="pedidos-operacao__deliveries" data-testid="lista-deliveries-abertos">
-                  <h2 className="pedidos-operacao__deliveries-titulo">Deliveries abertos</h2>
-                  <ListaDeliveries
-                    itens={pedidos.deliveriesAbertos}
-                    pedidoSelecionadoId={pedidos.resumoPedido?.pedido.id ?? null}
-                    onSelecionar={(id) => void pedidos.selecionarDelivery(id)}
-                  />
-                </section>
-              ) : null}
-
               <div className="pedidos-operacao__grade-scroll">
                 <GradeMesas
                   mesas={pedidos.mesas}
@@ -211,6 +202,20 @@ export function PedidosPage({ pedidos }: PedidosPageProps) {
                   filtroStatus={pedidos.filtroStatusMesas}
                   onSelecionar={(mesa) => void pedidos.selecionarMesaNoGrid(mesa)}
                 />
+
+                {pedidos.deliveriesAbertos.length > 0 ? (
+                  <section
+                    className="pedidos-operacao__deliveries"
+                    data-testid="lista-deliveries-abertos"
+                  >
+                    <h2 className="pedidos-operacao__deliveries-titulo">Deliveries</h2>
+                    <ListaDeliveries
+                      itens={pedidos.deliveriesAbertos}
+                      pedidoSelecionadoId={pedidos.resumoPedido?.pedido.id ?? null}
+                      onSelecionar={(id) => void pedidos.selecionarDelivery(id)}
+                    />
+                  </section>
+                ) : null}
               </div>
 
               <FiltrosStatusMesas
@@ -232,6 +237,7 @@ export function PedidosPage({ pedidos }: PedidosPageProps) {
             <FormularioDelivery
               carregando={pedidos.carregandoPedido}
               taxaPadraoCentavos={pedidos.taxaEntregaPadraoCentavos}
+              clientes={pedidos.clientes}
               onCriar={async (entrada) => {
                 const ok = await pedidos.criarPedidoDelivery(entrada)
                 if (ok) setExibirFormDelivery(false)

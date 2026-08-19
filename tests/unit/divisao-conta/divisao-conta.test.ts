@@ -247,7 +247,7 @@ describe('divisao de conta', () => {
     const ambiente = await setup(2)
     ambiente.registrarPagamentoPedido({
       pedidoId: ambiente.pedido.id,
-      formaPagamento: FORMA_PAGAMENTO.PIX,
+      formaPagamento: FORMA_PAGAMENTO.PIX_MAQUINETA,
       valorCentavos: ambiente.total,
     })
     esperarErroDivisao(
@@ -267,7 +267,7 @@ describe('divisao de conta', () => {
     const ambiente = await setup(2)
     ambiente.registrarPagamentoPedido({
       pedidoId: ambiente.pedido.id,
-      formaPagamento: FORMA_PAGAMENTO.PIX,
+      formaPagamento: FORMA_PAGAMENTO.PIX_MAQUINETA,
       valorCentavos: 100,
     })
     esperarErroDivisao(
@@ -321,7 +321,7 @@ describe('divisao de conta', () => {
     const parcial = ambiente.registrarParte({
       pedidoId: ambiente.pedido.id,
       parteId: parte.id,
-      formaPagamento: FORMA_PAGAMENTO.PIX,
+      formaPagamento: FORMA_PAGAMENTO.PIX_MAQUINETA,
       valorCentavos: 200,
     })
     expect(parcial.partes[0]?.status).toBe(STATUS_PARTE_DIVISAO.PARCIALMENTE_PAGA)
@@ -353,7 +353,7 @@ describe('divisao de conta', () => {
         ambiente.registrarParte({
           pedidoId: ambiente.pedido.id,
           parteId: criado.partes[0]!.id,
-          formaPagamento: FORMA_PAGAMENTO.PIX,
+          formaPagamento: FORMA_PAGAMENTO.PIX_MAQUINETA,
           valorCentavos: metade + 1,
         }),
       CODIGOS_ERRO_DIVISAO_CONTA.PAGAMENTO_EXCEDE_VALOR_RESTANTE_DA_PARTE,
@@ -407,7 +407,7 @@ describe('divisao de conta', () => {
     const aposPrimeira = ambiente.registrarParte({
       pedidoId: ambiente.pedido.id,
       parteId: criado.partes[0]!.id,
-      formaPagamento: FORMA_PAGAMENTO.PIX,
+      formaPagamento: FORMA_PAGAMENTO.PIX_MAQUINETA,
       valorCentavos: metade,
     })
     expect(aposPrimeira.divisao.status).toBe(STATUS_DIVISAO_CONTA.ATIVA)
@@ -418,7 +418,7 @@ describe('divisao de conta', () => {
     const final = ambiente.registrarParte({
       pedidoId: ambiente.pedido.id,
       parteId: criado.partes[1]!.id,
-      formaPagamento: FORMA_PAGAMENTO.PIX,
+      formaPagamento: FORMA_PAGAMENTO.PIX_MAQUINETA,
       valorCentavos: metade,
     })
     expect(final.divisao.status).toBe(STATUS_DIVISAO_CONTA.QUITADA)
@@ -461,7 +461,7 @@ describe('divisao de conta', () => {
       () =>
         ambiente.registrarPagamentoPedido({
           pedidoId: ambiente.pedido.id,
-          formaPagamento: FORMA_PAGAMENTO.PIX,
+          formaPagamento: FORMA_PAGAMENTO.PIX_MAQUINETA,
           valorCentavos: 100,
         }),
       CODIGOS_ERRO_PEDIDOS.PAGAMENTO_BLOQUEADO_POR_DIVISAO_ATIVA,
@@ -565,7 +565,7 @@ describe('divisao de conta', () => {
     ambiente.registrarParte({
       pedidoId: pedido2.id,
       parteId: criado2.partes[0]!.id,
-      formaPagamento: FORMA_PAGAMENTO.PIX,
+      formaPagamento: FORMA_PAGAMENTO.PIX_MAQUINETA,
       valorCentavos: 100,
     })
     esperarErroDivisao(
@@ -633,7 +633,7 @@ describe('divisao de conta', () => {
         ambiente.registrarParte({
           pedidoId: ambiente.pedido.id,
           parteId: criado.partes[0]!.id,
-          formaPagamento: FORMA_PAGAMENTO.PIX,
+          formaPagamento: FORMA_PAGAMENTO.PIX_MAQUINETA,
           valorCentavos: metade + 50,
         }),
       CODIGOS_ERRO_DIVISAO_CONTA.PAGAMENTO_EXCEDE_VALOR_RESTANTE_DA_PARTE,

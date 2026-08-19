@@ -18,7 +18,7 @@ export function DadosEntrega({ entrega }: DadosEntregaProps) {
       <div className="dados-entrega__linha">
         <span className="dados-entrega__label">Cliente</span>
         <span className="dados-entrega__valor" data-testid="entrega-cliente-nome">
-          {entrega.clienteNome}
+          {entrega.clienteNome.trim() || 'Não informado'}
         </span>
       </div>
       {entrega.telefone ? (
@@ -26,6 +26,14 @@ export function DadosEntrega({ entrega }: DadosEntregaProps) {
           <span className="dados-entrega__label">Telefone</span>
           <span className="dados-entrega__valor" data-testid="entrega-telefone">
             {entrega.telefone}
+          </span>
+        </div>
+      ) : null}
+      {entrega.endereco ? (
+        <div className="dados-entrega__linha">
+          <span className="dados-entrega__label">Endereco</span>
+          <span className="dados-entrega__valor" data-testid="entrega-endereco">
+            {entrega.endereco}
           </span>
         </div>
       ) : null}

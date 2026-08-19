@@ -12,10 +12,8 @@ import {
 import { STATUS_PEDIDO } from '@shared/types/pedido'
 import { agoraEmIsoUtc } from '@shared/utils/data-hora'
 import {
-  confirmarTransacao,
-  iniciarTransacaoImediata,
+  executarEmTransacaoImediata,
   persistirConexaoBanco,
-  reverterTransacao,
 } from '../../../database/conexao-sqlite'
 import { obterConexaoBancoLocal } from '../../../database/inicializar-banco'
 import {
@@ -78,47 +76,52 @@ export function criarCancelarDivisaoConta(
   obterConexao = obterConexaoBancoLocal,
 ) {
   return function cancelarDivisaoConta(entrada: CancelarDivisaoContaEntrada): ResumoDivisaoConta {
-    const pedido = repositorioPedido.buscarPorId(entrada.pedidoId)
-    if (!pedido) {
-      throw new ErroDivisaoConta(
-        CODIGOS_ERRO_DIVISAO_CONTA.PEDIDO_NAO_ENCONTRADO,
-        'Pedido nao encontrado.',
-      )
-    }
-    if (pedido.status !== STATUS_PEDIDO.ABERTO) {
-      throw new ErroDivisaoConta(
-        CODIGOS_ERRO_DIVISAO_CONTA.PEDIDO_NAO_ABERTO,
-        'Pedido nao esta aberto.',
-      )
-    }
-
-    const divisao = repositorioDivisao.buscarAtivaPorPedido(pedido.id)
-    if (!divisao) {
-      throw new ErroDivisaoConta(
-        CODIGOS_ERRO_DIVISAO_CONTA.DIVISAO_NAO_ENCONTRADA,
-        'Divisao ativa nao encontrada.',
-      )
-    }
-
-    const partes = repositorioParte.listarPorDivisao(divisao.id)
-    const pagamentos = repositorioPagamento.listarPorPedido(pedido.id)
-    const temPagamentoVinculado = pagamentos.some(
-      (p) =>
-        p.canceladoEm === null &&
-        p.pedidoDivisaoParteId &&
-        partes.some((parte) => parte.id === p.pedidoDivisaoParteId),
-    )
-    if (temPagamentoVinculado) {
-      throw new ErroDivisaoConta(
-        CODIGOS_ERRO_DIVISAO_CONTA.CANCELAMENTO_DIVISAO_NAO_PERMITIDO_COM_PAGAMENTOS,
-        'Nao e permitido cancelar divisao apos o primeiro pagamento.',
-      )
-    }
-
     const conexao = obterConexao()
     const agora = agoraEmIsoUtc()
-    iniciarTransacaoImediata(conexao)
-    try {
+    const montarResumo = criarMontarResumoDivisaoConta(
+      repositorioDivisao,
+      repositorioParte,
+      repositorioPagamento,
+    )
+
+    const resumo = executarEmTransacaoImediata(conexao, () => {
+      const pedido = repositorioPedido.buscarPorId(entrada.pedidoId)
+      if (!pedido) {
+        throw new ErroDivisaoConta(
+          CODIGOS_ERRO_DIVISAO_CONTA.PEDIDO_NAO_ENCONTRADO,
+          'Pedido nao encontrado.',
+        )
+      }
+      if (pedido.status !== STATUS_PEDIDO.ABERTO) {
+        throw new ErroDivisaoConta(
+          CODIGOS_ERRO_DIVISAO_CONTA.PEDIDO_NAO_ABERTO,
+          'Pedido nao esta aberto.',
+        )
+      }
+
+      const divisao = repositorioDivisao.buscarAtivaPorPedido(pedido.id)
+      if (!divisao) {
+        throw new ErroDivisaoConta(
+          CODIGOS_ERRO_DIVISAO_CONTA.DIVISAO_NAO_ENCONTRADA,
+          'Divisao ativa nao encontrada.',
+        )
+      }
+
+      const partes = repositorioParte.listarPorDivisao(divisao.id)
+      const pagamentos = repositorioPagamento.listarPorPedido(pedido.id)
+      const temPagamentoVinculado = pagamentos.some(
+        (p) =>
+          p.canceladoEm === null &&
+          p.pedidoDivisaoParteId &&
+          partes.some((parte) => parte.id === p.pedidoDivisaoParteId),
+      )
+      if (temPagamentoVinculado) {
+        throw new ErroDivisaoConta(
+          CODIGOS_ERRO_DIVISAO_CONTA.CANCELAMENTO_DIVISAO_NAO_PERMITIDO_COM_PAGAMENTOS,
+          'Nao e permitido cancelar divisao apos o primeiro pagamento.',
+        )
+      }
+
       repositorioDivisao.atualizarStatus(divisao.id, STATUS_DIVISAO_CONTA.CANCELADA, {
         canceladoEm: agora,
         motivoCancelamento: entrada.motivo ?? 'Cancelamento manual',
@@ -133,25 +136,17 @@ export function criarCancelarDivisaoConta(
         motivo: entrada.motivo ?? null,
       })
 
-      confirmarTransacao(conexao)
-      persistirConexaoBanco(conexao)
-    } catch (erro) {
-      reverterTransacao(conexao)
-      throw erro
-    }
+      const resumoCancelado = montarResumo(pedido.id, pedido.totalCentavos)
+      if (!resumoCancelado) {
+        throw new ErroDivisaoConta(
+          CODIGOS_ERRO_DIVISAO_CONTA.DIVISAO_NAO_ENCONTRADA,
+          'Divisao nao encontrada apos cancelamento.',
+        )
+      }
+      return resumoCancelado
+    })
 
-    const montarResumo = criarMontarResumoDivisaoConta(
-      repositorioDivisao,
-      repositorioParte,
-      repositorioPagamento,
-    )
-    const resumo = montarResumo(pedido.id, pedido.totalCentavos)
-    if (!resumo) {
-      throw new ErroDivisaoConta(
-        CODIGOS_ERRO_DIVISAO_CONTA.DIVISAO_NAO_ENCONTRADA,
-        'Divisao nao encontrada apos cancelamento.',
-      )
-    }
+    persistirConexaoBanco(conexao)
     return resumo
   }
 }

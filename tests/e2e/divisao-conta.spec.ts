@@ -121,7 +121,7 @@ test.describe('divisao de conta', () => {
       )
       await janela.getByTestId(`botao-selecionar-parte-${parte1Id}`).click()
       await janela.getByTestId('campo-valor-pagamento').fill('3,00')
-      await janela.getByTestId('campo-forma-pagamento').selectOption('PIX')
+      await janela.getByTestId('campo-forma-pagamento').selectOption('PIX_MAQUINETA')
       await janela.getByTestId('botao-confirmar-pagamento').click()
       await expect(janela.getByTestId(`status-parte-${parte1Id}`)).toContainText(/Parcial/i)
 

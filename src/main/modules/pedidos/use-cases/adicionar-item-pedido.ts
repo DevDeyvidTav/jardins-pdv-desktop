@@ -11,25 +11,18 @@ import { garantirPedidoSemDivisaoAtiva } from '../../divisao-conta/services/resu
 import { recalcularTotaisPedido } from '../services/recalcular-totais-pedido'
 import { garantirPedidoAberto } from './consultas-pedido'
 import { obterResumoPedido } from './consultas-pedido'
+import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
+import { registrarEventoPedidoSync } from '../../sincronizacao/services/registrar-evento-pedido'
+import { executarEmTransacaoImediata } from '../../../database/conexao-sqlite'
+import { obterConexaoBancoLocal } from '../../../database/inicializar-banco'
 
 export function criarAdicionarItemPedido(
   repositorioPedido: PedidoRepository = criarPedidoRepository(),
   repositorioItem: PedidoItemRepository = criarPedidoItemRepository(),
   repositorioProduto: ProdutoRepository = criarProdutoRepository(),
+  obterConexao = obterConexaoBancoLocal,
 ) {
   return function adicionarItemPedido(entrada: AdicionarItemPedidoEntrada): ResumoPedido {
-    const pedido = repositorioPedido.buscarPorId(entrada.pedidoId)
-
-    if (!pedido) {
-      throw new ErroPedidos(
-        CODIGOS_ERRO_PEDIDOS.PEDIDO_NAO_ENCONTRADO,
-        'Pedido nao encontrado.',
-      )
-    }
-
-    garantirPedidoAberto(pedido)
-    garantirPedidoSemDivisaoAtiva(pedido.id)
-
     if (entrada.quantidade <= 0) {
       throw new ErroPedidos(
         CODIGOS_ERRO_PEDIDOS.QUANTIDADE_INVALIDA,
@@ -37,24 +30,7 @@ export function criarAdicionarItemPedido(
       )
     }
 
-    const produto = repositorioProduto.buscarPorId(entrada.produtoId)
-
-    if (!produto) {
-      throw new ErroPedidos(
-        CODIGOS_ERRO_PEDIDOS.PRODUTO_NAO_ENCONTRADO,
-        'Produto nao encontrado.',
-      )
-    }
-
-    if (!produto.ativo) {
-      throw new ErroPedidos(
-        CODIGOS_ERRO_PEDIDOS.PRODUTO_INATIVO,
-        'Nao e permitido adicionar produto inativo ao pedido.',
-      )
-    }
-
     const descontoItemCentavos = entrada.descontoCentavos ?? 0
-
     if (descontoItemCentavos < 0) {
       throw new ErroPedidos(
         CODIGOS_ERRO_PEDIDOS.ENTRADA_INVALIDA,
@@ -62,20 +38,52 @@ export function criarAdicionarItemPedido(
       )
     }
 
-    repositorioItem.inserir({
-      pedidoId: entrada.pedidoId,
-      produtoId: produto.id,
-      tipo: TIPO_PEDIDO_ITEM.PRODUTO,
-      produtoNome: produto.nome,
-      quantidade: entrada.quantidade,
-      precoUnitarioCentavos: produto.precoCentavos,
-      descontoCentavos: descontoItemCentavos,
-      observacao: entrada.observacao?.trim() || null,
+    const conexao = obterConexao()
+    return executarEmTransacaoImediata(conexao, () => {
+      const pedido = repositorioPedido.buscarPorId(entrada.pedidoId)
+
+      if (!pedido) {
+        throw new ErroPedidos(
+          CODIGOS_ERRO_PEDIDOS.PEDIDO_NAO_ENCONTRADO,
+          'Pedido nao encontrado.',
+        )
+      }
+
+      garantirPedidoAberto(pedido)
+      garantirPedidoSemDivisaoAtiva(pedido.id)
+
+      const produto = repositorioProduto.buscarPorId(entrada.produtoId)
+
+      if (!produto) {
+        throw new ErroPedidos(
+          CODIGOS_ERRO_PEDIDOS.PRODUTO_NAO_ENCONTRADO,
+          'Produto nao encontrado.',
+        )
+      }
+
+      if (!produto.ativo) {
+        throw new ErroPedidos(
+          CODIGOS_ERRO_PEDIDOS.PRODUTO_INATIVO,
+          'Nao e permitido adicionar produto inativo ao pedido.',
+        )
+      }
+
+      repositorioItem.inserir({
+        pedidoId: entrada.pedidoId,
+        produtoId: produto.id,
+        tipo: TIPO_PEDIDO_ITEM.PRODUTO,
+        produtoNome: produto.nome,
+        quantidade: entrada.quantidade,
+        precoUnitarioCentavos: produto.precoCentavos,
+        descontoCentavos: descontoItemCentavos,
+        observacao: entrada.observacao?.trim() || null,
+      })
+
+      recalcularTotaisPedido(entrada.pedidoId, repositorioPedido, repositorioItem)
+
+      registrarEventoPedidoSync(entrada.pedidoId, OPERACAO_SYNC.UPDATE, conexao)
+      return obterResumoPedido({ pedidoId: entrada.pedidoId })
     })
-
-    recalcularTotaisPedido(entrada.pedidoId, repositorioPedido, repositorioItem)
-
-    return obterResumoPedido({ pedidoId: entrada.pedidoId })
   }
 }
 

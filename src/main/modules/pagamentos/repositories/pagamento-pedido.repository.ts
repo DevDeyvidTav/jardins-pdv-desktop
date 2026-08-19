@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { agoraEmIsoUtc } from '@shared/utils/data-hora'
 import {
   STATUS_PAGAMENTO_PEDIDO,
+  totaisFormaPagamentoVazios,
   type PagamentoInformado,
   type PagamentoPedido,
 } from '@shared/types/pagamento-pedido'
@@ -107,13 +108,7 @@ export class PagamentoPedidoRepository {
   }
 
   calcularTotaisPorSessao(sessaoCaixaId: string): Record<PagamentoPedido['formaPagamento'], number> {
-    const totais = {
-      DINHEIRO: 0,
-      CARTAO_CREDITO: 0,
-      CARTAO_DEBITO: 0,
-      PIX: 0,
-      CORTESIA: 0,
-    }
+    const totais = totaisFormaPagamentoVazios()
     const consulta = this.obterConexao().instancia.prepare(
       `SELECT forma_pagamento, COALESCE(SUM(valor_centavos), 0) AS total
        FROM pagamento_pedido
@@ -123,7 +118,8 @@ export class PagamentoPedidoRepository {
     consulta.bind([sessaoCaixaId])
     while (consulta.step()) {
       const linha = consulta.getAsObject() as { forma_pagamento: PagamentoPedido['formaPagamento']; total: number }
-      totais[linha.forma_pagamento] = linha.total
+      totais[linha.forma_pagamento] =
+        (totais[linha.forma_pagamento] ?? 0) + Number(linha.total)
     }
     consulta.free()
     return totais

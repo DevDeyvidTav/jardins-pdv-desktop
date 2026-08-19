@@ -20,7 +20,9 @@ const OPCOES_FORMA: { valor: FormaPagamento | ''; rotulo: string }[] = [
   { valor: FORMA_PAGAMENTO.DINHEIRO, rotulo: 'Dinheiro' },
   { valor: FORMA_PAGAMENTO.CARTAO_CREDITO, rotulo: 'Crédito' },
   { valor: FORMA_PAGAMENTO.CARTAO_DEBITO, rotulo: 'Débito' },
-  { valor: FORMA_PAGAMENTO.PIX, rotulo: 'Pix' },
+  { valor: FORMA_PAGAMENTO.PIX_MAQUINETA, rotulo: 'Pix (maquineta)' },
+  { valor: FORMA_PAGAMENTO.PIX_CNPJ, rotulo: 'Pix (CNPJ)' },
+  { valor: FORMA_PAGAMENTO.TALAO, rotulo: 'Talão' },
   { valor: FORMA_PAGAMENTO.CORTESIA, rotulo: 'Cortesia' },
 ]
 

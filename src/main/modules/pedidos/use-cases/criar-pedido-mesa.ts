@@ -3,10 +3,8 @@ import { TIPO_PEDIDO } from '@shared/types/pedido'
 import { STATUS_MESA, TIPO_MOVIMENTACAO_MESA } from '@shared/types/mesa'
 import type { CriarPedidoMesaEntrada } from '@shared/types/pedido'
 import {
-  confirmarTransacao,
-  iniciarTransacaoImediata,
+  executarEmTransacaoImediata,
   persistirConexaoBanco,
-  reverterTransacao,
 } from '../../../database/conexao-sqlite'
 import { obterConexaoBancoLocal } from '../../../database/inicializar-banco'
 import type { SessaoCaixaRepository } from '../../caixa/repositories/sessao-caixa.repository'
@@ -21,6 +19,8 @@ import {
 import { CODIGOS_ERRO_PEDIDOS, ErroPedidos } from '../errors/erros-pedidos'
 import type { PedidoRepository } from '../repositories/pedido.repository'
 import { criarPedidoRepository } from '../repositories/pedido.repository'
+import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
+import { registrarEventoPedidoSync } from '../../sincronizacao/services/registrar-evento-pedido'
 
 export function criarCriarPedidoMesa(
   repositorioPedido: PedidoRepository = criarPedidoRepository(),
@@ -29,58 +29,57 @@ export function criarCriarPedidoMesa(
   obterConexao = obterConexaoBancoLocal,
 ) {
   return function criarPedidoMesa(entrada: CriarPedidoMesaEntrada): Pedido {
-    const sessaoAberta = repositorioSessao.buscarSessaoAberta()
-
-    if (!sessaoAberta) {
-      throw new ErroPedidos(
-        CODIGOS_ERRO_PEDIDOS.CAIXA_NAO_ABERTO,
-        'Nao existe sessao de caixa aberta.',
-      )
-    }
-
-    const mesa = repositorioMesa.buscarPorId(entrada.mesaId)
-
-    if (!mesa) {
-      throw new ErroPedidos(
-        CODIGOS_ERRO_PEDIDOS.MESA_NAO_ENCONTRADA,
-        'Mesa nao encontrada.',
-      )
-    }
-
-    if (!mesa.ativo || mesa.status === STATUS_MESA.INATIVA) {
-      throw new ErroPedidos(
-        CODIGOS_ERRO_PEDIDOS.MESA_INATIVA,
-        'Nao e permitido abrir pedido em mesa inativa.',
-      )
-    }
-
-    if (mesa.status === STATUS_MESA.AGRUPADA || mesa.status === STATUS_MESA.OCUPADA) {
-      throw new ErroPedidos(
-        CODIGOS_ERRO_PEDIDOS.MESA_OCUPADA,
-        'Mesa ja possui pedido aberto.',
-      )
-    }
-
     const conexao = obterConexao()
-    if (mesaPertenceAAgrupamentoAtivo(conexao, entrada.mesaId)) {
-      throw new ErroPedidos(
-        CODIGOS_ERRO_PEDIDOS.MESA_OCUPADA,
-        'Mesa ja pertence a um agrupamento ativo.',
-      )
-    }
+    const pedido = executarEmTransacaoImediata(conexao, () => {
+      const sessaoAberta = repositorioSessao.buscarSessaoAberta()
 
-    const pedidoAberto = repositorioPedido.buscarPedidoAbertoPorMesa(entrada.mesaId)
+      if (!sessaoAberta) {
+        throw new ErroPedidos(
+          CODIGOS_ERRO_PEDIDOS.CAIXA_NAO_ABERTO,
+          'Nao existe sessao de caixa aberta.',
+        )
+      }
 
-    if (pedidoAberto) {
-      throw new ErroPedidos(
-        CODIGOS_ERRO_PEDIDOS.MESA_OCUPADA,
-        'Mesa ja possui pedido aberto.',
-      )
-    }
+      const mesa = repositorioMesa.buscarPorId(entrada.mesaId)
 
-    iniciarTransacaoImediata(conexao)
-    try {
-      const pedido = repositorioPedido.inserir({
+      if (!mesa) {
+        throw new ErroPedidos(
+          CODIGOS_ERRO_PEDIDOS.MESA_NAO_ENCONTRADA,
+          'Mesa nao encontrada.',
+        )
+      }
+
+      if (!mesa.ativo || mesa.status === STATUS_MESA.INATIVA) {
+        throw new ErroPedidos(
+          CODIGOS_ERRO_PEDIDOS.MESA_INATIVA,
+          'Nao e permitido abrir pedido em mesa inativa.',
+        )
+      }
+
+      if (mesa.status === STATUS_MESA.AGRUPADA || mesa.status === STATUS_MESA.OCUPADA) {
+        throw new ErroPedidos(
+          CODIGOS_ERRO_PEDIDOS.MESA_OCUPADA,
+          'Mesa ja possui pedido aberto.',
+        )
+      }
+
+      if (mesaPertenceAAgrupamentoAtivo(conexao, entrada.mesaId)) {
+        throw new ErroPedidos(
+          CODIGOS_ERRO_PEDIDOS.MESA_OCUPADA,
+          'Mesa ja pertence a um agrupamento ativo.',
+        )
+      }
+
+      const pedidoAberto = repositorioPedido.buscarPedidoAbertoPorMesa(entrada.mesaId)
+
+      if (pedidoAberto) {
+        throw new ErroPedidos(
+          CODIGOS_ERRO_PEDIDOS.MESA_OCUPADA,
+          'Mesa ja possui pedido aberto.',
+        )
+      }
+
+      const pedidoCriado = repositorioPedido.inserir({
         sessaoCaixaId: sessaoAberta.id,
         mesaId: entrada.mesaId,
         tipo: TIPO_PEDIDO.MESA,
@@ -89,23 +88,23 @@ export function criarCriarPedidoMesa(
       repositorioMesa.atualizarStatus(entrada.mesaId, STATUS_MESA.OCUPADA)
 
       inserirMovimentacaoNaConexao(conexao, {
-        pedidoId: pedido.id,
+        pedidoId: pedidoCriado.id,
         tipo: TIPO_MOVIMENTACAO_MESA.PEDIDO_ABERTO_NA_MESA,
         mesaDestinoId: mesa.id,
         dadosAntes: { mesa: snapshotMesa(mesa) },
         dadosDepois: {
-          pedidoId: pedido.id,
+          pedidoId: pedidoCriado.id,
           mesa: { ...snapshotMesa(mesa), status: STATUS_MESA.OCUPADA },
         },
       })
 
-      confirmarTransacao(conexao)
-      persistirConexaoBanco(conexao)
-      return pedido
-    } catch (erro) {
-      reverterTransacao(conexao)
-      throw erro
-    }
+      registrarEventoPedidoSync(pedidoCriado.id, OPERACAO_SYNC.CREATE, conexao)
+
+      return pedidoCriado
+    })
+
+    persistirConexaoBanco(conexao)
+    return pedido
   }
 }
 

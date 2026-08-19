@@ -1,0 +1,26 @@
+export const CODIGOS_ERRO_CLIENTES = {
+  NOME_OBRIGATORIO: 'NOME_OBRIGATORIO',
+  CLIENTE_NAO_ENCONTRADO: 'CLIENTE_NAO_ENCONTRADO',
+  CLIENTE_INATIVO: 'CLIENTE_INATIVO',
+  TALAO_NAO_LIBERADO: 'TALAO_NAO_LIBERADO',
+  PEDIDO_SEM_CLIENTE: 'PEDIDO_SEM_CLIENTE',
+  SALDO_INSUFICIENTE: 'SALDO_INSUFICIENTE',
+  FORMA_PAGAMENTO_INVALIDA: 'FORMA_PAGAMENTO_INVALIDA',
+  ENTRADA_INVALIDA: 'ENTRADA_INVALIDA',
+  CAIXA_NAO_ABERTO: 'CAIXA_NAO_ABERTO',
+  PEDIDO_NAO_ENCONTRADO: 'PEDIDO_NAO_ENCONTRADO',
+  PEDIDO_NAO_ABERTO: 'PEDIDO_NAO_ABERTO',
+} as const
+
+export type CodigoErroClientes =
+  (typeof CODIGOS_ERRO_CLIENTES)[keyof typeof CODIGOS_ERRO_CLIENTES]
+
+export class ErroClientes extends Error {
+  readonly codigo: CodigoErroClientes
+
+  constructor(codigo: CodigoErroClientes, mensagem: string) {
+    super(mensagem)
+    this.name = 'ErroClientes'
+    this.codigo = codigo
+  }
+}

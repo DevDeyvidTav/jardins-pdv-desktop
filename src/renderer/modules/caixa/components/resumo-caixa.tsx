@@ -62,9 +62,27 @@ export function ResumoCaixa({ resumo, compacto = false }: ResumoCaixaProps) {
           </dd>
         </div>
         <div>
-          <dt>Vendas Pix</dt>
-          <dd data-testid="caixa-vendas-pix">
-            {formatarMoeda(resumo.totalVendasPixCentavos)}
+          <dt>Vendas Pix (maquineta)</dt>
+          <dd data-testid="caixa-vendas-pix-maquineta">
+            {formatarMoeda(resumo.totalVendasPixMaquinetaCentavos)}
+          </dd>
+        </div>
+        <div>
+          <dt>Vendas Pix (CNPJ)</dt>
+          <dd data-testid="caixa-vendas-pix-cnpj">
+            {formatarMoeda(resumo.totalVendasPixCnpjCentavos)}
+          </dd>
+        </div>
+        <div>
+          <dt>Vendas talão</dt>
+          <dd data-testid="caixa-vendas-talao">
+            {formatarMoeda(resumo.totalVendasTalaoCentavos)}
+          </dd>
+        </div>
+        <div>
+          <dt>Recebimento talão</dt>
+          <dd data-testid="caixa-recebimento-talao">
+            {formatarMoeda(resumo.totalRecebimentoTalaoCentavos)}
           </dd>
         </div>
         <div className="resumo-caixa__linha--destaque">

@@ -1,5 +1,7 @@
 # PDV Desktop - Planejamento de Sprints
 
+> **Hardening (concluído):** migração para `better-sqlite3`, WAL/FK/busy_timeout, backup local, logs no main, FK `pagamento_pedido`→`pedido_divisao_parte`, transações financeiras críticas e testes de persistência. Detalhes em `docs/HARDENING-BANCO-BACKUP-LOGS.md`.
+
 ## Sprint 0 (Setup e Preparação)
 
 ### Objetivo

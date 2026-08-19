@@ -42,6 +42,7 @@ export function criarAtualizarDadosEntrega(
     return repositorioEntrega.atualizarDados(entrada.pedidoId, {
       clienteNome: entrada.clienteNome,
       telefone: entrada.telefone,
+      endereco: entrada.endereco,
       observacao: entrada.observacao,
     })
   }
