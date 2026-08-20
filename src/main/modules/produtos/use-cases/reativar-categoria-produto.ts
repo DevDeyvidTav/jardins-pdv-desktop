@@ -8,6 +8,8 @@ import {
 } from '../errors/erros-produtos'
 import type { CategoriaProdutoRepository } from '../repositories/categoria-produto.repository'
 import { criarCategoriaProdutoRepository } from '../repositories/categoria-produto.repository'
+import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
+import { registrarCategoriaProdutoSync } from '../../sincronizacao/services/registrar-cadastro-sync'
 
 export function criarReativarCategoriaProduto(
   repositorio: CategoriaProdutoRepository = criarCategoriaProdutoRepository(),
@@ -24,7 +26,9 @@ export function criarReativarCategoriaProduto(
       )
     }
 
-    return repositorio.reativar(entrada.categoriaId)
+    const categoria = repositorio.reativar(entrada.categoriaId)
+    registrarCategoriaProdutoSync(categoria, OPERACAO_SYNC.UPDATE)
+    return categoria
   }
 }
 

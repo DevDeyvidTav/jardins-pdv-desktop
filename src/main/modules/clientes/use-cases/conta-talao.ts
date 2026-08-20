@@ -21,6 +21,7 @@ import {
   criarSessaoCaixaRepository,
   type SessaoCaixaRepository,
 } from '../../caixa/repositories/sessao-caixa.repository'
+import { registrarTalaoBaixaSync } from '../../sincronizacao/services/registrar-cadastro-sync'
 
 function montarConta(
   repositorioCliente: ClienteRepository,
@@ -146,7 +147,7 @@ export function criarRegistrarBaixaTalao(
       )
     }
 
-    return repositorioTalao.inserirBaixa({
+    const baixa = repositorioTalao.inserirBaixa({
       clienteId: cliente.id,
       sessaoCaixaId: sessao.id,
       formaPagamento: entrada.formaPagamento,
@@ -154,6 +155,8 @@ export function criarRegistrarBaixaTalao(
       competencia,
       observacao: entrada.observacao?.trim() || null,
     })
+    registrarTalaoBaixaSync(baixa)
+    return baixa
   }
 }
 

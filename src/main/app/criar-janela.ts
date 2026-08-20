@@ -1,5 +1,6 @@
 import { BrowserWindow } from 'electron'
 import { join } from 'node:path'
+import { existsSync } from 'node:fs'
 
 const CONFIGURACAO_SEGURANCA = {
   contextIsolation: true,
@@ -8,6 +9,12 @@ const CONFIGURACAO_SEGURANCA = {
 } as const
 
 export function criarJanelaPrincipal(): BrowserWindow {
+  const caminhosIcone = [
+    join(process.cwd(), 'resources', 'logo-jardins.jpg'),
+    join(__dirname, '../../resources/logo-jardins.jpg'),
+  ]
+  const icone = caminhosIcone.find((caminho) => existsSync(caminho))
+
   const janela = new BrowserWindow({
     width: 960,
     height: 640,
@@ -15,6 +22,7 @@ export function criarJanelaPrincipal(): BrowserWindow {
     minHeight: 600,
     show: false,
     autoHideMenuBar: true,
+    ...(icone ? { icon: icone } : {}),
     webPreferences: {
       ...CONFIGURACAO_SEGURANCA,
       preload: join(__dirname, '../preload/index.js'),

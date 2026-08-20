@@ -6,6 +6,8 @@ import type {
 import { CODIGOS_ERRO_PIZZAS, ErroPizzas } from '../errors/erros-pizzas'
 import type { PizzaTamanhoRepository } from '../repositories/pizza-tamanho.repository'
 import { criarPizzaTamanhoRepository } from '../repositories/pizza-tamanho.repository'
+import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
+import { registrarPizzaTamanhoSync } from '../../sincronizacao/services/registrar-cadastro-sync'
 
 export function criarCriarPizzaTamanho(
   repositorio: PizzaTamanhoRepository = criarPizzaTamanhoRepository(),
@@ -35,12 +37,14 @@ export function criarCriarPizzaTamanho(
       )
     }
 
-    return repositorio.inserir({
+    const tamanho = repositorio.inserir({
       nome,
       sigla,
       maximoSabores: entrada.maximoSabores,
       ordem: entrada.ordem ?? 0,
     })
+    registrarPizzaTamanhoSync(tamanho, OPERACAO_SYNC.CREATE)
+    return tamanho
   }
 }
 
@@ -96,7 +100,7 @@ export function criarAtualizarPizzaTamanho(
       )
     }
 
-    return repositorio.atualizar({
+    const tamanho = repositorio.atualizar({
       tamanhoId: entrada.tamanhoId,
       nome: entrada.nome?.trim(),
       sigla: entrada.sigla?.trim(),
@@ -104,6 +108,8 @@ export function criarAtualizarPizzaTamanho(
       ativa: entrada.ativa,
       ordem: entrada.ordem,
     })
+    registrarPizzaTamanhoSync(tamanho, OPERACAO_SYNC.UPDATE)
+    return tamanho
   }
 }
 

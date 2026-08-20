@@ -84,6 +84,24 @@ export class MovimentoCaixaRepository {
     return movimentos
   }
 
+  listarTodos(): MovimentoCaixa[] {
+    const conexao = this.obterConexao()
+    const consulta = conexao.instancia.prepare(
+      `SELECT id, sessao_caixa_id, tipo, valor_centavos, descricao, origem,
+              criado_em, atualizado_em
+       FROM movimento_caixa
+       ORDER BY criado_em ASC`,
+    )
+    const movimentos: MovimentoCaixa[] = []
+    while (consulta.step()) {
+      movimentos.push(
+        mapearLinhaMovimentoCaixa(consulta.getAsObject() as LinhaMovimentoCaixaSql),
+      )
+    }
+    consulta.free()
+    return movimentos
+  }
+
   calcularTotaisPorSessao(sessaoCaixaId: string): {
     totalSuprimentosCentavos: number
     totalSangriasCentavos: number

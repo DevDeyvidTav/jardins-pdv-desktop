@@ -7,6 +7,8 @@ import type { SessaoCaixaRepository } from '../repositories/sessao-caixa.reposit
 import { criarSessaoCaixaRepository } from '../repositories/sessao-caixa.repository'
 import { executarEmTransacaoImediata } from '../../../database/conexao-sqlite'
 import { obterConexaoBancoLocal } from '../../../database/inicializar-banco'
+import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
+import { registrarEventoSessaoCaixaSync } from '../../sincronizacao/services/registrar-evento-caixa'
 
 export function criarAbrirSessaoCaixa(
   repositorio: SessaoCaixaRepository = criarSessaoCaixaRepository(),
@@ -22,7 +24,8 @@ export function criarAbrirSessaoCaixa(
       )
     }
 
-    return executarEmTransacaoImediata(obterConexao(), () => {
+    const conexao = obterConexao()
+    return executarEmTransacaoImediata(conexao, () => {
       const sessaoAberta = repositorio.buscarSessaoAberta()
 
       if (sessaoAberta) {
@@ -32,11 +35,14 @@ export function criarAbrirSessaoCaixa(
         )
       }
 
-      return repositorio.inserirSessaoAberta({
+      const sessao = repositorio.inserirSessaoAberta({
         operadorId: entrada.operadorId,
         operadorNome: entrada.operadorNome,
         saldoInicialCentavos: entrada.saldoInicialCentavos,
       })
+
+      registrarEventoSessaoCaixaSync(conexao, sessao, OPERACAO_SYNC.CREATE)
+      return sessao
     })
   }
 }

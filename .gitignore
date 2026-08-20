@@ -11,3 +11,4 @@ playwright/.cache/
 *.sqlite-wal
 *.sqlite-shm
 *.tsbuildinfo
+.env

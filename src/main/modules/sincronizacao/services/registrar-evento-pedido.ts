@@ -1,8 +1,8 @@
 import type { ConexaoSqlite } from '../../../database/conexao-sqlite'
 import { obterConexaoBancoLocal } from '../../../database/inicializar-banco'
 import { ENTIDADE_SYNC, type OperacaoSync } from '@shared/types/sincronizacao'
-import { criarSyncOutboxRepository } from '../repositories/sync-outbox.repository'
 import { montarPayloadPedidoSync } from './montar-payload-pedido-sync'
+import { registrarEventoSync } from './registrar-evento-sync'
 
 export function registrarEventoPedidoSync(
   pedidoId: string,
@@ -10,7 +10,7 @@ export function registrarEventoPedidoSync(
   conexao: ConexaoSqlite = obterConexaoBancoLocal(),
 ): void {
   const payload = montarPayloadPedidoSync(pedidoId, conexao)
-  criarSyncOutboxRepository().inserirNaConexao(conexao, {
+  registrarEventoSync(conexao, {
     entidade: ENTIDADE_SYNC.PEDIDO,
     entidadeId: pedidoId,
     operacao,

@@ -16,6 +16,8 @@ import {
 } from '../repositories/sessao-caixa.repository'
 import { executarEmTransacaoImediata } from '../../../database/conexao-sqlite'
 import { obterConexaoBancoLocal } from '../../../database/inicializar-banco'
+import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
+import { registrarEventoMovimentoCaixaSync } from '../../sincronizacao/services/registrar-evento-caixa'
 
 export function criarRegistrarMovimentoCaixa(
   repositorioSessao: SessaoCaixaRepository = criarSessaoCaixaRepository(),
@@ -25,7 +27,8 @@ export function criarRegistrarMovimentoCaixa(
   return function registrarMovimentoCaixa(
     entrada: RegistrarMovimentoCaixaEntrada,
   ): MovimentoCaixa {
-    return executarEmTransacaoImediata(obterConexao(), () => {
+    const conexao = obterConexao()
+    return executarEmTransacaoImediata(conexao, () => {
       const sessaoAberta = repositorioSessao.buscarSessaoAberta()
 
       if (!sessaoAberta) {
@@ -54,12 +57,15 @@ export function criarRegistrarMovimentoCaixa(
         )
       }
 
-      return repositorioMovimento.inserir({
+      const movimento = repositorioMovimento.inserir({
         sessaoCaixaId: sessaoAberta.id,
         tipo: entrada.tipo,
         valorCentavos: entrada.valorCentavos,
         descricao: descricaoNormalizada,
       })
+
+      registrarEventoMovimentoCaixaSync(conexao, movimento, OPERACAO_SYNC.CREATE)
+      return movimento
     })
   }
 }

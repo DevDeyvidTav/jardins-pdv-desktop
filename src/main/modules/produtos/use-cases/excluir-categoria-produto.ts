@@ -15,6 +15,11 @@ import type { CategoriaProdutoRepository } from '../repositories/categoria-produ
 import { criarCategoriaProdutoRepository } from '../repositories/categoria-produto.repository'
 import type { ProdutoRepository } from '../repositories/produto.repository'
 import { criarProdutoRepository } from '../repositories/produto.repository'
+import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
+import {
+  registrarCategoriaProdutoSync,
+  registrarProdutoSync,
+} from '../../sincronizacao/services/registrar-cadastro-sync'
 
 export function criarExcluirCategoriaProduto(
   repositorioCategoria: CategoriaProdutoRepository = criarCategoriaProdutoRepository(),
@@ -46,6 +51,16 @@ export function criarExcluirCategoriaProduto(
 
       confirmarTransacao(conexao)
       persistirConexaoBanco(conexao)
+
+      const categoriaAtualizada = repositorioCategoria.buscarPorId(entrada.categoriaId)
+      if (categoriaAtualizada) {
+        registrarCategoriaProdutoSync(categoriaAtualizada, OPERACAO_SYNC.UPDATE, conexao)
+      }
+      for (const produto of repositorioProduto.listarComCategoria({
+        categoriaId: entrada.categoriaId,
+      })) {
+        registrarProdutoSync(produto, OPERACAO_SYNC.UPDATE, conexao)
+      }
     } catch (erro) {
       reverterTransacao(conexao)
       throw erro

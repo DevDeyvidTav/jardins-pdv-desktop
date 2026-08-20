@@ -54,6 +54,23 @@ export class SessaoCaixaRepository {
     )
   }
 
+  listarTodas(): SessaoCaixa[] {
+    const conexao = this.obterConexao()
+    const consulta = conexao.instancia.prepare(
+      `SELECT ${obterColunasSessaoCaixa()}
+       FROM sessao_caixa
+       ORDER BY criado_em ASC`,
+    )
+    const sessoes: SessaoCaixa[] = []
+    while (consulta.step()) {
+      sessoes.push(
+        mapearLinhaSessaoCaixa(consulta.getAsObject() as unknown as LinhaSessaoCaixaSql),
+      )
+    }
+    consulta.free()
+    return sessoes
+  }
+
   buscarPorId(sessaoCaixaId: string): SessaoCaixa | null {
     return this.buscarPorConsulta(
       `SELECT ${obterColunasSessaoCaixa()}

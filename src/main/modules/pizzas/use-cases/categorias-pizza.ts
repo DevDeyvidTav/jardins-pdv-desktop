@@ -7,6 +7,8 @@ import {
 import { CODIGOS_ERRO_PIZZAS, ErroPizzas } from '../errors/erros-pizzas'
 import type { PizzaCategoriaRepository } from '../repositories/pizza-categoria.repository'
 import { criarPizzaCategoriaRepository } from '../repositories/pizza-categoria.repository'
+import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
+import { registrarPizzaCategoriaSync } from '../../sincronizacao/services/registrar-cadastro-sync'
 
 function garantirRegraValida(regra: RegraPrecificacaoPizza): void {
   if (
@@ -38,12 +40,14 @@ export function criarCriarPizzaCategoria(
       entrada.regraPrecificacao ?? REGRA_PRECIFICACAO_PIZZA.MAIOR_SABOR
     garantirRegraValida(regra)
 
-    return repositorio.inserir({
+    const categoria = repositorio.inserir({
       nome,
       descricao: entrada.descricao?.trim() || null,
       regraPrecificacao: regra,
       ordem: entrada.ordem ?? 0,
     })
+    registrarPizzaCategoriaSync(categoria, OPERACAO_SYNC.CREATE)
+    return categoria
   }
 }
 
@@ -86,7 +90,7 @@ export function criarAtualizarPizzaCategoria(
       garantirRegraValida(entrada.regraPrecificacao)
     }
 
-    return repositorio.atualizar({
+    const categoria = repositorio.atualizar({
       categoriaId: entrada.categoriaId,
       nome: entrada.nome?.trim(),
       descricao: entrada.descricao,
@@ -94,6 +98,8 @@ export function criarAtualizarPizzaCategoria(
       ativa: entrada.ativa,
       ordem: entrada.ordem,
     })
+    registrarPizzaCategoriaSync(categoria, OPERACAO_SYNC.UPDATE)
+    return categoria
   }
 }
 

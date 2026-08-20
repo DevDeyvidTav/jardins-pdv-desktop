@@ -10,6 +10,8 @@ import type { CategoriaProdutoRepository } from '../repositories/categoria-produ
 import { criarCategoriaProdutoRepository } from '../repositories/categoria-produto.repository'
 import type { ProdutoRepository } from '../repositories/produto.repository'
 import { criarProdutoRepository } from '../repositories/produto.repository'
+import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
+import { registrarProdutoSync } from '../../sincronizacao/services/registrar-cadastro-sync'
 
 export function criarAtualizarProduto(
   repositorioProduto: ProdutoRepository = criarProdutoRepository(),
@@ -57,13 +59,15 @@ export function criarAtualizarProduto(
       }
     }
 
-    return repositorioProduto.atualizar({
+    const produto = repositorioProduto.atualizar({
       produtoId: entrada.produtoId,
       categoriaId: entrada.categoriaId,
       nome: entrada.nome?.trim(),
       descricao: entrada.descricao,
       precoCentavos: entrada.precoCentavos,
     })
+    registrarProdutoSync(produto, OPERACAO_SYNC.UPDATE)
+    return produto
   }
 }
 

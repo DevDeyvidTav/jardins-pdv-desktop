@@ -1,0 +1,72 @@
+.logo-marca {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #000000;
+  flex-shrink: 0;
+}
+
+.logo-marca__imagem {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.logo-marca--compacto {
+  width: 2.75rem;
+  height: 2.75rem;
+}
+
+.logo-marca--medio {
+  width: 4.5rem;
+  height: 4.5rem;
+}
+
+.logo-marca--destaque {
+  width: 7.5rem;
+  height: 7.5rem;
+}
+
+.navegacao-principal {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.85rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  background: #ffffff;
+}
+
+.navegacao-principal__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.navegacao-principal button {
+  padding: 0.5rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #111827;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.navegacao-principal button[data-ativo='true'] {
+  background: #111827;
+  color: #ffffff;
+  border-color: #111827;
+}
+
+@media (max-width: 900px) {
+  .navegacao-principal {
+    padding-inline: 1rem;
+  }
+
+  .logo-marca--compacto {
+    width: 2.35rem;
+    height: 2.35rem;
+  }
+}

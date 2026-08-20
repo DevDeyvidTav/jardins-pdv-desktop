@@ -15,6 +15,12 @@ import type { PizzaSaborPrecoRepository } from '../repositories/pizza-sabor-prec
 import { criarPizzaSaborPrecoRepository } from '../repositories/pizza-sabor-preco.repository'
 import type { PizzaTamanhoRepository } from '../repositories/pizza-tamanho.repository'
 import { criarPizzaTamanhoRepository } from '../repositories/pizza-tamanho.repository'
+import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
+import {
+  registrarPizzaSaborPrecoSync,
+  registrarPizzaSaborSync,
+  registrarPizzaVinculoSync,
+} from '../../sincronizacao/services/registrar-cadastro-sync'
 
 export function criarCriarPizzaSabor(
   repositorio: PizzaSaborRepository = criarPizzaSaborRepository(),
@@ -28,11 +34,13 @@ export function criarCriarPizzaSabor(
       )
     }
 
-    return repositorio.inserir({
+    const sabor = repositorio.inserir({
       nome,
       descricao: entrada.descricao?.trim() || null,
       ordem: entrada.ordem ?? 0,
     })
+    registrarPizzaSaborSync(sabor, OPERACAO_SYNC.CREATE)
+    return sabor
   }
 }
 
@@ -76,13 +84,15 @@ export function criarAtualizarPizzaSabor(
       )
     }
 
-    return repositorio.atualizar({
+    const sabor = repositorio.atualizar({
       saborId: entrada.saborId,
       nome: entrada.nome?.trim(),
       descricao: entrada.descricao,
       ativa: entrada.ativa,
       ordem: entrada.ordem,
     })
+    registrarPizzaSaborSync(sabor, OPERACAO_SYNC.UPDATE)
+    return sabor
   }
 }
 
@@ -114,6 +124,11 @@ export function criarVincularSaborCategoria(
       saborId: entrada.saborId,
       ativo: entrada.ativo ?? true,
     })
+    registrarPizzaVinculoSync(
+      entrada.categoriaId,
+      entrada.saborId,
+      entrada.ativo ?? true,
+    )
   }
 }
 
@@ -150,11 +165,13 @@ export function criarDefinirPrecoSaborPorTamanho(
       )
     }
 
-    return repositorioPreco.definir({
+    const preco = repositorioPreco.definir({
       saborId: entrada.saborId,
       tamanhoId: entrada.tamanhoId,
       valorCentavos: entrada.valorCentavos,
     })
+    registrarPizzaSaborPrecoSync(preco)
+    return preco
   }
 }
 

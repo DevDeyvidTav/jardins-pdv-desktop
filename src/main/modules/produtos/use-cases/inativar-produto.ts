@@ -5,6 +5,8 @@ import {
 } from '../errors/erros-produtos'
 import type { ProdutoRepository } from '../repositories/produto.repository'
 import { criarProdutoRepository } from '../repositories/produto.repository'
+import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
+import { registrarProdutoSync } from '../../sincronizacao/services/registrar-cadastro-sync'
 
 export function criarInativarProduto(
   repositorio: ProdutoRepository = criarProdutoRepository(),
@@ -19,7 +21,9 @@ export function criarInativarProduto(
       )
     }
 
-    return repositorio.inativar(entrada.produtoId)
+    const produto = repositorio.inativar(entrada.produtoId)
+    registrarProdutoSync(produto, OPERACAO_SYNC.UPDATE)
+    return produto
   }
 }
 

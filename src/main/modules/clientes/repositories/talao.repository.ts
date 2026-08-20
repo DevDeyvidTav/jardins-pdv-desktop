@@ -215,6 +215,21 @@ export class TalaoRepository {
     consulta.free()
     return totais
   }
+
+  listarTodasBaixas(): TalaoBaixa[] {
+    const consulta = this.obterConexao().instancia.prepare(
+      `SELECT id, cliente_id, sessao_caixa_id, forma_pagamento, valor_centavos,
+              competencia, observacao, criado_em, atualizado_em
+       FROM talao_baixa
+       ORDER BY criado_em ASC`,
+    )
+    const baixas: TalaoBaixa[] = []
+    while (consulta.step()) {
+      baixas.push(mapearBaixa(consulta.getAsObject() as LinhaBaixaSql))
+    }
+    consulta.free()
+    return baixas
+  }
 }
 
 export function criarTalaoRepository(conexao?: ConexaoSqlite): TalaoRepository {

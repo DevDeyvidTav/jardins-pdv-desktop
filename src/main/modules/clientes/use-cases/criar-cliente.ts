@@ -4,6 +4,8 @@ import {
   criarClienteRepository,
   type ClienteRepository,
 } from '../repositories/cliente.repository'
+import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
+import { registrarClienteSync } from '../../sincronizacao/services/registrar-cadastro-sync'
 
 function normalizarOpcional(valor?: string | null): string | null {
   const texto = valor?.trim() ?? ''
@@ -22,13 +24,15 @@ export function criarCriarCliente(
       )
     }
 
-    return repositorio.inserir({
+    const cliente = repositorio.inserir({
       nome,
       telefone: normalizarOpcional(entrada.telefone),
       documento: normalizarOpcional(entrada.documento),
       endereco: normalizarOpcional(entrada.endereco),
       liberaTalao: Boolean(entrada.liberaTalao),
     })
+    registrarClienteSync(cliente, OPERACAO_SYNC.CREATE)
+    return cliente
   }
 }
 

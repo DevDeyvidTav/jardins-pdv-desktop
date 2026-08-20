@@ -1,6 +1,13 @@
 import { formatarMoeda } from '@shared/utils/moeda'
 
-export const LARGURA_CUPOM = 42
+/**
+ * No modo ESC/POS a MP-4200 TH sempre trata o papel como 80mm/73.5mm
+ * imprimivel (mesmo que a bobina fisica seja outra), e a largura padrao
+ * (fonte normal, sem modo condensado) e de 48 colunas — ver "Table 1 -
+ * Characters Per Line" do manual da impressora. Usar menos que isso deixa
+ * uma faixa em branco do lado direito do cupom.
+ */
+export const LARGURA_CUPOM = 48
 
 /** Intl.pt-BR usa NBSP entre R$ e o valor; na termica isso vira lixo. */
 export function formatarMoedaCupom(valorCentavos: number): string {

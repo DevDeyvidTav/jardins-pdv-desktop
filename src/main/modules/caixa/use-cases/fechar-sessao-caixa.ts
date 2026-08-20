@@ -22,6 +22,8 @@ import {
 } from '../types/fechamento-caixa.types'
 import { executarEmTransacaoImediata } from '../../../database/conexao-sqlite'
 import { obterConexaoBancoLocal } from '../../../database/inicializar-banco'
+import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
+import { registrarEventoSessaoCaixaSync } from '../../sincronizacao/services/registrar-evento-caixa'
 
 export function criarFecharSessaoCaixa(
   repositorioSessao: SessaoCaixaRepository = criarSessaoCaixaRepository(),
@@ -39,7 +41,8 @@ export function criarFecharSessaoCaixa(
       )
     }
 
-    return executarEmTransacaoImediata(obterConexao(), () => {
+    const conexao = obterConexao()
+    return executarEmTransacaoImediata(conexao, () => {
       const sessaoAberta = repositorioSessao.buscarSessaoAberta()
 
       if (!sessaoAberta) {
@@ -70,13 +73,16 @@ export function criarFecharSessaoCaixa(
       const observacaoFechamento = entrada.observacaoFechamento?.trim() || null
 
       try {
-        return repositorioSessao.fecharSessao({
+        const sessaoFechada = repositorioSessao.fecharSessao({
           sessaoCaixaId: sessaoAberta.id,
           saldoFinalInformadoCentavos: entrada.saldoFinalInformadoCentavos,
           saldoFinalEsperadoCentavos,
           diferencaCentavos,
           observacaoFechamento,
         })
+
+        registrarEventoSessaoCaixaSync(conexao, sessaoFechada, OPERACAO_SYNC.UPDATE)
+        return sessaoFechada
       } catch {
         throw new ErroCaixa(
           CODIGOS_ERRO_CAIXA.CAIXA_JA_FECHADO,

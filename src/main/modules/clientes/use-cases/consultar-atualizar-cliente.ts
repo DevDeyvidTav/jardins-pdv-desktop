@@ -11,6 +11,8 @@ import {
   criarClienteRepository,
   type ClienteRepository,
 } from '../repositories/cliente.repository'
+import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
+import { registrarClienteSync } from '../../sincronizacao/services/registrar-cadastro-sync'
 
 function garantirCliente(repositorio: ClienteRepository, clienteId: string): Cliente {
   const cliente = repositorio.buscarPorId(clienteId)
@@ -62,7 +64,7 @@ export function criarAtualizarCliente(
       )
     }
 
-    return repositorio.atualizar({
+    const cliente = repositorio.atualizar({
       clienteId: entrada.clienteId,
       nome,
       telefone: normalizarOpcional(entrada.telefone),
@@ -70,6 +72,8 @@ export function criarAtualizarCliente(
       endereco: normalizarOpcional(entrada.endereco),
       liberaTalao: entrada.liberaTalao,
     })
+    registrarClienteSync(cliente, OPERACAO_SYNC.UPDATE)
+    return cliente
   }
 }
 
@@ -80,7 +84,9 @@ export function criarInativarCliente(
 ) {
   return function inativarCliente(entrada: InativarClienteEntrada): Cliente {
     garantirCliente(repositorio, entrada.clienteId)
-    return repositorio.definirAtivo(entrada.clienteId, false)
+    const cliente = repositorio.definirAtivo(entrada.clienteId, false)
+    registrarClienteSync(cliente, OPERACAO_SYNC.UPDATE)
+    return cliente
   }
 }
 
@@ -91,7 +97,9 @@ export function criarReativarCliente(
 ) {
   return function reativarCliente(entrada: ReativarClienteEntrada): Cliente {
     garantirCliente(repositorio, entrada.clienteId)
-    return repositorio.definirAtivo(entrada.clienteId, true)
+    const cliente = repositorio.definirAtivo(entrada.clienteId, true)
+    registrarClienteSync(cliente, OPERACAO_SYNC.UPDATE)
+    return cliente
   }
 }
 

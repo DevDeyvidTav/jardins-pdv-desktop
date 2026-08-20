@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { LogoMarca } from '../componentes/logo-marca'
+import '../componentes/logo-marca.css'
 import { AberturaCaixaPage } from '../modules/caixa/pages/abertura-caixa.page'
 import { CaixaAtualPage } from '../modules/caixa/pages/caixa-atual.page'
 import { FechamentoCaixaPage } from '../modules/caixa/pages/fechamento-caixa.page'
@@ -28,7 +30,9 @@ function NavegacaoPrincipal({
 }) {
   return (
     <nav className="navegacao-principal" data-testid="navegacao-principal">
-      <button
+      <LogoMarca tamanho="compacto" />
+      <div className="navegacao-principal__links">
+        <button
         type="button"
         data-testid="nav-caixa"
         data-ativo={secaoAtiva === 'caixa'}
@@ -60,6 +64,7 @@ function NavegacaoPrincipal({
       >
         Clientes
       </button>
+      </div>
     </nav>
   )
 }

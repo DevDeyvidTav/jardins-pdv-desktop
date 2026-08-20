@@ -12,6 +12,8 @@ import { obterConexaoBancoLocal } from '../../../database/inicializar-banco'
 import { registrarErro, registrarInfo } from '../../../logging/logger'
 import { criarSyncOutboxRepository } from '../repositories/sync-outbox.repository'
 import { enviarEventosSyncApi } from './cliente-sync-api'
+import { enfileirarCadastrosIniciais } from './enfileirar-cadastros-sync'
+import { enfileirarHistoricoInicial } from './enfileirar-historico-sync'
 
 const BACKOFF_BASE_MS = 5_000
 const BACKOFF_MAX_MS = 5 * 60_000
@@ -136,6 +138,9 @@ export function iniciarSincronizador(): void {
     intervaloMs: config.intervaloMs,
     apiUrl: config.apiUrl,
   })
+
+  enfileirarCadastrosIniciais()
+  enfileirarHistoricoInicial()
 
   void executarCicloSincronizacao()
   intervaloId = setInterval(() => {

@@ -165,14 +165,48 @@ function enviarViaComWindows(
 
   try {
     executarEnvioCom(buffer, porta, nomeImpressora)
+    return
   } catch (erro) {
     if (!falhaPermiteReenvio(erro)) {
       throw new Error(
         obterMensagemErroImpressora(nomeImpressora, extrairDetalhe(erro)),
       )
     }
+  }
 
-    enviarViaSpoolerWindows(buffer, nomeImpressora, porta)
+  /** A Bematech reenumera a porta COM a cada reconexao USB; a configurada pode ter ficado obsoleta. */
+  const portaDetectada = detectarPortaComAtual(nomeImpressora)
+
+  if (portaDetectada && portaDetectada !== porta) {
+    try {
+      executarEnvioCom(buffer, portaDetectada, nomeImpressora)
+      return
+    } catch (erro) {
+      if (!falhaPermiteReenvio(erro)) {
+        throw new Error(
+          obterMensagemErroImpressora(nomeImpressora, extrairDetalhe(erro)),
+        )
+      }
+    }
+  }
+
+  enviarViaSpoolerWindows(buffer, nomeImpressora, portaDetectada ?? porta)
+}
+
+export function detectarPortaComAtual(
+  nomeImpressora: string,
+  executarConsulta = executarConsultaPowerShell,
+): string | null {
+  try {
+    const termoEscapado = nomeImpressora.replace(/'/g, "''")
+    const saida = executarConsulta(
+      `(Get-PnpDevice | Where-Object { $_.Present -and $_.FriendlyName -like '*${termoEscapado}*' -and $_.FriendlyName -match '\\(COM\\d+\\)' } | Select-Object -First 1 -ExpandProperty FriendlyName)`,
+    ).trim()
+
+    const combinacao = saida.match(/\(COM(\d+)\)/i)
+    return combinacao ? `COM${combinacao[1]}` : null
+  } catch {
+    return null
   }
 }
 
@@ -411,6 +445,10 @@ try {
   $port = New-Object System.IO.Ports.SerialPort $PortName, 115200, 'None', 8, 'One'
   $port.Handshake = [System.IO.Ports.Handshake]::None
   $port.WriteTimeout = 8000
+  # Sem DTR/RTS ativos a porta virtual USB da Bematech nao aceita bytes e trava
+  # com "tempo limite do semaforo expirou", mesmo com o dispositivo presente e OK.
+  $port.DtrEnable = $true
+  $port.RtsEnable = $true
 } catch {
   Write-Output ("FAIL:ABERTURA:" + $_.Exception.Message)
   exit 1
@@ -418,6 +456,7 @@ try {
 
 try {
   $port.Open()
+  Start-Sleep -Milliseconds 300
 } catch {
   Write-Output ("FAIL:ABERTURA:" + $_.Exception.Message)
   exit 1

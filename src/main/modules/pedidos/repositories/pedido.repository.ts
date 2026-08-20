@@ -96,6 +96,19 @@ export class PedidoRepository {
     return pedidos
   }
 
+  listarIds(): string[] {
+    const conexao = this.obterConexao()
+    const consulta = conexao.instancia.prepare(
+      `SELECT id FROM pedido ORDER BY criado_em ASC`,
+    )
+    const ids: string[] = []
+    while (consulta.step()) {
+      ids.push((consulta.getAsObject() as { id: string }).id)
+    }
+    consulta.free()
+    return ids
+  }
+
   contarPedidosAbertos(sessaoCaixaId?: string): number {
     const conexao = this.obterConexao()
     const consulta = conexao.instancia.prepare(

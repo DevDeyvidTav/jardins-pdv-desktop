@@ -2,6 +2,8 @@ import type { AtualizarMesaEntrada, Mesa } from '@shared/types/mesa'
 import { CODIGOS_ERRO_MESAS, ErroMesas } from '../errors/erros-mesas'
 import type { MesaRepository } from '../repositories/mesa.repository'
 import { criarMesaRepository } from '../repositories/mesa.repository'
+import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
+import { registrarMesaSync } from '../../sincronizacao/services/registrar-cadastro-sync'
 
 export function criarAtualizarMesa(repositorio: MesaRepository = criarMesaRepository()) {
   return function atualizarMesa(entrada: AtualizarMesaEntrada): Mesa {
@@ -15,11 +17,13 @@ export function criarAtualizarMesa(repositorio: MesaRepository = criarMesaReposi
       throw new ErroMesas(CODIGOS_ERRO_MESAS.ENTRADA_INVALIDA, 'Nome da mesa e invalido.')
     }
 
-    return repositorio.atualizar({
+    const mesa = repositorio.atualizar({
       mesaId: entrada.mesaId,
       numero: entrada.numero,
       nome: entrada.nome?.trim(),
     })
+    registrarMesaSync(mesa, OPERACAO_SYNC.UPDATE)
+    return mesa
   }
 }
 
