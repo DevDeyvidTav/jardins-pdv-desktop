@@ -84,6 +84,7 @@ export interface RegistrarPagamentoParteDivisaoEntrada {
   /** Forma de pagamento do dominio (DINHEIRO, PIX, etc.). */
   formaPagamento: import('./pagamento-pedido').FormaPagamento
   valorCentavos: number
+  valorRecebidoCentavos?: number
   motivoCortesia?: string
 }
 
@@ -100,6 +101,8 @@ export interface PagamentoParteResumo {
   id: string
   formaPagamento: string
   valorCentavos: number
+  valorRecebidoCentavos: number | null
+  trocoCentavos: number
   criadoEm: string
   motivoCortesia?: string | null
 }

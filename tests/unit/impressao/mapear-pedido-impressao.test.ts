@@ -137,10 +137,19 @@ describe('mapearPedidoParaConta', () => {
       criadoEm: agora,
       atualizadoEm: agora,
       canceladoEm: null,
+      valorRecebidoCentavos: 5000,
+      trocoCentavos: 0,
     }
 
     const conta = mapearPedidoParaConta(criarResumo(), mesa, [pagamento])
-    expect(conta.pagamentos).toEqual([{ formaRotulo: 'Dinheiro', valorCentavos: 5000 }])
+    expect(conta.pagamentos).toEqual([
+      {
+        formaRotulo: 'Dinheiro',
+        valorCentavos: 5000,
+        valorRecebidoCentavos: 5000,
+        trocoCentavos: 0,
+      },
+    ])
   })
 })
 

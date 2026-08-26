@@ -1,0 +1,2 @@
+-- Historico: troco e valor recebido em dinheiro (versao 20).
+-- Conteudo canonico em registro-migracoes.ts.

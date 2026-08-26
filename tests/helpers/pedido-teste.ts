@@ -83,6 +83,7 @@ export async function prepararAmbientePedidos() {
     repositorioProduto,
     repositorioItem,
     repositorioPagamento,
+    criarProduto,
     criarPedidoMesa,
     criarPedidoBalcao,
     adicionarItemPedido,

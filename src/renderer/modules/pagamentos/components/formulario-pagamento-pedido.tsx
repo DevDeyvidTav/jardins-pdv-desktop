@@ -5,6 +5,8 @@ import {
   type PagamentoInformado,
 } from '@shared/types/pagamento-pedido'
 import { converterReaisParaCentavos, formatarMoeda } from '@shared/utils/moeda'
+import { MENSAGEM_VALOR_RECEBIDO_INSUFICIENTE } from '@shared/utils/troco-dinheiro'
+import { CamposTrocoDinheiro } from './campos-troco-dinheiro'
 
 interface Props {
   totalCentavos: number
@@ -36,6 +38,7 @@ export function FormularioPagamentoPedido({
     FORMA_PAGAMENTO.DINHEIRO,
   )
   const [valor, setValor] = useState(formatarCentavosParaInput(totalCentavos))
+  const [valorRecebido, setValorRecebido] = useState('')
   const [motivoCortesia, setMotivoCortesia] = useState('')
   const [erro, setErro] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
@@ -43,9 +46,11 @@ export function FormularioPagamentoPedido({
   const formas = permitirTalao
     ? [...FORMAS_BASE.slice(0, 5), FORMA_PAGAMENTO.TALAO, FORMA_PAGAMENTO.CORTESIA]
     : FORMAS_BASE
+  const ehDinheiro = formaPagamento === FORMA_PAGAMENTO.DINHEIRO
 
   useEffect(() => {
     setValor(formatarCentavosParaInput(totalCentavos))
+    setValorRecebido('')
   }, [totalCentavos])
 
   useEffect(() => {
@@ -53,6 +58,12 @@ export function FormularioPagamentoPedido({
       setFormaPagamento(FORMA_PAGAMENTO.DINHEIRO)
     }
   }, [permitirTalao, formaPagamento])
+
+  useEffect(() => {
+    if (!ehDinheiro) {
+      setValorRecebido('')
+    }
+  }, [ehDinheiro])
 
   async function confirmar(evento: FormEvent) {
     evento.preventDefault()
@@ -76,6 +87,20 @@ export function FormularioPagamentoPedido({
       return
     }
 
+    let valorRecebidoCentavos: number | undefined
+    if (ehDinheiro && valorRecebido.trim() !== '') {
+      const recebido = converterReaisParaCentavos(valorRecebido)
+      if (recebido === null) {
+        setErro('Informe um valor recebido valido.')
+        return
+      }
+      if (recebido < valorCentavos) {
+        setErro(MENSAGEM_VALOR_RECEBIDO_INSUFICIENTE)
+        return
+      }
+      valorRecebidoCentavos = recebido
+    }
+
     setErro(null)
     setEnviando(true)
 
@@ -83,6 +108,7 @@ export function FormularioPagamentoPedido({
       const ok = await onConfirmar({
         formaPagamento,
         valorCentavos,
+        valorRecebidoCentavos,
         motivoCortesia:
           formaPagamento === FORMA_PAGAMENTO.CORTESIA
             ? motivoCortesia.trim()
@@ -128,6 +154,7 @@ export function FormularioPagamentoPedido({
           placeholder="0,00"
           inputMode="decimal"
           disabled={enviando}
+          aria-label="Valor do pagamento"
         />
         {formaPagamento === FORMA_PAGAMENTO.CORTESIA ? (
           <input
@@ -135,6 +162,14 @@ export function FormularioPagamentoPedido({
             value={motivoCortesia}
             onChange={(evento) => setMotivoCortesia(evento.target.value)}
             placeholder="Motivo da cortesia"
+            disabled={enviando}
+          />
+        ) : null}
+        {ehDinheiro ? (
+          <CamposTrocoDinheiro
+            valorAplicadoCentavos={converterReaisParaCentavos(valor)}
+            valorRecebido={valorRecebido}
+            onValorRecebidoChange={setValorRecebido}
             disabled={enviando}
           />
         ) : null}

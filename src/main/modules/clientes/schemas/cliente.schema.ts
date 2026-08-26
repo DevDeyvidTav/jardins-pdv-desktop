@@ -2,6 +2,10 @@ import { z } from 'zod'
 import {
   FORMAS_PAGAMENTO_BAIXA_TALAO,
 } from '@shared/types/pagamento-pedido'
+import {
+  refinarTrocoDinheiro,
+  valorRecebidoCentavosSchema,
+} from '../../pagamentos/schemas/pagamento-pedido.schema'
 
 export const criarClienteSchema = z.object({
   nome: z.string().trim().min(2, 'Nome do cliente deve ter no minimo 2 caracteres.').max(120),
@@ -65,9 +69,12 @@ export const registrarBaixaTalaoSchema = z.object({
     .number()
     .int('Valor deve ser inteiro.')
     .positive('Valor da baixa deve ser maior que zero.'),
+  valorRecebidoCentavos: valorRecebidoCentavosSchema,
   competencia: z
     .string()
     .regex(/^\d{4}-\d{2}$/, 'Competencia deve estar no formato YYYY-MM.')
     .optional(),
   observacao: z.string().trim().max(500).optional(),
+}).superRefine((value, ctx) => {
+  refinarTrocoDinheiro(value, ctx)
 })

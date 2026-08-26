@@ -29,6 +29,7 @@ export interface UseClientesResultado {
   registrarBaixa: (entrada: {
     formaPagamento: FormaPagamento
     valorCentavos: number
+    valorRecebidoCentavos?: number
     observacao?: string
   }) => Promise<boolean>
   definirTermoBusca: (termo: string) => void
@@ -210,6 +211,7 @@ export function useClientes(): UseClientesResultado {
     async (entrada: {
       formaPagamento: FormaPagamento
       valorCentavos: number
+      valorRecebidoCentavos?: number
       observacao?: string
     }): Promise<boolean> => {
       if (!clienteSelecionado) return false
@@ -221,6 +223,7 @@ export function useClientes(): UseClientesResultado {
           competencia,
           formaPagamento: entrada.formaPagamento,
           valorCentavos: entrada.valorCentavos,
+          valorRecebidoCentavos: entrada.valorRecebidoCentavos,
           observacao: entrada.observacao,
         })
         await carregarConta(clienteSelecionado.id, competencia)

@@ -7,6 +7,8 @@ export interface TalaoBaixa {
   sessaoCaixaId: string
   formaPagamento: FormaPagamento
   valorCentavos: number
+  valorRecebidoCentavos: number | null
+  trocoCentavos: number
   competencia: string
   observacao: string | null
   criadoEm: string
@@ -47,6 +49,7 @@ export interface RegistrarBaixaTalaoEntrada {
   clienteId: string
   formaPagamento: FormaPagamento
   valorCentavos: number
+  valorRecebidoCentavos?: number
   competencia?: string
   observacao?: string
 }

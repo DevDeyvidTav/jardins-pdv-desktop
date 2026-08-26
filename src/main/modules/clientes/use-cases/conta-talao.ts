@@ -7,6 +7,7 @@ import type {
 } from '@shared/types/talao'
 import { FORMAS_PAGAMENTO_BAIXA_TALAO } from '@shared/types/pagamento-pedido'
 import { competenciaAtualUtc } from '@shared/utils/data-hora'
+import { mensagemErroValorRecebidoDinheiro } from '@shared/utils/troco-dinheiro'
 import { STATUS_SESSAO_CAIXA } from '@shared/types/sessao-caixa'
 import { CODIGOS_ERRO_CLIENTES, ErroClientes } from '../errors/erros-clientes'
 import {
@@ -147,11 +148,21 @@ export function criarRegistrarBaixaTalao(
       )
     }
 
+    const erroRecebido = mensagemErroValorRecebidoDinheiro(
+      entrada.formaPagamento,
+      entrada.valorCentavos,
+      entrada.valorRecebidoCentavos,
+    )
+    if (erroRecebido) {
+      throw new ErroClientes(CODIGOS_ERRO_CLIENTES.ENTRADA_INVALIDA, erroRecebido)
+    }
+
     const baixa = repositorioTalao.inserirBaixa({
       clienteId: cliente.id,
       sessaoCaixaId: sessao.id,
       formaPagamento: entrada.formaPagamento,
       valorCentavos: entrada.valorCentavos,
+      valorRecebidoCentavos: entrada.valorRecebidoCentavos,
       competencia,
       observacao: entrada.observacao?.trim() || null,
     })

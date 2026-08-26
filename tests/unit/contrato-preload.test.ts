@@ -604,6 +604,8 @@ describe('contrato da API exposta pelo preload', () => {
           sessaoCaixaId: '1',
           formaPagamento: 'DINHEIRO' as const,
           valorCentavos: 100,
+          valorRecebidoCentavos: 100,
+          trocoCentavos: 0,
           competencia: '2026-08',
           observacao: null,
           criadoEm: new Date().toISOString(),

@@ -721,4 +721,15 @@ CREATE INDEX IF NOT EXISTS idx_sync_outbox_entidade
   ON sync_outbox (entidade, entidade_id);
 `.trim(),
   },
+  {
+    versao: 20,
+    nome: '0020-troco-dinheiro',
+    sql: `
+ALTER TABLE pagamento_pedido ADD COLUMN valor_recebido_centavos INTEGER;
+ALTER TABLE pagamento_pedido ADD COLUMN troco_centavos INTEGER NOT NULL DEFAULT 0;
+
+ALTER TABLE talao_baixa ADD COLUMN valor_recebido_centavos INTEGER;
+ALTER TABLE talao_baixa ADD COLUMN troco_centavos INTEGER NOT NULL DEFAULT 0;
+`.trim(),
+  },
 ]

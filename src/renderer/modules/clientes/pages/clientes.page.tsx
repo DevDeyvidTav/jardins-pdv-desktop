@@ -1,10 +1,12 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import {
+  FORMA_PAGAMENTO,
   FORMAS_PAGAMENTO_BAIXA_TALAO,
   ROTULOS_FORMA_PAGAMENTO,
   type FormaPagamento,
 } from '@shared/types/pagamento-pedido'
 import { converterReaisParaCentavos, formatarMoeda } from '@shared/utils/moeda'
+import { CamposTrocoDinheiro } from '../../pagamentos/components/campos-troco-dinheiro'
 import type { UseClientesResultado } from '../hooks/use-clientes'
 import './clientes.css'
 
@@ -24,6 +26,7 @@ export function ClientesPage({ clientes }: ClientesPageProps) {
   const [endereco, setEndereco] = useState('')
   const [liberaTalao, setLiberaTalao] = useState(false)
   const [valorBaixa, setValorBaixa] = useState('')
+  const [valorRecebidoBaixa, setValorRecebidoBaixa] = useState('')
   const [formaBaixa, setFormaBaixa] = useState<FormaPagamento>(
     FORMAS_PAGAMENTO_BAIXA_TALAO[0],
   )
@@ -50,6 +53,7 @@ export function ClientesPage({ clientes }: ClientesPageProps) {
           ? formatarCentavosParaInput(clientes.conta.saldoCentavos)
           : '',
       )
+      setValorRecebidoBaixa('')
     }
   }, [clientes.conta?.saldoCentavos, clientes.conta?.competencia])
 
@@ -92,9 +96,20 @@ export function ClientesPage({ clientes }: ClientesPageProps) {
     if (valorCentavos === null || valorCentavos <= 0) {
       return
     }
+
+    let valorRecebidoCentavos: number | undefined
+    if (formaBaixa === FORMA_PAGAMENTO.DINHEIRO && valorRecebidoBaixa.trim() !== '') {
+      const recebido = converterReaisParaCentavos(valorRecebidoBaixa)
+      if (recebido === null || recebido < valorCentavos) {
+        return
+      }
+      valorRecebidoCentavos = recebido
+    }
+
     await clientes.registrarBaixa({
       formaPagamento: formaBaixa,
       valorCentavos,
+      valorRecebidoCentavos,
       observacao: observacaoBaixa.trim() || undefined,
     })
   }
@@ -349,6 +364,13 @@ export function ClientesPage({ clientes }: ClientesPageProps) {
                         inputMode="decimal"
                       />
                     </label>
+                    {formaBaixa === FORMA_PAGAMENTO.DINHEIRO ? (
+                      <CamposTrocoDinheiro
+                        valorAplicadoCentavos={converterReaisParaCentavos(valorBaixa)}
+                        valorRecebido={valorRecebidoBaixa}
+                        onValorRecebidoChange={setValorRecebidoBaixa}
+                      />
+                    ) : null}
                     <label>
                       Observacao
                       <input

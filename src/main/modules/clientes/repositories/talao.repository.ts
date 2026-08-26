@@ -4,6 +4,10 @@ import type { FormaPagamento } from '@shared/types/pagamento-pedido'
 import { FORMA_PAGAMENTO, totaisFormaPagamentoVazios } from '@shared/types/pagamento-pedido'
 import type { LancamentoTalao, TalaoBaixa } from '@shared/types/talao'
 import {
+  resolverCamposTrocoDinheiro,
+  SQL_VALOR_LIQUIDO_CAIXA,
+} from '@shared/utils/troco-dinheiro'
+import {
   persistirConexaoBanco,
   type ConexaoSqlite,
 } from '../../../database/conexao-sqlite'
@@ -15,6 +19,8 @@ type LinhaBaixaSql = {
   sessao_caixa_id: string
   forma_pagamento: FormaPagamento
   valor_centavos: number
+  valor_recebido_centavos: number | null
+  troco_centavos: number
   competencia: string
   observacao: string | null
   criado_em: string
@@ -28,6 +34,9 @@ function mapearBaixa(linha: LinhaBaixaSql): TalaoBaixa {
     sessaoCaixaId: linha.sessao_caixa_id,
     formaPagamento: linha.forma_pagamento,
     valorCentavos: Number(linha.valor_centavos) || 0,
+    valorRecebidoCentavos:
+      linha.valor_recebido_centavos == null ? null : Number(linha.valor_recebido_centavos),
+    trocoCentavos: Number(linha.troco_centavos) || 0,
     competencia: linha.competencia,
     observacao: linha.observacao,
     criadoEm: linha.criado_em,
@@ -103,6 +112,7 @@ export class TalaoRepository {
   listarBaixas(clienteId: string, competencia: string): TalaoBaixa[] {
     const consulta = this.obterConexao().instancia.prepare(
       `SELECT id, cliente_id, sessao_caixa_id, forma_pagamento, valor_centavos,
+              valor_recebido_centavos, troco_centavos,
               competencia, observacao, criado_em, atualizado_em
        FROM talao_baixa
        WHERE cliente_id = ? AND competencia = ?
@@ -159,16 +169,24 @@ export class TalaoRepository {
     sessaoCaixaId: string
     formaPagamento: FormaPagamento
     valorCentavos: number
+    valorRecebidoCentavos?: number | null
     competencia: string
     observacao?: string | null
   }): TalaoBaixa {
     const agora = agoraEmIsoUtc()
+    const troco = resolverCamposTrocoDinheiro({
+      formaPagamento: dados.formaPagamento,
+      valorCentavos: dados.valorCentavos,
+      valorRecebidoCentavos: dados.valorRecebidoCentavos,
+    })
     const registro: TalaoBaixa = {
       id: randomUUID(),
       clienteId: dados.clienteId,
       sessaoCaixaId: dados.sessaoCaixaId,
       formaPagamento: dados.formaPagamento,
       valorCentavos: dados.valorCentavos,
+      valorRecebidoCentavos: troco.valorRecebidoCentavos,
+      trocoCentavos: troco.trocoCentavos,
       competencia: dados.competencia,
       observacao: dados.observacao ?? null,
       criadoEm: agora,
@@ -178,14 +196,17 @@ export class TalaoRepository {
     this.obterConexao().instancia.run(
       `INSERT INTO talao_baixa (
          id, cliente_id, sessao_caixa_id, forma_pagamento, valor_centavos,
+         valor_recebido_centavos, troco_centavos,
          competencia, observacao, criado_em, atualizado_em
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         registro.id,
         registro.clienteId,
         registro.sessaoCaixaId,
         registro.formaPagamento,
         registro.valorCentavos,
+        registro.valorRecebidoCentavos,
+        registro.trocoCentavos,
         registro.competencia,
         registro.observacao,
         registro.criadoEm,
@@ -199,7 +220,7 @@ export class TalaoRepository {
   calcularTotaisBaixasPorSessao(sessaoCaixaId: string): Record<FormaPagamento, number> {
     const totais = totaisFormaPagamentoVazios()
     const consulta = this.obterConexao().instancia.prepare(
-      `SELECT forma_pagamento, COALESCE(SUM(valor_centavos), 0) AS total
+      `SELECT forma_pagamento, COALESCE(SUM(${SQL_VALOR_LIQUIDO_CAIXA}), 0) AS total
        FROM talao_baixa
        WHERE sessao_caixa_id = ?
        GROUP BY forma_pagamento`,
@@ -219,6 +240,7 @@ export class TalaoRepository {
   listarTodasBaixas(): TalaoBaixa[] {
     const consulta = this.obterConexao().instancia.prepare(
       `SELECT id, cliente_id, sessao_caixa_id, forma_pagamento, valor_centavos,
+              valor_recebido_centavos, troco_centavos,
               competencia, observacao, criado_em, atualizado_em
        FROM talao_baixa
        ORDER BY criado_em ASC`,

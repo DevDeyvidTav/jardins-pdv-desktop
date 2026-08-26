@@ -8,6 +8,7 @@ import {
   TIPO_MOVIMENTACAO_DIVISAO,
 } from '@shared/types/divisao-conta'
 import { FORMA_PAGAMENTO, pagamentoEntraNoValorPago } from '@shared/types/pagamento-pedido'
+import { mensagemErroValorRecebidoDinheiro } from '@shared/utils/troco-dinheiro'
 import { STATUS_PEDIDO, TIPO_PEDIDO } from '@shared/types/pedido'
 import { STATUS_SESSAO_CAIXA } from '@shared/types/sessao-caixa'
 import {
@@ -196,6 +197,18 @@ export function criarRegistrarPagamentoParteDivisao(
         )
       }
 
+      const erroRecebido = mensagemErroValorRecebidoDinheiro(
+        entrada.formaPagamento,
+        entrada.valorCentavos,
+        entrada.valorRecebidoCentavos,
+      )
+      if (erroRecebido) {
+        throw new ErroDivisaoConta(
+          CODIGOS_ERRO_DIVISAO_CONTA.ENTRADA_INVALIDA,
+          erroRecebido,
+        )
+      }
+
       const valorPagoAtual = Number(pedido.valorPagoCentavos) || 0
       const valorCortesiaAtual = Number(pedido.valorCortesiaCentavos) || 0
       const totalPedidoCentavos = Number(pedido.totalCentavos) || 0
@@ -215,6 +228,7 @@ export function criarRegistrarPagamentoParteDivisao(
         {
           formaPagamento: entrada.formaPagamento,
           valorCentavos: entrada.valorCentavos,
+          valorRecebidoCentavos: entrada.valorRecebidoCentavos,
           motivoCortesia: entrada.motivoCortesia,
         },
         false,

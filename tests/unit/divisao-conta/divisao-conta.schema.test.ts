@@ -104,6 +104,18 @@ describe('divisao-conta.schema', () => {
     expect(cortesia.motivoCortesia).toBe('Cortesia')
   })
 
+  it('impede valor recebido menor que o pagamento em dinheiro', () => {
+    expect(() =>
+      registrarPagamentoParteDivisaoSchema.parse({
+        pedidoId: PEDIDO_ID,
+        parteId: PARTE_ID,
+        formaPagamento: FORMA_PAGAMENTO.DINHEIRO,
+        valorCentavos: 1000,
+        valorRecebidoCentavos: 500,
+      }),
+    ).toThrow(/recebido/)
+  })
+
   it('impede pedidoId invalido', () => {
     expect(() =>
       criarDivisaoContaSchema.parse({

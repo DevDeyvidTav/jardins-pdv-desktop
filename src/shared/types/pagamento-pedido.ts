@@ -74,6 +74,10 @@ export interface PagamentoPedido {
   sessaoCaixaId: string
   formaPagamento: FormaPagamento
   valorCentavos: number
+  /** O que o cliente entregou. So preenchido em DINHEIRO. */
+  valorRecebidoCentavos: number | null
+  /** Troco entregue, arredondado para 5 centavos. So preenchido em DINHEIRO. */
+  trocoCentavos: number
   status: StatusPagamentoPedido
   motivoCortesia?: string | null
   /** Parte da divisao de conta vinculada, se houver. */
@@ -86,6 +90,8 @@ export interface PagamentoPedido {
 export interface PagamentoInformado {
   formaPagamento: FormaPagamento
   valorCentavos: number
+  /** Obrigatorio na pratica para DINHEIRO; se omitido, assume pagamento exato (sem troco). */
+  valorRecebidoCentavos?: number
   /** Motivo obrigatorio quando formaPagamento for CORTESIA. */
   motivoCortesia?: string
 }
@@ -94,6 +100,7 @@ export interface RegistrarPagamentoPedidoEntrada {
   pedidoId: string
   formaPagamento: FormaPagamento
   valorCentavos: number
+  valorRecebidoCentavos?: number
   motivoCortesia?: string
   /** Quando informado, vincula o pagamento a uma parte da divisao. */
   pedidoDivisaoParteId?: string

@@ -95,6 +95,8 @@ export function mapearPedidoParaConta(
       .map((pagamento) => ({
         formaRotulo: ROTULOS_FORMA_PAGAMENTO[pagamento.formaPagamento],
         valorCentavos: pagamento.valorCentavos,
+        valorRecebidoCentavos: pagamento.valorRecebidoCentavos,
+        trocoCentavos: pagamento.trocoCentavos,
       })),
   }
 }

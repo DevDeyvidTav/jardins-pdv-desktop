@@ -57,6 +57,19 @@ export function montarConta(documento: DocumentoContaImpressao): string[] {
     if (linha) {
       linhas.push(linha)
     }
+
+    const recebido = pagamento.valorRecebidoCentavos ?? 0
+    const troco = pagamento.trocoCentavos ?? 0
+    if (troco > 0 || recebido > pagamento.valorCentavos) {
+      const linhaRecebido = linhaRotuloValorOpcional('Recebido', recebido)
+      const linhaTroco = linhaRotuloValorOpcional('Troco', troco)
+      if (linhaRecebido) {
+        linhas.push(linhaRecebido)
+      }
+      if (linhaTroco) {
+        linhas.push(linhaTroco)
+      }
+    }
   }
 
   if (documento.pagamentos.length > 0) {

@@ -61,6 +61,8 @@ export interface ItemDocumentoImpressao {
 export interface PagamentoDocumentoImpressao {
   formaRotulo: string
   valorCentavos: number
+  valorRecebidoCentavos?: number | null
+  trocoCentavos?: number | null
 }
 
 export interface DocumentoContaImpressao {

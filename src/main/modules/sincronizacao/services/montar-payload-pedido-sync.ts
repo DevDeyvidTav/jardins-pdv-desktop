@@ -65,6 +65,8 @@ function serializarPagamento(pagamento: PagamentoPedido): Record<string, unknown
     sessaoCaixaId: pagamento.sessaoCaixaId,
     formaPagamento: pagamento.formaPagamento,
     valorCentavos: pagamento.valorCentavos,
+    valorRecebidoCentavos: pagamento.valorRecebidoCentavos,
+    trocoCentavos: pagamento.trocoCentavos,
     status: pagamento.status,
     motivoCortesia: pagamento.motivoCortesia ?? null,
     pedidoDivisaoParteId: pagamento.pedidoDivisaoParteId,

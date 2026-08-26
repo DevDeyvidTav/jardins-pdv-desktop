@@ -119,6 +119,9 @@ export function PainelDivisaoConta({
                 {parte.pagamentos.map((pagamento) => (
                   <li key={pagamento.id}>
                     {pagamento.formaPagamento}: {formatarMoeda(pagamento.valorCentavos)}
+                    {pagamento.trocoCentavos > 0
+                      ? ` · Troco ${formatarMoeda(pagamento.trocoCentavos)}`
+                      : ''}
                   </li>
                 ))}
               </ul>

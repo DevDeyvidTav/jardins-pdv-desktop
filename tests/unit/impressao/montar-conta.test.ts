@@ -109,4 +109,23 @@ describe('montarConta', () => {
     expect(texto).not.toContain('Cortesia')
     expect(texto).not.toContain(formatarMoedaCupom(0))
   })
+
+  it('imprime recebido e troco no pagamento em dinheiro', () => {
+    const documento = criarDocumentoContaAmostra()
+    documento.pagamentos = [
+      {
+        formaRotulo: 'Dinheiro',
+        valorCentavos: 8347,
+        valorRecebidoCentavos: 10000,
+        trocoCentavos: 1655,
+      },
+    ]
+
+    const texto = montarConta(documento).join('\n')
+    expect(texto).toContain('Dinheiro')
+    expect(texto).toContain('Recebido')
+    expect(texto).toContain(formatarMoedaCupom(10000))
+    expect(texto).toContain('Troco')
+    expect(texto).toContain(formatarMoedaCupom(1655))
+  })
 })

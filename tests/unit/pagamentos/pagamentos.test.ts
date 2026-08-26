@@ -87,4 +87,68 @@ describe('pagamentos de pedido', () => {
     expect(ambiente.repositorioMesa.buscarPorId(ambiente.mesa.id)?.status).toBe('LIVRE')
     expect(ambiente.repositorioPagamento.listarPorPedido(pedido.id)).toHaveLength(1)
   })
+
+  it('registra recebido e troco em dinheiro sem inflar o caixa', async () => {
+    const { ambiente, pedido } = await criarPedidoComItem()
+    const resumo = ambiente.registrarPagamentoPedido({
+      pedidoId: pedido.id,
+      formaPagamento: FORMA_PAGAMENTO.DINHEIRO,
+      valorCentavos: 1200,
+      valorRecebidoCentavos: 2000,
+    })
+
+    const pagamento = ambiente.repositorioPagamento.listarPorPedido(pedido.id)[0]
+    expect(resumo.valorRestanteCentavos).toBe(0)
+    expect(pagamento?.valorCentavos).toBe(1200)
+    expect(pagamento?.valorRecebidoCentavos).toBe(2000)
+    expect(pagamento?.trocoCentavos).toBe(800)
+
+    const caixa = criarObterResumoCaixaAtual()()!
+    expect(caixa.totalVendasDinheiroCentavos).toBe(1200)
+    expect(caixa.saldoAtualEsperadoCentavos).toBe(1200)
+  })
+
+  it('arredonda o troco para 5 centavos e usa o liquido no caixa', async () => {
+    const ambiente = await prepararAmbientePedidos()
+    encerrar = ambiente.encerrar
+    const produto = ambiente.criarProduto({
+      categoriaId: ambiente.categoria.id,
+      nome: 'Prato 47',
+      precoCentavos: 8347,
+    })
+    const pedido = ambiente.criarPedidoMesa({ mesaId: ambiente.mesa.id })
+    ambiente.adicionarItemPedido({
+      pedidoId: pedido.id,
+      produtoId: produto.id,
+      quantidade: 1,
+    })
+
+    ambiente.registrarPagamentoPedido({
+      pedidoId: pedido.id,
+      formaPagamento: FORMA_PAGAMENTO.DINHEIRO,
+      valorCentavos: 8347,
+      valorRecebidoCentavos: 10000,
+    })
+
+    const pagamento = ambiente.repositorioPagamento.listarPorPedido(pedido.id)[0]
+    expect(pagamento?.valorCentavos).toBe(8347)
+    expect(pagamento?.valorRecebidoCentavos).toBe(10000)
+    expect(pagamento?.trocoCentavos).toBe(1655)
+
+    const caixa = criarObterResumoCaixaAtual()()!
+    expect(caixa.totalVendasDinheiroCentavos).toBe(8345)
+    expect(caixa.saldoAtualEsperadoCentavos).toBe(8345)
+  })
+
+  it('impede valor recebido menor que o pagamento em dinheiro', async () => {
+    const { ambiente, pedido } = await criarPedidoComItem()
+    expect(() =>
+      ambiente.registrarPagamentoPedido({
+        pedidoId: pedido.id,
+        formaPagamento: FORMA_PAGAMENTO.DINHEIRO,
+        valorCentavos: 1200,
+        valorRecebidoCentavos: 1000,
+      }),
+    ).toThrow(/recebido/)
+  })
 })

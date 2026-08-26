@@ -3,6 +3,7 @@ import type {
   ResumoPagamentoPedido,
 } from '@shared/types/pagamento-pedido'
 import { FORMA_PAGAMENTO, pagamentoEntraNoValorPago } from '@shared/types/pagamento-pedido'
+import { mensagemErroValorRecebidoDinheiro } from '@shared/utils/troco-dinheiro'
 import { STATUS_PEDIDO, TIPO_PEDIDO } from '@shared/types/pedido'
 import { STATUS_SESSAO_CAIXA } from '@shared/types/sessao-caixa'
 import {
@@ -110,6 +111,15 @@ export function criarRegistrarPagamentoPedido(
           )
         }
 
+        const erroRecebido = mensagemErroValorRecebidoDinheiro(
+          entrada.formaPagamento,
+          entrada.valorCentavos,
+          entrada.valorRecebidoCentavos,
+        )
+        if (erroRecebido) {
+          throw new ErroPedidos(CODIGOS_ERRO_PEDIDOS.ENTRADA_INVALIDA, erroRecebido)
+        }
+
         if (entrada.formaPagamento === FORMA_PAGAMENTO.TALAO) {
           if (!pedido.clienteId) {
             throw new ErroPedidos(
@@ -135,6 +145,7 @@ export function criarRegistrarPagamentoPedido(
         const pagamentoInformado = {
           formaPagamento: entrada.formaPagamento,
           valorCentavos: entrada.valorCentavos,
+          valorRecebidoCentavos: entrada.valorRecebidoCentavos,
           motivoCortesia: entrada.motivoCortesia,
         }
 

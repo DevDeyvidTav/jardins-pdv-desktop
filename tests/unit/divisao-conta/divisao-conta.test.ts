@@ -337,6 +337,31 @@ describe('divisao de conta', () => {
     expect(quitada.partes[0]?.pagamentos).toHaveLength(2)
   })
 
+  it('registra troco em pagamento de parte em dinheiro', async () => {
+    const ambiente = await setup(2)
+    const metade = ambiente.total / 2
+    const criado = ambiente.criarDivisao({
+      pedidoId: ambiente.pedido.id,
+      partes: [
+        { identificacao: 'Joao', valorDefinidoCentavos: metade },
+        { identificacao: 'Maria', valorDefinidoCentavos: metade },
+      ],
+    })
+
+    const resumo = ambiente.registrarParte({
+      pedidoId: ambiente.pedido.id,
+      parteId: criado.partes[0]!.id,
+      formaPagamento: FORMA_PAGAMENTO.DINHEIRO,
+      valorCentavos: metade,
+      valorRecebidoCentavos: metade + 1000,
+    })
+
+    const pagamento = resumo.partes[0]?.pagamentos[0]
+    expect(pagamento?.valorCentavos).toBe(metade)
+    expect(pagamento?.valorRecebidoCentavos).toBe(metade + 1000)
+    expect(pagamento?.trocoCentavos).toBe(1000)
+  })
+
   it('impede pagamento acima do restante da parte e do pedido', async () => {
     const ambiente = await setup(2)
     const metade = ambiente.total / 2

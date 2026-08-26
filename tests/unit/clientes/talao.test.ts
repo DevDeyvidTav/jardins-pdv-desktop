@@ -129,6 +129,36 @@ describe('talão', () => {
     expect(caixa.saldoAtualEsperadoCentavos).toBe(500)
   })
 
+  it('registra troco na baixa em dinheiro sem inflar o caixa', async () => {
+    const { ambiente, cliente, pedido, vincular, obterConta, registrarBaixa } =
+      await prepararComCliente()
+    vincular({ pedidoId: pedido.id, clienteId: cliente.id })
+    ambiente.registrarPagamentoPedido({
+      pedidoId: pedido.id,
+      formaPagamento: FORMA_PAGAMENTO.TALAO,
+      valorCentavos: 1200,
+    })
+
+    const baixa = registrarBaixa({
+      clienteId: cliente.id,
+      formaPagamento: FORMA_PAGAMENTO.DINHEIRO,
+      valorCentavos: 500,
+      valorRecebidoCentavos: 1000,
+    })
+
+    expect(baixa.valorCentavos).toBe(500)
+    expect(baixa.valorRecebidoCentavos).toBe(1000)
+    expect(baixa.trocoCentavos).toBe(500)
+
+    const conta = obterConta({ clienteId: cliente.id })
+    expect(conta.totalBaixadoCentavos).toBe(500)
+    expect(conta.saldoCentavos).toBe(700)
+
+    const caixa = criarObterResumoCaixaAtual()()!
+    expect(caixa.totalVendasDinheiroCentavos).toBe(500)
+    expect(caixa.saldoAtualEsperadoCentavos).toBe(500)
+  })
+
   it('impede baixa sem caixa aberto e recusa forma talão na baixa', async () => {
     const { ambiente, cliente, pedido, vincular, registrarBaixa } = await prepararComCliente()
     vincular({ pedidoId: pedido.id, clienteId: cliente.id })

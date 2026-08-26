@@ -78,6 +78,8 @@ export function serializarTalaoBaixa(baixa: TalaoBaixa): Record<string, unknown>
     sessaoCaixaId: baixa.sessaoCaixaId,
     formaPagamento: baixa.formaPagamento,
     valorCentavos: baixa.valorCentavos,
+    valorRecebidoCentavos: baixa.valorRecebidoCentavos,
+    trocoCentavos: baixa.trocoCentavos,
     competencia: baixa.competencia,
     observacao: baixa.observacao,
     criadoEm: baixa.criadoEm,

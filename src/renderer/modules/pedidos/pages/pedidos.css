@@ -462,7 +462,7 @@
 
 .formulario-pagamento__campos {
   display: grid;
-  grid-template-columns: 1fr 5rem auto;
+  grid-template-columns: minmax(8rem, 1fr) minmax(6.5rem, 8rem);
   gap: 0.375rem;
 }
 
@@ -473,6 +473,55 @@
   border: 1px solid #d1d5db;
   border-radius: 6px;
   font: inherit;
+}
+
+.formulario-pagamento [data-testid='campo-motivo-cortesia'],
+.formulario-pagamento .campos-troco-dinheiro {
+  grid-column: 1 / -1;
+}
+
+.campos-troco-dinheiro {
+  display: grid;
+  gap: 0.375rem;
+}
+
+.campos-troco-dinheiro__campo {
+  display: grid;
+  gap: 0.2rem;
+  font-size: 0.75rem;
+  color: #4b5563;
+}
+
+.campos-troco-dinheiro__atalhos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.painel-mesa-pedido .campos-troco-dinheiro__atalhos button,
+.campos-troco-dinheiro__atalhos button {
+  padding: 0.4rem 0.65rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #111827;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.campos-troco-dinheiro__troco {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #166534;
+}
+
+.campos-troco-dinheiro__aviso {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #b91c1c;
 }
 
 .formulario-pagamento ul,

@@ -72,6 +72,8 @@ export function criarMontarResumoDivisaoConta(
           id: p.id,
           formaPagamento: p.formaPagamento,
           valorCentavos: p.valorCentavos,
+          valorRecebidoCentavos: p.valorRecebidoCentavos,
+          trocoCentavos: p.trocoCentavos,
           criadoEm: p.criadoEm,
           motivoCortesia: p.motivoCortesia,
         })),

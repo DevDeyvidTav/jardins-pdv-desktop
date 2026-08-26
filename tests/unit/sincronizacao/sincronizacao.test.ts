@@ -208,6 +208,8 @@ describe('sincronizacao', () => {
     expect(payload.pagamentos).toHaveLength(1)
     expect(payload.pagamentos[0]?.formaPagamento).toBe('DINHEIRO')
     expect(payload.pagamentos[0]?.valorCentavos).toBe(5000)
+    expect(payload.pagamentos[0]?.valorRecebidoCentavos).toBe(5000)
+    expect(payload.pagamentos[0]?.trocoCentavos).toBe(0)
     expect(payload.pizzas).toHaveLength(1)
     expect(payload.pizzas[0]?.tamanhoNomeSnapshot).toBe('Grande')
     expect(payload.pizzas[0]?.sabores[0]?.saborNomeSnapshot).toBe('Calabresa')

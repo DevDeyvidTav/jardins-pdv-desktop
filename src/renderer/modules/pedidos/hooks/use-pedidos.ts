@@ -647,6 +647,7 @@ export function usePedidos(): UsePedidosResultado {
           pedidoId: resumoPedido.pedido.id,
           formaPagamento: pagamento.formaPagamento,
           valorCentavos: pagamento.valorCentavos,
+          valorRecebidoCentavos: pagamento.valorRecebidoCentavos,
           motivoCortesia: pagamento.motivoCortesia,
         })
         await carregarDados()
@@ -704,6 +705,7 @@ export function usePedidos(): UsePedidosResultado {
           parteId,
           formaPagamento: pagamento.formaPagamento,
           valorCentavos: pagamento.valorCentavos,
+          valorRecebidoCentavos: pagamento.valorRecebidoCentavos,
           motivoCortesia: pagamento.motivoCortesia,
         })
         await carregarDados()

@@ -1,5 +1,9 @@
 import { z } from 'zod'
 import { FORMA_PAGAMENTO, FORMAS_PAGAMENTO_PEDIDO } from '@shared/types/pagamento-pedido'
+import {
+  refinarTrocoDinheiro,
+  valorRecebidoCentavosSchema,
+} from '../../pagamentos/schemas/pagamento-pedido.schema'
 
 export const criarDivisaoContaSchema = z.object({
   pedidoId: z.string().uuid('pedidoId invalido.'),
@@ -29,6 +33,7 @@ export const registrarPagamentoParteDivisaoSchema = z
       .number()
       .int('Valor deve ser inteiro.')
       .positive('Valor do pagamento deve ser maior que zero.'),
+    valorRecebidoCentavos: valorRecebidoCentavosSchema,
     motivoCortesia: z.string().trim().min(1).optional(),
   })
   .superRefine((value, ctx) => {
@@ -42,6 +47,8 @@ export const registrarPagamentoParteDivisaoSchema = z
         message: 'Motivo da cortesia e obrigatorio.',
       })
     }
+
+    refinarTrocoDinheiro(value, ctx)
   })
 
 export const cancelarDivisaoContaSchema = z.object({
