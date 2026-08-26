@@ -29,6 +29,117 @@ export function linhaSeparadora(largura = LARGURA_CUPOM): string {
   return '-'.repeat(largura)
 }
 
+export const INDENTACAO_ITEM_CUPOM = '   '
+
+export function quebrarTexto(texto: string, largura: number): string[] {
+  const palavras = texto.trim().split(/\s+/).filter(Boolean)
+  if (palavras.length === 0 || largura < 1) {
+    return []
+  }
+
+  const linhas: string[] = []
+  let atual = ''
+
+  for (const palavra of palavras) {
+    const candidato = atual ? `${atual} ${palavra}` : palavra
+    if (candidato.length <= largura) {
+      atual = candidato
+      continue
+    }
+
+    if (atual) {
+      linhas.push(atual)
+    }
+
+    if (palavra.length <= largura) {
+      atual = palavra
+      continue
+    }
+
+    let resto = palavra
+    while (resto.length > largura) {
+      linhas.push(resto.slice(0, largura))
+      resto = resto.slice(largura)
+    }
+    atual = resto
+  }
+
+  if (atual) {
+    linhas.push(atual)
+  }
+
+  return linhas
+}
+
+export function linhaEsquerdaDireita(
+  esquerda: string,
+  direita: string,
+  largura = LARGURA_CUPOM,
+): string {
+  const maxEsquerda = Math.max(1, largura - direita.length - 1)
+  const recorte = esquerda.slice(0, maxEsquerda)
+  const espacos = largura - recorte.length - direita.length
+  return `${recorte}${' '.repeat(Math.max(1, espacos))}${direita}`
+}
+
+export function linhasItemConta(item: {
+  quantidade: number
+  nome: string
+  detalhes: string[]
+  observacao: string | null
+  totalCentavos: number
+}): string[] {
+  const valor = formatarMoedaCupom(item.totalCentavos)
+  const larguraNome = LARGURA_CUPOM - valor.length - 1
+  const larguraContinuacao = LARGURA_CUPOM - INDENTACAO_ITEM_CUPOM.length
+  const partesNome = quebrarTexto(`${item.quantidade}  ${item.nome}`, larguraNome)
+  const linhas = [
+    linhaEsquerdaDireita(partesNome[0] ?? `${item.quantidade}`, valor),
+    ...partesNome.slice(1).map((parte) => `${INDENTACAO_ITEM_CUPOM}${parte}`),
+  ]
+
+  if (item.detalhes.length > 0) {
+    for (const parte of quebrarTexto(item.detalhes.join(' / '), larguraContinuacao)) {
+      linhas.push(`${INDENTACAO_ITEM_CUPOM}${parte}`)
+    }
+  }
+
+  if (item.observacao) {
+    for (const parte of quebrarTexto(item.observacao, larguraContinuacao)) {
+      linhas.push(`${INDENTACAO_ITEM_CUPOM}${parte}`)
+    }
+  }
+
+  return linhas
+}
+
+export function linhasItemComanda(item: {
+  quantidade: number
+  nome: string
+  detalhes: string[]
+  observacao: string | null
+}): string[] {
+  const larguraContinuacao = LARGURA_CUPOM - INDENTACAO_ITEM_CUPOM.length
+  const linhas = quebrarTexto(
+    `${item.quantidade}x ${item.nome.toUpperCase()}`,
+    LARGURA_CUPOM,
+  )
+
+  for (const detalhe of item.detalhes) {
+    for (const parte of quebrarTexto(`- ${detalhe}`, larguraContinuacao)) {
+      linhas.push(`${INDENTACAO_ITEM_CUPOM}${parte}`)
+    }
+  }
+
+  if (item.observacao) {
+    for (const parte of quebrarTexto(`OBS: ${item.observacao}`, larguraContinuacao)) {
+      linhas.push(`${INDENTACAO_ITEM_CUPOM}${parte}`)
+    }
+  }
+
+  return linhas
+}
+
 export function valorEntraNaContaImpressao(valorCentavos: number): boolean {
   return valorCentavos > 0
 }

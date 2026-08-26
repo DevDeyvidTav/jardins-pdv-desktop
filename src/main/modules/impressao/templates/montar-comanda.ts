@@ -3,6 +3,7 @@ import {
   centralizarLinha,
   formatarDataHoraCupom,
   linhaSeparadora,
+  linhasItemComanda,
   rotuloOrigemPedido,
 } from './formatar-cupom'
 
@@ -18,16 +19,12 @@ export function montarComanda(documento: DocumentoComandaImpressao): string[] {
 
   const itensAtivos = documento.itens.filter((item) => !item.cancelado)
 
-  for (const item of itensAtivos) {
-    linhas.push(`${item.quantidade}  ${item.nome.toUpperCase()}`)
-
-    for (const detalhe of item.detalhes) {
-      linhas.push(`   ${detalhe}`)
+  for (const [indice, item] of itensAtivos.entries()) {
+    if (indice > 0) {
+      linhas.push('')
     }
 
-    if (item.observacao) {
-      linhas.push(`** ${item.observacao} **`)
-    }
+    linhas.push(...linhasItemComanda(item))
   }
 
   linhas.push(

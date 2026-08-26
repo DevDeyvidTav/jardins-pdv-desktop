@@ -1,11 +1,10 @@
 import type { DocumentoContaImpressao } from '@shared/types/impressao'
 import {
-  alinharDireita,
   centralizarLinha,
   formatarDataHoraCupom,
-  formatarMoedaCupom,
   linhaRotuloValorOpcional,
   linhaSeparadora,
+  linhasItemConta,
   rotuloOrigemPedido,
 } from './formatar-cupom'
 import { itemEntraNaContaImpressao } from './mapear-pedido-impressao'
@@ -27,20 +26,12 @@ export function montarConta(documento: DocumentoContaImpressao): string[] {
       continue
     }
 
-    linhas.push(`${item.quantidade}  ${item.nome}`)
-
-    if (item.detalhes.length > 0) {
-      linhas.push(`   ${item.detalhes.join(' / ')}`)
-    }
-
-    if (item.observacao) {
-      linhas.push(`   ${item.observacao}`)
-    }
-
-    linhas.push(alinharDireita(formatarMoedaCupom(item.totalCentavos)))
+    linhas.push(...linhasItemConta(item))
   }
 
   linhas.push(linhaSeparadora())
+
+  const ocultarRestante = documento.valorRestanteCentavos === documento.totalCentavos
 
   for (const linha of [
     linhaRotuloValorOpcional('Subtotal', documento.subtotalCentavos),
@@ -50,7 +41,9 @@ export function montarConta(documento: DocumentoContaImpressao): string[] {
     linhaRotuloValorOpcional('TOTAL', documento.totalCentavos),
     linhaRotuloValorOpcional('Pago', documento.valorPagoCentavos),
     linhaRotuloValorOpcional('Cortesia', documento.valorCortesiaCentavos),
-    linhaRotuloValorOpcional('Restante', documento.valorRestanteCentavos),
+    ocultarRestante
+      ? null
+      : linhaRotuloValorOpcional('Restante', documento.valorRestanteCentavos),
   ]) {
     if (linha) {
       linhas.push(linha)

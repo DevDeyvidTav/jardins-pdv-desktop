@@ -54,14 +54,45 @@ const resumo = {
   divisao: null,
 }
 
+const mesaMock = { buscarPorId: () => ({ numero: 1 }) } as never
+const pagamentoMock = { listarPorPedido: () => [] } as never
+
+function consultarCategoria(produtoId: string): string | null {
+  if (produtoId === 'prod-bebida') {
+    return 'Bebidas'
+  }
+
+  return 'Pratos'
+}
+
+function itemBebida() {
+  return {
+    id: 'item-bebida',
+    pedidoId: 'ped-1',
+    produtoId: 'prod-bebida',
+    tipo: 'PRODUTO' as const,
+    produtoNome: 'Coca-Cola',
+    quantidade: 2,
+    precoUnitarioCentavos: 800,
+    subtotalCentavos: 1600,
+    descontoCentavos: 0,
+    totalCentavos: 1600,
+    observacao: null,
+    criadoEm: agora,
+    atualizadoEm: agora,
+    canceladoEm: null,
+    motivoCancelamento: null,
+  }
+}
+
 describe('imprimirPedido', () => {
   it('imprime conta do pedido com precos', () => {
     const enviar = vi.fn()
     const imprimir = criarImprimirPedido(
       () => resumo,
       enviar,
-      { buscarPorId: () => ({ numero: 1 }) } as never,
-      { listarPorPedido: () => [] } as never,
+      mesaMock,
+      pagamentoMock,
     )
 
     const resultado = imprimir({ pedidoId: 'ped-1' }, TIPO_DOCUMENTO_IMPRESSAO.CONTA)
@@ -78,8 +109,9 @@ describe('imprimirPedido', () => {
     const imprimir = criarImprimirPedido(
       () => resumo,
       vi.fn(),
-      { buscarPorId: () => ({ numero: 1 }) } as never,
-      { listarPorPedido: () => [] } as never,
+      mesaMock,
+      pagamentoMock,
+      consultarCategoria,
     )
 
     const resultado = imprimir({ pedidoId: 'ped-1' }, TIPO_DOCUMENTO_IMPRESSAO.COMANDA)
@@ -87,6 +119,44 @@ describe('imprimirPedido', () => {
     expect(resultado.texto).toContain('COZINHA')
     expect(resultado.texto).toContain('COMBO 2')
     expect(resultado.texto).not.toMatch(/R\$/)
+  })
+
+  it('omite bebidas na comanda e mantem na conta', () => {
+    const resumoComBebida = {
+      ...resumo,
+      itens: [...resumo.itens, itemBebida()],
+    }
+    const enviar = vi.fn()
+    const imprimir = criarImprimirPedido(
+      () => resumoComBebida,
+      enviar,
+      mesaMock,
+      pagamentoMock,
+      consultarCategoria,
+    )
+
+    const comanda = imprimir({ pedidoId: 'ped-1' }, TIPO_DOCUMENTO_IMPRESSAO.COMANDA)
+    const conta = imprimir({ pedidoId: 'ped-1' }, TIPO_DOCUMENTO_IMPRESSAO.CONTA)
+
+    expect(comanda.texto).toContain('COMBO 2')
+    expect(comanda.texto).not.toContain('COCA-COLA')
+    expect(conta.texto).toContain('Combo 2')
+    expect(conta.texto).toContain('Coca-Cola')
+    expect(enviar).toHaveBeenCalledTimes(2)
+  })
+
+  it('nao imprime comanda quando o pedido so tem bebidas', () => {
+    const imprimir = criarImprimirPedido(
+      () => ({ ...resumo, itens: [itemBebida()] }),
+      vi.fn(),
+      mesaMock,
+      pagamentoMock,
+      consultarCategoria,
+    )
+
+    expect(() =>
+      imprimir({ pedidoId: 'ped-1' }, TIPO_DOCUMENTO_IMPRESSAO.COMANDA),
+    ).toThrowError(/Bebidas nao saem na comanda/)
   })
 
   it('falha sem itens ativos', () => {

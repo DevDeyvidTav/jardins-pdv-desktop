@@ -3,7 +3,20 @@ import { existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import Database from 'better-sqlite3'
 
-const requireNativo = createRequire(import.meta.url)
+/**
+ * Playwright carrega estes arquivos como CommonJS e recusa `import.meta`.
+ * Em CJS usamos o `module` local; em ESM (Vitest) caímos no package.json do cwd.
+ */
+function obterRequireNativo(): NodeJS.Require {
+  const moduleCjs = typeof module !== 'undefined' ? module : undefined
+  if (moduleCjs?.filename) {
+    return createRequire(moduleCjs.filename)
+  }
+
+  return createRequire(join(process.cwd(), 'package.json'))
+}
+
+const requireNativo = obterRequireNativo()
 
 let caminhoBinarioElectronCache: string | null | undefined
 

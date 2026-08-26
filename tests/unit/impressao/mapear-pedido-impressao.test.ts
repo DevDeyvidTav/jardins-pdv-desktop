@@ -4,6 +4,7 @@ import type { Mesa } from '../../../src/shared/types/mesa'
 import type { PagamentoPedido } from '../../../src/shared/types/pagamento-pedido'
 import type { ResumoPedido } from '../../../src/shared/types/pedido'
 import {
+  categoriaEhBebida,
   mapearPedidoParaComanda,
   mapearPedidoParaConta,
 } from '../../../src/main/modules/impressao/templates/mapear-pedido-impressao'
@@ -220,5 +221,15 @@ describe('mapearPedidoParaComanda', () => {
     expect(comanda.setor).toBe(SETOR_COMANDA.PIZZA)
     expect(comanda.itens[0]?.nome).toBe('Pizza G')
     expect(comanda.itens[0]?.detalhes).toEqual(['Calabresa'])
+  })
+})
+
+describe('categoriaEhBebida', () => {
+  it('reconhece variantes da categoria bebidas', () => {
+    expect(categoriaEhBebida('Bebidas')).toBe(true)
+    expect(categoriaEhBebida('bebida')).toBe(true)
+    expect(categoriaEhBebida('Bebidas geladas')).toBe(true)
+    expect(categoriaEhBebida('Pratos')).toBe(false)
+    expect(categoriaEhBebida(null)).toBe(false)
   })
 })

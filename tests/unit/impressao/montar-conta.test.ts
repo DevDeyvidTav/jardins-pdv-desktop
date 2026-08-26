@@ -43,6 +43,9 @@ describe('montarConta', () => {
     expect(texto).toContain(formatarMoedaCupom(3200))
     expect(texto).not.toMatch(/\u00A0/)
     expect(texto).not.toContain('Refrigerante lata')
+    expect(linhas.some((linha) => linha.includes('Pizza G') && linha.includes('R$ 55,00'))).toBe(
+      true,
+    )
   })
 
   it('repete o rodape financeiro do cupom da tela', () => {
@@ -57,6 +60,47 @@ describe('montarConta', () => {
     expect(texto).toContain('Restante')
     expect(texto).toContain(formatarMoedaCupom(8000))
     expect(texto).toContain('Dinheiro')
+  })
+
+  it('nao imprime Restante quando e igual ao total', () => {
+    const documento = criarDocumentoContaAmostra()
+    documento.valorPagoCentavos = 0
+    documento.pagamentos = []
+    documento.valorRestanteCentavos = documento.totalCentavos
+
+    const texto = montarConta(documento).join('\n')
+    expect(texto).toContain('TOTAL')
+    expect(texto).not.toContain('Restante')
+  })
+
+  it('quebra sabores da pizza abaixo e mantem o valor na linha do item', () => {
+    const documento = criarDocumentoContaAmostra()
+    documento.itens = [
+      {
+        quantidade: 1,
+        nome: 'Pizza Grande',
+        detalhes: ['Calabresa', 'Frango c/ Catupiry', 'Quatro Queijos'],
+        observacao: null,
+        precoUnitarioCentavos: 5990,
+        totalCentavos: 5990,
+        setor: 'PIZZA',
+        cancelado: false,
+      },
+    ]
+    documento.subtotalCentavos = 5990
+    documento.descontoPedidoCentavos = 0
+    documento.totalCentavos = 5990
+    documento.valorPagoCentavos = 0
+    documento.valorRestanteCentavos = 5990
+    documento.pagamentos = []
+
+    const linhas = montarConta(documento)
+    const linhaItem = linhas.find((linha) => linha.includes('Pizza Grande'))
+
+    expect(linhaItem).toContain('R$ 59,90')
+    expect(linhas.join('\n')).toContain('Calabresa / Frango c/ Catupiry')
+    expect(linhas.join('\n')).toContain('Queijos')
+    expect(linhas.find((linha) => linha.includes('Calabresa'))).not.toContain('R$ 59,90')
   })
 
   it('nao imprime linhas do rodape ou pagamento com valor zero', () => {

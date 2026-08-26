@@ -45,13 +45,38 @@ async function tentarAbrirJanela(
   }
 }
 
+async function garantirProdutoAtivo(janela: Page) {
+  await janela.getByTestId('nav-produtos').click()
+  await expect(janela.getByTestId('pagina-produtos')).toBeVisible()
+
+  if ((await janela.getByTestId('item-produto').count()) === 0) {
+    await janela.getByTestId('botao-toggle-categoria').click()
+    await expect(janela.getByTestId('formulario-categoria')).toBeVisible()
+    await janela.getByTestId('campo-nome-categoria').fill('Pratos')
+    await janela.getByTestId('botao-criar-categoria').click()
+    await expect(janela.getByTestId('feedback-sucesso-produtos')).toBeVisible({
+      timeout: 10_000,
+    })
+
+    await janela.getByTestId('botao-toggle-produto').click()
+    await expect(janela.getByTestId('formulario-produto')).toBeVisible()
+    await janela.getByTestId('campo-nome-produto').fill('Yakisoba carne')
+    await janela.getByTestId('campo-preco-produto').fill('32,00')
+    await janela.getByTestId('botao-criar-produto').click()
+    await expect(janela.getByTestId('feedback-sucesso-produtos')).toBeVisible({
+      timeout: 10_000,
+    })
+  }
+}
+
 test.describe('hardening persistencia', () => {
   test('persiste pedido apos reinicio e mantem schema/migrations', async () => {
     const diretorioDados = mkdtempSync(join(tmpdir(), 'pdv-e2e-hard-'))
     const caminhoBanco = join(diretorioDados, 'pdv-local.sqlite')
+    let aplicativo: ElectronApplication | undefined
 
     try {
-      let aplicativo = await abrirAplicativo(diretorioDados)
+      aplicativo = await abrirAplicativo(diretorioDados)
       let janela = await tentarAbrirJanela(aplicativo)
 
       test.skip(
@@ -60,6 +85,7 @@ test.describe('hardening persistencia', () => {
       )
 
       await garantirCaixaAberto(janela!)
+      await garantirProdutoAtivo(janela!)
       await janela!.getByTestId('nav-pedidos').click()
       await expect(janela!.getByTestId('pagina-pedidos')).toBeVisible({ timeout: 15_000 })
 
@@ -98,6 +124,7 @@ test.describe('hardening persistencia', () => {
       await expect(janela!.getByTestId('item-pedido')).toHaveCount(1)
 
       await aplicativo.close()
+      aplicativo = undefined
 
       const conexao = await abrirConexaoSqlite(caminhoBanco)
       expect(consultarValorMetadata(conexao, 'schema_version')).toBe(
@@ -109,7 +136,14 @@ test.describe('hardening persistencia', () => {
       expect(check[0]?.integrity_check).toBe('ok')
       fecharConexaoSqlite(conexao)
     } finally {
-      rmSync(diretorioDados, { recursive: true, force: true })
+      if (aplicativo) {
+        await aplicativo.close().catch(() => undefined)
+      }
+      try {
+        rmSync(diretorioDados, { recursive: true, force: true })
+      } catch {
+        // lock do userData / WAL no Windows
+      }
     }
   })
 })

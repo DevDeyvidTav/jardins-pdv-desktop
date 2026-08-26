@@ -10,10 +10,37 @@ import {
   STATUS_PAGAMENTO_PEDIDO,
   type PagamentoPedido,
 } from '@shared/types/pagamento-pedido'
-import { itemPedidoEstaAtivo, type ResumoPedido } from '@shared/types/pedido'
+import { itemPedidoEstaAtivo, type PedidoItem, type ResumoPedido } from '@shared/types/pedido'
 import { TIPO_PEDIDO_ITEM } from '@shared/types/pizza'
 
 import { valorEntraNaContaImpressao } from './formatar-cupom'
+
+export type ConsultarNomeCategoriaProduto = (produtoId: string) => string | null
+
+export function categoriaEhBebida(nome: string | null | undefined): boolean {
+  if (!nome?.trim()) {
+    return false
+  }
+
+  const normalizado = nome
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+
+  return normalizado.startsWith('bebida')
+}
+
+export function itemPedidoNaoEntraNaComanda(
+  item: PedidoItem,
+  consultarNomeCategoria: ConsultarNomeCategoriaProduto,
+): boolean {
+  if (item.tipo === TIPO_PEDIDO_ITEM.PIZZA || !item.produtoId) {
+    return false
+  }
+
+  return categoriaEhBebida(consultarNomeCategoria(item.produtoId))
+}
 
 export function itemEntraNaContaImpressao(item: ItemDocumentoImpressao): boolean {
   return valorEntraNaContaImpressao(item.totalCentavos)

@@ -7,23 +7,61 @@ import { itemPedidoEstaAtivo } from '@shared/types/pedido'
 import { CODIGOS_ERRO_PEDIDOS, ErroPedidos } from '../../pedidos/errors/erros-pedidos'
 import { criarMesaRepository } from '../../mesas/repositories/mesa.repository'
 import { criarPagamentoPedidoRepository } from '../../pagamentos/repositories/pagamento-pedido.repository'
+import { criarCategoriaProdutoRepository } from '../../produtos/repositories/categoria-produto.repository'
+import { criarProdutoRepository } from '../../produtos/repositories/produto.repository'
 import { obterResumoPedido } from '../../pedidos/use-cases/consultas-pedido'
 import { registrarLog } from '../../../logging/logger'
 import { CODIGOS_ERRO_IMPRESSAO, ErroImpressao } from '../errors/erros-impressao'
 import { codificarCupomEscPos } from '../infraestrutura/encoder-escpos'
 import { enviarBufferImpressora } from '../infraestrutura/enviar-impressora'
 import {
+  itemPedidoNaoEntraNaComanda,
   mapearPedidoParaComanda,
   mapearPedidoParaConta,
+  type ConsultarNomeCategoriaProduto,
 } from '../templates/mapear-pedido-impressao'
 import { montarComanda } from '../templates/montar-comanda'
 import { montarConta } from '../templates/montar-conta'
+
+export function consultarNomeCategoriaProduto(
+  produtoId: string,
+  repositorioProduto = criarProdutoRepository(),
+  repositorioCategoria = criarCategoriaProdutoRepository(),
+): string | null {
+  try {
+    const produto = repositorioProduto.buscarPorId(produtoId)
+    if (!produto) {
+      return null
+    }
+
+    return repositorioCategoria.buscarPorId(produto.categoriaId)?.nome ?? null
+  } catch {
+    return null
+  }
+}
+
+function comCacheDeCategoria(
+  consultar: ConsultarNomeCategoriaProduto,
+): ConsultarNomeCategoriaProduto {
+  const cache = new Map<string, string | null>()
+
+  return (produtoId) => {
+    if (cache.has(produtoId)) {
+      return cache.get(produtoId) ?? null
+    }
+
+    const nome = consultar(produtoId)
+    cache.set(produtoId, nome)
+    return nome
+  }
+}
 
 export function criarImprimirPedido(
   carregarResumo = obterResumoPedido,
   enviarBuffer = enviarBufferImpressora,
   repositorioMesa = criarMesaRepository(),
   repositorioPagamento = criarPagamentoPedidoRepository(),
+  consultarNomeCategoria: ConsultarNomeCategoriaProduto = consultarNomeCategoriaProduto,
 ) {
   return function imprimirPedido(
     entrada: ImprimirPedidoEntrada,
@@ -45,11 +83,25 @@ export function criarImprimirPedido(
       throw erro
     }
 
+    const consultarCategoria = comCacheDeCategoria(consultarNomeCategoria)
     const itensAtivos = resumo.itens.filter(itemPedidoEstaAtivo)
-    if (itensAtivos.length === 0) {
+    const resumoDocumento =
+      tipo === TIPO_DOCUMENTO_IMPRESSAO.COMANDA
+        ? {
+            ...resumo,
+            itens: resumo.itens.filter(
+              (item) => !itemPedidoNaoEntraNaComanda(item, consultarCategoria),
+            ),
+          }
+        : resumo
+    const itensParaImprimir = resumoDocumento.itens.filter(itemPedidoEstaAtivo)
+
+    if (itensAtivos.length === 0 || itensParaImprimir.length === 0) {
       throw new ErroImpressao(
         CODIGOS_ERRO_IMPRESSAO.PEDIDO_SEM_ITENS,
-        'O pedido nao tem itens para imprimir.',
+        tipo === TIPO_DOCUMENTO_IMPRESSAO.COMANDA && itensAtivos.length > 0
+          ? 'Nao ha itens de cozinha para imprimir. Bebidas nao saem na comanda.'
+          : 'O pedido nao tem itens para imprimir.',
       )
     }
 
@@ -57,10 +109,15 @@ export function criarImprimirPedido(
       ? repositorioMesa.buscarPorId(resumo.pedido.mesaId)
       : null
     const pagamentos = repositorioPagamento.listarPorPedido(resumo.pedido.id)
+
+    const documentoComanda =
+      tipo === TIPO_DOCUMENTO_IMPRESSAO.COMANDA
+        ? mapearPedidoParaComanda(resumoDocumento, mesa)
+        : null
     const linhas =
-      tipo === TIPO_DOCUMENTO_IMPRESSAO.CONTA
-        ? montarConta(mapearPedidoParaConta(resumo, mesa, pagamentos))
-        : montarComanda(mapearPedidoParaComanda(resumo, mesa))
+      documentoComanda
+        ? montarComanda(documentoComanda)
+        : montarConta(mapearPedidoParaConta(resumoDocumento, mesa, pagamentos))
 
     const texto = linhas.join('\n')
     let impresso = false
@@ -89,9 +146,7 @@ export function criarImprimirPedido(
 
     return {
       tipo,
-      setor: tipo === TIPO_DOCUMENTO_IMPRESSAO.COMANDA
-        ? mapearPedidoParaComanda(resumo, mesa).setor
-        : null,
+      setor: documentoComanda?.setor ?? null,
       linhas,
       texto,
       impresso,
