@@ -18,6 +18,12 @@ function formatarCentavosParaInput(centavos: number): string {
   return (centavos / 100).toFixed(2).replace('.', ',')
 }
 
+/** '2026-08' -> '08/2026' */
+function formatarCompetenciaCurta(competencia: string): string {
+  const [ano, mes] = competencia.split('-')
+  return ano && mes ? `${mes}/${ano}` : competencia
+}
+
 export function ClientesPage({ clientes }: ClientesPageProps) {
   const selecionado = clientes.clienteSelecionado
   const [nome, setNome] = useState('')
@@ -283,16 +289,30 @@ export function ClientesPage({ clientes }: ClientesPageProps) {
           {selecionado ? (
             <section className="conta-talao" data-testid="painel-conta-talao">
               <header className="conta-talao__cabecalho">
-                <h2>Talão do mês</h2>
-                <label>
-                  Competencia
-                  <input
-                    data-testid="campo-competencia-talao"
-                    type="month"
-                    value={clientes.competencia}
-                    onChange={(evento) => clientes.definirCompetencia(evento.target.value)}
-                  />
-                </label>
+                <h2>{clientes.verTodosOsMeses ? 'Talão — todos os meses' : 'Talão do mês'}</h2>
+                <div className="conta-talao__periodo">
+                  <label className="conta-talao__toggle">
+                    <input
+                      data-testid="campo-todos-meses-talao"
+                      type="checkbox"
+                      checked={clientes.verTodosOsMeses}
+                      onChange={(evento) =>
+                        clientes.definirVerTodosOsMeses(evento.target.checked)
+                      }
+                    />
+                    Todos os meses
+                  </label>
+                  <label>
+                    Competencia
+                    <input
+                      data-testid="campo-competencia-talao"
+                      type="month"
+                      value={clientes.competencia}
+                      disabled={clientes.verTodosOsMeses}
+                      onChange={(evento) => clientes.definirCompetencia(evento.target.value)}
+                    />
+                  </label>
+                </div>
               </header>
 
               {clientes.carregandoConta && !clientes.conta ? (
@@ -324,15 +344,33 @@ export function ClientesPage({ clientes }: ClientesPageProps) {
                     <ul className="conta-talao__lancamentos" data-testid="lista-lancamentos-talao">
                       {clientes.conta.lancamentos.map((lancamento) => (
                         <li key={lancamento.pagamentoId}>
-                          Pedido #{lancamento.pedidoReferencia} ·{' '}
-                          {formatarMoeda(lancamento.valorCentavos)}
+                          Pedido #{lancamento.pedidoReferencia}
+                          {clientes.verTodosOsMeses
+                            ? ` · ${formatarCompetenciaCurta(lancamento.competencia)}`
+                            : ''}{' '}
+                          · {formatarMoeda(lancamento.valorCentavos)}
                         </li>
                       ))}
                     </ul>
                   ) : (
-                    <p className="clientes-operacao__vazio">Nenhum lançamento neste mês.</p>
+                    <p className="clientes-operacao__vazio">
+                      {clientes.verTodosOsMeses
+                        ? 'Nenhum lançamento registrado.'
+                        : 'Nenhum lançamento neste mês.'}
+                    </p>
                   )}
 
+                  {clientes.verTodosOsMeses ? (
+                    <p
+                      className="clientes-operacao__vazio"
+                      data-testid="aviso-baixa-todos-meses"
+                    >
+                      A baixa é registrada por mês. Desmarque "Todos os meses" e escolha a
+                      competência para dar baixa.
+                    </p>
+                  ) : null}
+
+                  {!clientes.verTodosOsMeses ? (
                   <form
                     className="formulario-baixa-talao"
                     data-testid="formulario-baixa-talao"
@@ -387,6 +425,7 @@ export function ClientesPage({ clientes }: ClientesPageProps) {
                       Registrar baixa
                     </button>
                   </form>
+                  ) : null}
                 </>
               ) : null}
             </section>

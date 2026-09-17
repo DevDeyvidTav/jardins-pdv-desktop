@@ -15,6 +15,7 @@ import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
 import { registrarEventoPedidoSync } from '../../sincronizacao/services/registrar-evento-pedido'
 import { executarEmTransacaoImediata } from '../../../database/conexao-sqlite'
 import { obterConexaoBancoLocal } from '../../../database/inicializar-banco'
+import { snapshotFiscalDeProduto } from '@shared/utils/snapshot-fiscal-item'
 
 export function criarAdicionarItemPedido(
   repositorioPedido: PedidoRepository = criarPedidoRepository(),
@@ -77,6 +78,7 @@ export function criarAdicionarItemPedido(
         precoUnitarioCentavos: produto.precoCentavos,
         descontoCentavos: descontoItemCentavos,
         observacao: entrada.observacao?.trim() || null,
+        fiscal: snapshotFiscalDeProduto(produto),
       })
 
       recalcularTotaisPedido(entrada.pedidoId, repositorioPedido, repositorioItem)

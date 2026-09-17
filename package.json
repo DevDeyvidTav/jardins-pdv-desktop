@@ -13,12 +13,21 @@
     "test:watch": "vitest",
     "test:e2e": "npm run build && playwright test",
     "rebuild:native": "node scripts/rebuild-better-sqlite3-electron.js",
-    "seed:apresentacao": "vitest run --config vitest.seed.config.ts"
+    "seed:apresentacao": "vitest run --config vitest.seed.config.ts",
+    "seed:fiscal-produtos": "vitest run --config vitest.seed.config.ts tests/seed/preencher-fiscal-produtos.seed.ts",
+    "gen:china-express": "python scripts/gerar-china-express-catalogo.py",
+    "seed:china-express": "vitest run --config vitest.seed.config.ts tests/seed/china-express.seed.ts",
+    "dist:win": "npm run rebuild:native && electron-vite build && electron-builder --win --publish never",
+    "dist:win:publish": "npm run rebuild:native && electron-vite build && electron-builder --win --publish always",
+    "build:win": "npm run dist:win",
+    "dist": "npm run dist:win"
   },
   "dependencies": {
     "better-sqlite3": "11.8.1",
+    "electron-updater": "^6.3.9",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "uqr": "^0.1.3",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -30,9 +39,52 @@
     "@types/react-dom": "^19.0.4",
     "@vitejs/plugin-react": "^4.3.4",
     "electron": "^34.2.0",
+    "electron-builder": "^25.1.8",
     "electron-vite": "^3.0.0",
     "typescript": "^5.8.2",
     "vite": "^6.2.1",
     "vitest": "^3.0.8"
+  },
+  "build": {
+    "appId": "com.jardins.pdv",
+    "productName": "Jardins PDV",
+    "directories": {
+      "output": "dist",
+      "buildResources": "resources"
+    },
+    "files": [
+      "out/**/*",
+      "package.json",
+      "node_modules/better-sqlite3/**/*"
+    ],
+    "asarUnpack": [
+      "**/node_modules/better-sqlite3/**"
+    ],
+    "extraResources": [
+      {
+        "from": "resources",
+        "to": "resources",
+        "filter": ["**/*"]
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "artifactName": "Jardins-PDV-${version}-Setup.${ext}",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "allowElevation": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Jardins PDV"
+    },
+    "publish": {
+      "provider": "github",
+      "releaseType": "release"
+    }
   }
 }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Cliente, CriarClienteEntrada } from '@shared/types/cliente'
 import type { ContaTalaoCliente } from '@shared/types/talao'
+import { COMPETENCIA_TODAS_MESES } from '@shared/types/talao'
 import type { FormaPagamento } from '@shared/types/pagamento-pedido'
 import { competenciaAtualUtc } from '@shared/utils/data-hora'
 import { extrairMensagemErroIpc } from '@shared/utils/erro-ipc'
@@ -10,6 +11,7 @@ export interface UseClientesResultado {
   clienteSelecionado: Cliente | null
   conta: ContaTalaoCliente | null
   competencia: string
+  verTodosOsMeses: boolean
   termoBusca: string
   carregando: boolean
   carregandoConta: boolean
@@ -34,6 +36,7 @@ export interface UseClientesResultado {
   }) => Promise<boolean>
   definirTermoBusca: (termo: string) => void
   definirCompetencia: (competencia: string) => void
+  definirVerTodosOsMeses: (ver: boolean) => void
   recarregar: () => Promise<void>
   limparFeedback: () => void
 }
@@ -47,6 +50,7 @@ export function useClientes(): UseClientesResultado {
   const [clienteSelecionado, setClienteSelecionado] = useState<Cliente | null>(null)
   const [conta, setConta] = useState<ContaTalaoCliente | null>(null)
   const [competencia, setCompetencia] = useState(competenciaAtualUtc())
+  const [verTodosOsMeses, setVerTodosOsMeses] = useState(false)
   const [termoBusca, setTermoBusca] = useState('')
   const [carregando, setCarregando] = useState(true)
   const [carregandoConta, setCarregandoConta] = useState(false)
@@ -56,6 +60,8 @@ export function useClientes(): UseClientesResultado {
   clienteSelecionadoIdRef.current = clienteSelecionado?.id ?? null
   const competenciaRef = useRef(competencia)
   competenciaRef.current = competencia
+  const verTodosOsMesesRef = useRef(verTodosOsMeses)
+  verTodosOsMesesRef.current = verTodosOsMeses
 
   const carregarConta = useCallback(
     async (clienteId: string, competenciaConta: string) => {
@@ -95,7 +101,10 @@ export function useClientes(): UseClientesResultado {
 
       const clienteId = clienteSelecionadoIdRef.current
       if (clienteId) {
-        await carregarConta(clienteId, competenciaRef.current)
+        await carregarConta(
+          clienteId,
+          verTodosOsMesesRef.current ? COMPETENCIA_TODAS_MESES : competenciaRef.current,
+        )
       }
     } catch (causa) {
       setErro(extrairMensagemErro(causa))
@@ -113,8 +122,11 @@ export function useClientes(): UseClientesResultado {
       setConta(null)
       return
     }
-    void carregarConta(clienteSelecionado.id, competencia)
-  }, [carregarConta, clienteSelecionado?.id, competencia])
+    void carregarConta(
+      clienteSelecionado.id,
+      verTodosOsMeses ? COMPETENCIA_TODAS_MESES : competencia,
+    )
+  }, [carregarConta, clienteSelecionado?.id, competencia, verTodosOsMeses])
 
   const criarCliente = useCallback(
     async (entrada: CriarClienteEntrada): Promise<boolean> => {
@@ -247,6 +259,7 @@ export function useClientes(): UseClientesResultado {
     clienteSelecionado,
     conta,
     competencia,
+    verTodosOsMeses,
     termoBusca,
     carregando,
     carregandoConta,
@@ -260,6 +273,7 @@ export function useClientes(): UseClientesResultado {
     registrarBaixa,
     definirTermoBusca: setTermoBusca,
     definirCompetencia: setCompetencia,
+    definirVerTodosOsMeses: setVerTodosOsMeses,
     recarregar: carregarDados,
     limparFeedback,
   }

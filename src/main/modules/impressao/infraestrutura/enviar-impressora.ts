@@ -5,7 +5,12 @@ import { join } from 'node:path'
 
 /** Legado: lock em arquivo ficava orfao apos reinicio do Electron no dev. */
 const CAMINHO_LOCK_LEGADO = join(tmpdir(), 'pdv-impressora.lock')
-const TIMEOUT_SCRIPT_MS = 20_000
+/** Precisa exceder o timeout de escrita do driver (8s + 5ms/byte) com folga. */
+const TIMEOUT_SCRIPT_MS = 45_000
+/** WritePrinter e rapido; o que trava e o EndDoc/Close com a MP-4200 em Error. */
+const TIMEOUT_SPOOLER_MS = 15_000
+/** Marcador emitido pelo script assim que os bytes saem para a impressora. */
+const MARCADOR_BYTES_ENVIADOS = /(^|\n)\s*WROTE:\d+/
 const SCRIPT_IMPRESSORA_COM = join(tmpdir(), `pdv-impressora-com-${process.pid}.ps1`)
 const SCRIPT_SPOOLER = join(tmpdir(), `pdv-impressora-spooler-${process.pid}.ps1`)
 
@@ -33,6 +38,7 @@ export function removerLockImpressoraLegado(
 
 export type DestinoImpressao =
   | { tipo: 'SIMULADO' }
+  | { tipo: 'NAO_CONFIGURADO' }
   | { tipo: 'SPOOLER'; nome: string }
   | { tipo: 'COM'; porta: string; nomeImpressora: string }
 
@@ -81,7 +87,7 @@ export function enviarBufferImpressora(
   buffer: Buffer,
   destino = resolverDestinoImpressao(),
 ): void {
-  if (destino.tipo === 'SIMULADO') {
+  if (destino.tipo === 'SIMULADO' || destino.tipo === 'NAO_CONFIGURADO') {
     return
   }
 
@@ -111,10 +117,6 @@ function executarComLockImpressora<T>(operacao: () => T): T {
 }
 
 function garantirScriptCom(): void {
-  if (scriptComInicializado) {
-    return
-  }
-
   writeFileSync(SCRIPT_IMPRESSORA_COM, SCRIPT_ENVIAR_COM, 'utf8')
   scriptComInicializado = true
 }
@@ -145,84 +147,207 @@ export function limparFilaImpressora(
   })
 }
 
+/** Tentativas de esvaziar a fila antes de desistir (job "Retained" demora). */
+const TENTATIVAS_LIMPAR_FILA = 3
+
+export function prepararImpressoraParaEnvio(
+  nomeImpressora: string,
+  limpar = limparFilaImpressora,
+  retomar = retomarImpressoraWindows,
+  consultarStatus = consultarStatusImpressoraWindows,
+): void {
+  try {
+    retomar(nomeImpressora)
+  } catch {
+    // retomar e seguir
+  }
+
+  let status = consultarStatus(nomeImpressora)
+
+  // Status "Error" sem job na fila e falso positivo comum na Bematech: o cupom
+  // sai normalmente. O que realmente trava tudo e um job preso ("Retained") —
+  // enfileirar outro em cima dele deixa a impressora inutilizavel ate limpar.
+  for (
+    let tentativa = 0;
+    tentativa < TENTATIVAS_LIMPAR_FILA &&
+    status &&
+    (status.jobCount > 0 || status.printerStatus === 'Paused');
+    tentativa += 1
+  ) {
+    try {
+      limpar(nomeImpressora)
+    } catch {
+      // limpar e seguir
+    }
+    esperarMs(600)
+    try {
+      retomar(nomeImpressora)
+    } catch {
+      // retomar e seguir
+    }
+    status = consultarStatus(nomeImpressora)
+  }
+
+  if (status && status.jobCount > 0) {
+    throw new Error(
+      `A fila da impressora ${nomeImpressora} esta travada com ${status.jobCount} job(s) que o Windows nao libera. ` +
+        'Desligue a impressora pelo botao de tras, aguarde 5 segundos e ligue de novo. ' +
+        'Se nao resolver, rode scripts/recuperar-impressora.ps1 como Administrador (reinicia o Spooler de Impressao).',
+    )
+  }
+}
+
+export function recuperarImpressoraWindows(
+  nomeImpressora: string,
+  limpar = limparFilaImpressora,
+  retomar = retomarImpressoraWindows,
+  consultarStatus = consultarStatusImpressoraWindows,
+): StatusImpressoraWindows | null {
+  try {
+    retomar(nomeImpressora)
+  } catch {
+    // retomar e seguir
+  }
+
+  try {
+    limpar(nomeImpressora)
+  } catch {
+    // limpar e seguir
+  }
+
+  esperarMs(300)
+
+  try {
+    retomar(nomeImpressora)
+  } catch {
+    // retomar e seguir
+  }
+
+  return consultarStatus(nomeImpressora)
+}
+
 function enviarViaComWindows(
   buffer: Buffer,
   porta: string,
   nomeImpressora: string,
 ): void {
-  try {
-    executarEnvioCom(buffer, porta, nomeImpressora)
-    return
-  } catch (erro) {
-    if (!falhaPermiteReenvio(erro)) {
-      throw new Error(
-        obterMensagemErroImpressora(nomeImpressora, extrairDetalhe(erro)),
-      )
-    }
-  }
+  prepararImpressoraParaEnvio(nomeImpressora)
 
-  limparFilaImpressora(nomeImpressora)
+  const portaAtual = resolverPortaComImpressora(nomeImpressora, porta)
+  let ultimoErro: unknown
 
-  try {
-    executarEnvioCom(buffer, porta, nomeImpressora)
-    return
-  } catch (erro) {
-    if (!falhaPermiteReenvio(erro)) {
-      throw new Error(
-        obterMensagemErroImpressora(nomeImpressora, extrairDetalhe(erro)),
-      )
-    }
-  }
-
-  /** A Bematech reenumera a porta COM a cada reconexao USB; a configurada pode ter ficado obsoleta. */
-  const portaDetectada = detectarPortaComAtual(nomeImpressora)
-
-  if (portaDetectada && portaDetectada !== porta) {
+  const tentar = (portaAlvo: string): 'ok' | 'reenviar' | 'fatal' => {
     try {
-      executarEnvioCom(buffer, portaDetectada, nomeImpressora)
-      return
+      executarEnvioCom(buffer, portaAlvo, nomeImpressora)
+      return 'ok'
     } catch (erro) {
-      if (!falhaPermiteReenvio(erro)) {
-        throw new Error(
-          obterMensagemErroImpressora(nomeImpressora, extrairDetalhe(erro)),
-        )
-      }
+      ultimoErro = erro
+      return falhaPermiteReenvio(erro) ? 'reenviar' : 'fatal'
     }
   }
 
-  enviarViaSpoolerWindows(buffer, nomeImpressora, portaDetectada ?? porta)
+  const primeira = tentar(portaAtual)
+  if (primeira === 'ok') {
+    return
+  }
+  if (primeira === 'fatal') {
+    throw new Error(
+      obterMensagemErroImpressora(nomeImpressora, extrairDetalhe(ultimoErro)),
+    )
+  }
+
+  try {
+    limparFilaImpressora(nomeImpressora)
+  } catch {
+    // limpar a fila e tentar a COM de novo
+  }
+
+  const portaDepois = resolverPortaComImpressora(nomeImpressora, porta)
+  const segunda = tentar(portaDepois)
+  if (segunda === 'ok') {
+    return
+  }
+
+  throw new Error(
+    obterMensagemErroImpressora(nomeImpressora, extrairDetalhe(ultimoErro)),
+  )
 }
 
-export function detectarPortaComAtual(
+export function normalizarPortaCom(porta: string | null | undefined): string | null {
+  if (!porta?.trim()) {
+    return null
+  }
+
+  const limpa = porta.trim().replace(/:$/, '')
+  return /^COM\d+$/i.test(limpa) ? limpa.toUpperCase() : null
+}
+
+/** PortName bruto do Windows (COM10, Bematech_USB, etc.). */
+export function consultarPortNameImpressoraWindows(
   nomeImpressora: string,
   executarConsulta = executarConsultaPowerShell,
 ): string | null {
   try {
-    const termoEscapado = nomeImpressora.replace(/'/g, "''")
+    const nomeEscapado = nomeImpressora.replace(/'/g, "''")
     const saida = executarConsulta(
-      `(Get-PnpDevice | Where-Object { $_.Present -and $_.FriendlyName -like '*${termoEscapado}*' -and $_.FriendlyName -match '\\(COM\\d+\\)' } | Select-Object -First 1 -ExpandProperty FriendlyName)`,
+      `$p = Get-Printer -Name '${nomeEscapado}' -ErrorAction SilentlyContinue | Select-Object -First 1; if ($null -eq $p) { '' } else { $p.PortName }`,
     ).trim()
 
-    const combinacao = saida.match(/\(COM(\d+)\)/i)
-    return combinacao ? `COM${combinacao[1]}` : null
+    return saida || null
   } catch {
     return null
   }
 }
 
+/** Porta COM atual pelo nome exato da impressora no Windows (Get-Printer). */
+export function detectarPortaComAtual(
+  nomeImpressora: string,
+  executarConsulta = executarConsultaPowerShell,
+): string | null {
+  return normalizarPortaCom(consultarPortNameImpressoraWindows(nomeImpressora, executarConsulta))
+}
+
+/** Prioriza a porta detectada agora (USB pode mudar COM apos reconectar). */
+export function resolverPortaComImpressora(
+  nomeImpressora: string,
+  portaConfigurada?: string | null,
+  env: NodeJS.ProcessEnv = process.env,
+  detectar = detectarPortaComAtual,
+): string {
+  return (
+    detectar(nomeImpressora) ??
+    normalizarPortaCom(portaConfigurada) ??
+    obterPortaImpressoraLocal(env)
+  )
+}
+
 function enviarViaSpoolerWindows(
   buffer: Buffer,
   nomeImpressora: string,
-  porta = obterPortaImpressoraLocal(),
 ): void {
+  prepararImpressoraParaEnvio(nomeImpressora)
+
   try {
+    // WritePrinter OK = bytes entregues ao driver; nao checamos status Error
+    // depois porque a MP-4200 via Bematech_USB imprime mesmo com Error no Windows.
     executarEnvioRawSpooler(buffer, nomeImpressora)
+    return
   } catch (erroSpooler) {
+    const detalheSpooler = extrairDetalhe(erroSpooler)
+    const portaReal = detectarPortaComAtual(nomeImpressora)
+
+    // Sem porta COM real (ex.: Bematech_USB), tentar uma porta inventada gera um
+    // timeout de 45s que reporta falha depois do cupom ja ter saido.
+    if (!portaReal) {
+      throw new Error(
+        obterMensagemErroImpressora(nomeImpressora, `Spooler: ${detalheSpooler}`),
+      )
+    }
+
     try {
-      executarEnvioCom(buffer, porta, nomeImpressora)
+      executarEnvioCom(buffer, portaReal, nomeImpressora)
     } catch (erroCom) {
       limparFilaImpressora(nomeImpressora)
-      const detalheSpooler = extrairDetalhe(erroSpooler)
       const detalheCom = extrairDetalhe(erroCom)
       throw new Error(
         obterMensagemErroImpressora(
@@ -257,6 +382,7 @@ function executarEnvioCom(
       FilePath: arquivo,
       Modo: 'Imprimir',
     })
+    esperarMs(250)
   } finally {
     removerArquivoTemporario(arquivo)
   }
@@ -271,10 +397,14 @@ function executarEnvioRawSpooler(buffer: Buffer, nomeImpressora: string): void {
   const arquivo = criarArquivoTemporario(buffer)
 
   try {
-    executarScriptPowerShellArquivo(SCRIPT_SPOOLER, {
-      PrinterName: nomeImpressora,
-      FilePath: arquivo,
-    })
+    executarScriptPowerShellArquivo(
+      SCRIPT_SPOOLER,
+      {
+        PrinterName: nomeImpressora,
+        FilePath: arquivo,
+      },
+      TIMEOUT_SPOOLER_MS,
+    )
   } finally {
     removerArquivoTemporario(arquivo)
   }
@@ -294,25 +424,58 @@ function removerArquivoTemporario(arquivo: string): void {
   }
 }
 
+export function orientarFalhaPortaCom(detalhe: string): string {
+  const texto = detalhe.toLowerCase()
+  if (
+    texto.includes('nao esta funcionando') ||
+    texto.includes('não está funcionando') ||
+    texto.includes('not functioning')
+  ) {
+    return 'O cabo USB da impressora travou. Desligue pelo botao de tras, desconecte o USB, espere 5 segundos, ligue e conecte de novo. A porta COM pode mudar depois disso.'
+  }
+
+  if (
+    texto.includes('etimedout') ||
+    texto.includes('timeout') ||
+    texto.includes('121') ||
+    texto.includes('1460')
+  ) {
+    return 'A impressora nao respondeu a tempo. Verifique se ela esta ligada e com papel; se persistir, desligue-a pelo botao de tras, desconecte o USB, espere 5 segundos, ligue e conecte de novo.'
+  }
+
+  if (texto.includes('acesso') || texto.includes('access denied')) {
+    return 'A porta COM esta ocupada. Feche a fila da MP-4200 no Windows e qualquer outro programa usando a impressora.'
+  }
+
+  return detalhe
+}
+
 export function obterMensagemErroImpressora(
   nomeImpressora: string,
   detalhe: string,
   consultarStatus = consultarStatusImpressoraWindows,
+  detectarPorta = detectarPortaComAtual,
 ): string {
+  const orientacao = orientarFalhaPortaCom(detalhe)
+  const portaAtual = detectarPorta(nomeImpressora)
+  const orientacaoPorta = portaAtual
+    ? ` Porta detectada agora: ${portaAtual}.`
+    : ''
+  const tecnico = orientacao === detalhe ? '' : ` [${detalhe}]`
   const status = consultarStatus(nomeImpressora)
   if (status?.printerStatus === 'Paused') {
-    return `A impressora ${nomeImpressora} esta pausada no Windows. Abra a fila de impressao, desmarque "Pausar impressao" no menu Impressora, ou reinicie o PDV (ele retoma automaticamente). ${detalhe}`
+    return `A impressora ${nomeImpressora} esta pausada no Windows. Abra a fila de impressao, desmarque "Pausar impressao" no menu Impressora, ou reinicie o PDV (ele retoma automaticamente). ${orientacao}${orientacaoPorta}${tecnico}`
   }
 
   if (status?.printerStatus === 'Error') {
-    return `A impressora ${nomeImpressora} nao responde. Desligue-a (botao atras), aguarde 5 segundos, ligue de novo e tente outra vez. ${detalhe}`
+    return `A impressora ${nomeImpressora} nao responde. Desligue-a (botao atras), aguarde 5 segundos, ligue de novo e tente outra vez. ${orientacao}${orientacaoPorta}${tecnico}`
   }
 
   if (status && status.jobCount > 0) {
-    return `A fila da impressora ${nomeImpressora} ainda tem ${status.jobCount} job(s) preso(s). ${detalhe}`
+    return `A fila da impressora ${nomeImpressora} ainda tem ${status.jobCount} job(s) preso(s). ${orientacao}${orientacaoPorta}${tecnico}`
   }
 
-  return `Nao foi possivel enviar para a impressora ${nomeImpressora}. ${detalhe}`
+  return `Nao foi possivel enviar para a impressora ${nomeImpressora}. ${orientacao}${orientacaoPorta}${tecnico}`
 }
 
 export interface StatusImpressoraWindows {
@@ -340,6 +503,10 @@ export function consultarStatusImpressoraWindows(
   }
 }
 
+function esperarMs(milissegundos: number): void {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, milissegundos)
+}
+
 function executarConsultaPowerShell(comando: string): string {
   return execFileSync(
     'powershell.exe',
@@ -351,6 +518,7 @@ function executarConsultaPowerShell(comando: string): string {
 function executarScriptPowerShellArquivo(
   script: string,
   parametros: Record<string, string>,
+  timeoutMs = TIMEOUT_SCRIPT_MS,
 ): void {
   const argumentos = [
     '-NoProfile',
@@ -365,22 +533,77 @@ function executarScriptPowerShellArquivo(
     argumentos.push(`-${nome}`, valor)
   }
 
-  const saida = execFileSync('powershell.exe', argumentos, {
-    timeout: TIMEOUT_SCRIPT_MS,
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'ignore'],
-    windowsHide: true,
-  }).trim()
+  try {
+    const saida = execFileSync('powershell.exe', argumentos, {
+      timeout: timeoutMs,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+      windowsHide: true,
+    })
+    concluirScriptImpressora(saida)
+  } catch (erro) {
+    if (erro instanceof Error && !ehErroExecFile(erro)) {
+      throw erro
+    }
 
-  if (saida === 'OK') {
+    concluirScriptImpressora(extrairSaidaExecFile(erro), erro)
+  }
+}
+
+export function ehErroExecFile(erro: Error): boolean {
+  return erro.message.startsWith('Command failed') || 'stdout' in erro
+}
+
+export function extrairSaidaExecFile(erro: unknown): string {
+  if (!erro || typeof erro !== 'object') {
+    return ''
+  }
+
+  const execucao = erro as { stdout?: unknown; stderr?: unknown }
+  return [textoBufferOuString(execucao.stdout), textoBufferOuString(execucao.stderr)]
+    .filter(Boolean)
+    .join('\n')
+    .trim()
+}
+
+function textoBufferOuString(valor: unknown): string {
+  if (typeof valor === 'string') {
+    return valor.trim()
+  }
+
+  if (Buffer.isBuffer(valor)) {
+    return valor.toString('utf8').trim()
+  }
+
+  return ''
+}
+
+export function concluirScriptImpressora(saida: string, erroExecucao?: unknown): void {
+  const texto = saida.trim()
+
+  // Bytes ja entregues a impressora. O resto do script (EndDoc/CloseHandle) pode
+  // travar com a MP-4200 em Error, mas o cupom sai — nao e falha de impressao.
+  if (MARCADOR_BYTES_ENVIADOS.test(texto)) {
     return
   }
 
-  if (saida.startsWith('FAIL:')) {
-    throw new Error(saida.slice(5).trim())
+  if (texto === 'OK' || texto.endsWith('\nOK')) {
+    return
   }
 
-  throw new Error(saida || 'Falha desconhecida ao enviar para a impressora.')
+  if (texto.startsWith('FAIL:')) {
+    throw new Error(texto.slice(5).trim())
+  }
+
+  if (texto) {
+    throw new Error(texto)
+  }
+
+  throw new Error(
+    erroExecucao instanceof Error
+      ? erroExecucao.message
+      : 'Falha desconhecida ao enviar para a impressora.',
+  )
 }
 
 /**
@@ -422,13 +645,15 @@ if ($Modo -eq 'Retomar') {
 if ($Modo -eq 'Limpar') {
   try {
     Retomar-Impressora -Nome $PrinterName
-    for ($t = 0; $t -lt 3; $t++) {
+    # Job "Retained" nao sai no primeiro Remove-PrintJob: o driver ainda segura a
+    # porta. Precisa de mais voltas e pausas maiores para a fila realmente zerar.
+    for ($t = 0; $t -lt 6; $t++) {
       $jobs = @(Get-PrintJob -PrinterName $PrinterName -ErrorAction SilentlyContinue)
       if ($jobs.Count -eq 0) { break }
       foreach ($job in $jobs) {
         Remove-PrintJob -PrinterName $PrinterName -ID $job.Id -ErrorAction SilentlyContinue
       }
-      Start-Sleep -Milliseconds 80
+      Start-Sleep -Milliseconds 350
     }
     Retomar-Impressora -Nome $PrinterName
     Write-Output 'OK'
@@ -440,48 +665,94 @@ if ($Modo -eq 'Limpar') {
   }
 }
 
+# SerialPort.Open() na MP-4200 chama SetCommState e o USB responde
+# "dispositivo nao esta funcionando". CreateFile + DTR/RTS via Win32 funciona.
 try {
   $bytes = [IO.File]::ReadAllBytes($FilePath)
-  $port = New-Object System.IO.Ports.SerialPort $PortName, 115200, 'None', 8, 'One'
-  $port.Handshake = [System.IO.Ports.Handshake]::None
-  $port.WriteTimeout = 8000
-  # Sem DTR/RTS ativos a porta virtual USB da Bematech nao aceita bytes e trava
-  # com "tempo limite do semaforo expirou", mesmo com o dispositivo presente e OK.
-  $port.DtrEnable = $true
-  $port.RtsEnable = $true
+  if (-not ([System.Management.Automation.PSTypeName]'PdvComPort').Type) {
+    Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+public class PdvComPort {
+  [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+  public static extern IntPtr CreateFile(string name, uint acc, uint share, IntPtr sec, uint disp, uint flags, IntPtr tmpl);
+  [DllImport("kernel32.dll", SetLastError = true)]
+  public static extern bool WriteFile(IntPtr h, byte[] buf, int count, out int written, IntPtr overlapped);
+  [DllImport("kernel32.dll", SetLastError = true)]
+  public static extern bool CloseHandle(IntPtr h);
+  [DllImport("kernel32.dll", SetLastError = true)]
+  public static extern bool EscapeCommFunction(IntPtr h, uint fn);
+  [StructLayout(LayoutKind.Sequential)]
+  public struct COMMTIMEOUTS {
+    public uint ReadIntervalTimeout;
+    public uint ReadTotalTimeoutMultiplier;
+    public uint ReadTotalTimeoutConstant;
+    public uint WriteTotalTimeoutMultiplier;
+    public uint WriteTotalTimeoutConstant;
+  }
+  [DllImport("kernel32.dll", SetLastError = true)]
+  public static extern bool SetCommTimeouts(IntPtr h, ref COMMTIMEOUTS t);
+  public static IntPtr OpenCom(string port) {
+    string path = new string((char)92, 2) + "." + (char)92 + port;
+    return CreateFile(path, 1073741824, 0, IntPtr.Zero, 3, 0, IntPtr.Zero);
+  }
+  // Sem timeout de escrita, uma impressora travada bloqueia o WriteFile no
+  // kernel para sempre: o processo vira zumbi imortal segurando a COM e a
+  // porta entra em colapso (erros 5/2/121). Com timeout, o WriteFile falha
+  // com ERROR_TIMEOUT (1460) e o processo sai limpo, soltando a porta.
+  public static void AplicarTimeoutEscrita(IntPtr h) {
+    COMMTIMEOUTS t = new COMMTIMEOUTS();
+    t.ReadIntervalTimeout = 0;
+    t.ReadTotalTimeoutMultiplier = 0;
+    t.ReadTotalTimeoutConstant = 0;
+    t.WriteTotalTimeoutMultiplier = 5;
+    t.WriteTotalTimeoutConstant = 8000;
+    SetCommTimeouts(h, ref t);
+  }
+}
+"@
+  }
 } catch {
   Write-Output ("FAIL:ABERTURA:" + $_.Exception.Message)
   exit 1
 }
 
+$handle = [IntPtr]::Zero
+$saida = 'OK'
+$codigo = 0
 try {
-  $port.Open()
-  Start-Sleep -Milliseconds 300
-} catch {
-  Write-Output ("FAIL:ABERTURA:" + $_.Exception.Message)
-  exit 1
-}
-
-try {
-  $port.Write($bytes, 0, $bytes.Length)
-  $relogio = [Diagnostics.Stopwatch]::StartNew()
-  while ($port.BytesToWrite -gt 0 -and $relogio.ElapsedMilliseconds -lt 8000) {
-    Start-Sleep -Milliseconds 20
+  $handle = [PdvComPort]::OpenCom($PortName)
+  if ($handle -eq [IntPtr]::Zero -or $handle -eq [IntPtr]::new(-1)) {
+    throw "Nao foi possivel abrir $PortName (Win32 $([Runtime.InteropServices.Marshal]::GetLastWin32Error()))."
   }
-  if ($port.BytesToWrite -gt 0) {
-    throw "A impressora nao consumiu $($port.BytesToWrite) bytes."
+  [PdvComPort]::AplicarTimeoutEscrita($handle)
+  [void][PdvComPort]::EscapeCommFunction($handle, 5)
+  [void][PdvComPort]::EscapeCommFunction($handle, 3)
+  Start-Sleep -Milliseconds 400
+  $escritos = 0
+  $ok = [PdvComPort]::WriteFile($handle, $bytes, $bytes.Length, [ref]$escritos, [IntPtr]::Zero)
+  if (-not $ok -or $escritos -le 0) {
+    throw "A impressora nao aceitou os bytes em $PortName (Win32 $([Runtime.InteropServices.Marshal]::GetLastWin32Error()))."
   }
-  Write-Output 'OK'
-  exit 0
+  [Console]::Out.WriteLine("WROTE:$escritos")
+  [Console]::Out.Flush()
+  Start-Sleep -Milliseconds 400
 } catch {
-  Write-Output ("FAIL:" + $_.Exception.Message)
-  exit 1
+  $prefixo = 'FAIL:'
+  if ($handle -eq [IntPtr]::Zero -or $handle -eq [IntPtr]::new(-1)) {
+    $prefixo = 'FAIL:ABERTURA:'
+  }
+  $saida = $prefixo + $_.Exception.Message
+  $codigo = 1
 } finally {
   try {
-    if ($port.IsOpen) { $port.Close() }
-    $port.Dispose()
+    if ($handle -ne [IntPtr]::Zero -and $handle -ne [IntPtr]::new(-1)) {
+      [void][PdvComPort]::CloseHandle($handle)
+    }
   } catch {}
 }
+Write-Output $saida
+exit $codigo
 `
 
 const SCRIPT_SPOOLER_RAW = `
@@ -535,6 +806,8 @@ public class PdvRawPrinter {
         if (-not [PdvRawPrinter]::WritePrinter($handle, $ptr, $bytes.Length, [ref]$escritos)) {
           throw 'Falha ao escrever na impressora.'
         }
+        [Console]::Out.WriteLine("WROTE:$escritos")
+        [Console]::Out.Flush()
         Start-Sleep -Milliseconds 250
       } finally {
         [Runtime.InteropServices.Marshal]::FreeHGlobal($ptr)

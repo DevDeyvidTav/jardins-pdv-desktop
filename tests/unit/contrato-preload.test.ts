@@ -25,9 +25,30 @@ const PEDIDO_BASE = {
   finalizadoEm: null,
   canceladoEm: null,
   motivoCancelamento: null,
+  fiscalSolicitado: false,
+  fiscalCpfDestinatario: null,
 }
 
 const RESUMO_BASE = { pedido: PEDIDO_BASE, itens: [], entrega: null, divisao: null }
+
+const PRODUTO_BASE = {
+  id: 'prod-1',
+  categoriaId: 'cat-1',
+  nome: 'Coca-Cola lata',
+  descricao: null as string | null,
+  precoCentavos: 600,
+  fiscalNcm: null as string | null,
+  fiscalCest: null as string | null,
+  fiscalCfop: '5102',
+  fiscalIcmsOrigem: 0,
+  fiscalIcmsCsosn: '102',
+  fiscalPisCst: '07',
+  fiscalCofinsCst: '07',
+  fiscalAliquotaNacional: null as number | null,
+  ativo: true,
+  criadoEm: new Date().toISOString(),
+  atualizadoEm: new Date().toISOString(),
+}
 
 describe('contrato da API exposta pelo preload', () => {
   it('define canais IPC do sistema, caixa e produtos', () => {
@@ -56,6 +77,14 @@ describe('contrato da API exposta pelo preload', () => {
     expect(CANAIS_IPC.IMPRESSAO_IMPRIMIR_CONTA).toBe('impressao:imprimir-conta')
     expect(CANAIS_IPC.IMPRESSAO_IMPRIMIR_COMANDA).toBe('impressao:imprimir-comanda')
     expect(CANAIS_IPC.SYNC_OBTER_ESTADO).toBe('sync:obter-estado')
+    expect(CANAIS_IPC.CONFIG_LISTAR_IMPRESSORAS).toBe('config:listar-impressoras')
+    expect(CANAIS_IPC.CONFIG_SALVAR_IMPRESSORAS).toBe('config:salvar-impressoras')
+    expect(CANAIS_IPC.CONFIG_OBTER_OPERADOR).toBe('config:obter-operador')
+    expect(CANAIS_IPC.PEDIDOS_ATUALIZAR_SOLICITACAO_FISCAL).toBe(
+      'pedidos:atualizar-solicitacao-fiscal',
+    )
+    expect(CANAIS_IPC.FISCAL_OBTER_DOCUMENTO).toBe('fiscal:obter-documento')
+    expect(CANAIS_IPC.FISCAL_IMPRIMIR_DANFE).toBe('fiscal:imprimir-danfe')
   })
 
   it('mantem formato esperado da API window.pdv', () => {
@@ -67,6 +96,40 @@ describe('contrato da API exposta pelo preload', () => {
           bancoLocalInicializado: true,
           electronAtivo: true,
         }),
+        obterEstadoAtualizacao: async () => ({
+          ativo: false,
+          verificando: false,
+          baixando: false,
+          baixada: false,
+          versaoAtual: '0.1.0',
+          versaoDisponivel: null,
+          progressoPercentual: null,
+          mensagem: 'Modo teste',
+          erro: null,
+        }),
+        verificarAtualizacao: async () => ({
+          ativo: false,
+          verificando: false,
+          baixando: false,
+          baixada: false,
+          versaoAtual: '0.1.0',
+          versaoDisponivel: null,
+          progressoPercentual: null,
+          mensagem: 'Modo teste',
+          erro: null,
+        }),
+        instalarAtualizacao: async () => ({
+          ativo: false,
+          verificando: false,
+          baixando: false,
+          baixada: false,
+          versaoAtual: '0.1.0',
+          versaoDisponivel: null,
+          progressoPercentual: null,
+          mensagem: 'Modo teste',
+          erro: null,
+        }),
+        onAtualizacaoEvento: () => () => {},
       },
       caixa: {
         abrirSessaoCaixa: async () => ({
@@ -149,59 +212,14 @@ describe('contrato da API exposta pelo preload', () => {
           atualizadoEm: new Date().toISOString(),
         }),
         excluirCategoria: async () => ({ modo: 'EXCLUIDO' as const }),
-        criarProduto: async () => ({
-          id: 'prod-1',
-          categoriaId: 'cat-1',
-          nome: 'Coca-Cola lata',
-          descricao: null,
-          precoCentavos: 600,
-          ativo: true,
-          criadoEm: new Date().toISOString(),
-          atualizadoEm: new Date().toISOString(),
-        }),
+        criarProduto: async () => ({ ...PRODUTO_BASE }),
         listarProdutos: async () => [],
         buscarProdutos: async () => [],
-        atualizarProduto: async () => ({
-          id: 'prod-1',
-          categoriaId: 'cat-1',
-          nome: 'Coca-Cola lata',
-          descricao: null,
-          precoCentavos: 600,
-          ativo: true,
-          criadoEm: new Date().toISOString(),
-          atualizadoEm: new Date().toISOString(),
-        }),
-        inativarProduto: async () => ({
-          id: 'prod-1',
-          categoriaId: 'cat-1',
-          nome: 'Coca-Cola lata',
-          descricao: null,
-          precoCentavos: 600,
-          ativo: false,
-          criadoEm: new Date().toISOString(),
-          atualizadoEm: new Date().toISOString(),
-        }),
-        reativarProduto: async () => ({
-          id: 'prod-1',
-          categoriaId: 'cat-1',
-          nome: 'Coca-Cola lata',
-          descricao: null,
-          precoCentavos: 600,
-          ativo: true,
-          criadoEm: new Date().toISOString(),
-          atualizadoEm: new Date().toISOString(),
-        }),
+        atualizarProduto: async () => ({ ...PRODUTO_BASE }),
+        inativarProduto: async () => ({ ...PRODUTO_BASE, ativo: false }),
+        reativarProduto: async () => ({ ...PRODUTO_BASE }),
         excluirProduto: async () => ({ modo: 'EXCLUIDO' as const }),
-        obterProdutoPorId: async () => ({
-          id: 'prod-1',
-          categoriaId: 'cat-1',
-          nome: 'Coca-Cola lata',
-          descricao: null,
-          precoCentavos: 600,
-          ativo: true,
-          criadoEm: new Date().toISOString(),
-          atualizadoEm: new Date().toISOString(),
-        }),
+        obterProdutoPorId: async () => ({ ...PRODUTO_BASE }),
       },
       mesas: {
         criarMesasPorIntervalo: async () => [
@@ -296,6 +314,7 @@ describe('contrato da API exposta pelo preload', () => {
           tamanhoNomeSnapshot: 'Pequena',
           sabores: [],
         }),
+        atualizarSolicitacaoFiscal: async () => PEDIDO_BASE,
       },
       pizzas: {
         listarCategorias: async () => [],
@@ -638,6 +657,17 @@ describe('contrato da API exposta pelo preload', () => {
           aviso: null,
         }),
       },
+      fiscal: {
+        obterDocumento: async () => null,
+        imprimirDanfe: async () => ({
+          tipo: 'CONTA',
+          setor: null,
+          linhas: [],
+          texto: '',
+          impresso: true,
+          aviso: null,
+        }),
+      },
       sync: {
         obterEstado: async () => ({
           pendente: 0,
@@ -646,6 +676,53 @@ describe('contrato da API exposta pelo preload', () => {
           ultimaTentativaEm: null,
           ultimoSucessoEm: null,
           ultimoErro: null,
+        }),
+      },
+      config: {
+        listarImpressoras: async () => [],
+        listarImpressorasSistema: async () => ({
+          impressoras: [],
+          portasCom: [],
+        }),
+        recuperarImpressoras: async () => [],
+        salvarImpressoras: async () => [],
+        atualizarSetorCategoria: async () => ({
+          id: 'cat-1',
+          nome: 'Bebidas',
+          descricao: null,
+          setorImpressao: null,
+          ativo: true,
+          criadoEm: new Date().toISOString(),
+          atualizadoEm: new Date().toISOString(),
+        }),
+        obterOperador: async () => null,
+        listarOperadoresEntrada: async () => [
+          {
+            operadorId: 'op-1',
+            operadorNome: 'Nathalia',
+          },
+        ],
+        listarOperadores: async () => [
+          {
+            operadorId: 'op-1',
+            operadorNome: 'Nathalia',
+            perfil: 'ADMIN',
+          },
+        ],
+        salvarOperador: async () => ({
+          operadorId: 'op-1',
+          operadorNome: 'Nathalia',
+          perfil: 'ADMIN',
+        }),
+        autenticarOperador: async () => ({
+          operadorId: 'op-1',
+          operadorNome: 'Nathalia',
+          perfil: 'ADMIN',
+        }),
+        obterInfoSync: async () => ({
+          apiUrl: null,
+          dispositivoId: null,
+          apiConfigurada: false,
         }),
       },
     }
@@ -680,5 +757,14 @@ describe('contrato da API exposta pelo preload', () => {
     expect(typeof api.impressao.imprimirConta).toBe('function')
     expect(typeof api.impressao.imprimirComanda).toBe('function')
     expect(typeof api.sync.obterEstado).toBe('function')
+    expect(typeof api.config.listarImpressoras).toBe('function')
+    expect(typeof api.config.listarImpressorasSistema).toBe('function')
+    expect(typeof api.config.recuperarImpressoras).toBe('function')
+    expect(typeof api.config.listarOperadoresEntrada).toBe('function')
+    expect(typeof api.config.listarOperadores).toBe('function')
+    expect(typeof api.config.salvarOperador).toBe('function')
+    expect(typeof api.pedidos.atualizarSolicitacaoFiscal).toBe('function')
+    expect(typeof api.fiscal.obterDocumento).toBe('function')
+    expect(typeof api.fiscal.imprimirDanfe).toBe('function')
   })
 })

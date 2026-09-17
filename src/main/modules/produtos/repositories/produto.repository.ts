@@ -5,7 +5,8 @@ import {
 } from '../../../database/conexao-sqlite'
 import { obterConexaoBancoLocal } from '../../../database/inicializar-banco'
 import { agoraEmIsoUtc } from '@shared/utils/data-hora'
-import type { Produto, ProdutoComCategoria } from '@shared/types/produto'
+import { resolverDadosFiscaisProduto } from '@shared/utils/fiscal-produto'
+import type { DadosFiscaisProdutoEntrada, Produto, ProdutoComCategoria } from '@shared/types/produto'
 import {
   mapearLinhaProduto,
   mapearLinhaProdutoComCategoria,
@@ -19,6 +20,13 @@ interface FiltrosProduto {
   apenasAtivos?: boolean
   termo?: string
 }
+
+type DadosProdutoPersistencia = {
+  categoriaId: string
+  nome: string
+  descricao: string | null
+  precoCentavos: number
+} & DadosFiscaisProdutoEntrada
 
 export class ProdutoRepository {
   constructor(private readonly obterConexao = obterConexaoBancoLocal) {}
@@ -83,8 +91,7 @@ export class ProdutoRepository {
     const where = condicoes.length > 0 ? `WHERE ${condicoes.join(' AND ')}` : ''
 
     const consulta = conexao.instancia.prepare(
-      `SELECT p.id, p.categoria_id, p.nome, p.descricao, p.preco_centavos,
-              p.ativo, p.criado_em, p.atualizado_em, c.nome AS categoria_nome
+      `SELECT ${obterColunasProduto('p.')}, c.nome AS categoria_nome
        FROM produto p
        INNER JOIN categoria_produto c ON c.id = p.categoria_id
        ${where}
@@ -103,20 +110,17 @@ export class ProdutoRepository {
     return produtos
   }
 
-  inserir(dados: {
-    categoriaId: string
-    nome: string
-    descricao: string | null
-    precoCentavos: number
-  }): Produto {
+  inserir(dados: DadosProdutoPersistencia): Produto {
     const conexao = this.obterConexao()
     const agora = agoraEmIsoUtc()
+    const fiscal = resolverDadosFiscaisProduto(dados)
     const produto: Produto = {
       id: randomUUID(),
       categoriaId: dados.categoriaId,
       nome: dados.nome,
       descricao: dados.descricao,
       precoCentavos: dados.precoCentavos,
+      ...fiscal,
       ativo: true,
       criadoEm: agora,
       atualizadoEm: agora,
@@ -124,14 +128,25 @@ export class ProdutoRepository {
 
     conexao.instancia.run(
       `INSERT INTO produto (
-         id, categoria_id, nome, descricao, preco_centavos, ativo, criado_em, atualizado_em
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+         id, categoria_id, nome, descricao, preco_centavos,
+         fiscal_ncm, fiscal_cest, fiscal_cfop, fiscal_icms_origem, fiscal_icms_csosn,
+         fiscal_pis_cst, fiscal_cofins_cst, fiscal_aliquota_nacional,
+         ativo, criado_em, atualizado_em
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         produto.id,
         produto.categoriaId,
         produto.nome,
         produto.descricao,
         produto.precoCentavos,
+        produto.fiscalNcm,
+        produto.fiscalCest,
+        produto.fiscalCfop,
+        produto.fiscalIcmsOrigem,
+        produto.fiscalIcmsCsosn,
+        produto.fiscalPisCst,
+        produto.fiscalCofinsCst,
+        produto.fiscalAliquotaNacional,
         1,
         produto.criadoEm,
         produto.atualizadoEm,
@@ -148,7 +163,7 @@ export class ProdutoRepository {
     nome?: string
     descricao?: string | null
     precoCentavos?: number
-  }): Produto {
+  } & DadosFiscaisProdutoEntrada): Produto {
     const conexao = this.obterConexao()
     const existente = this.buscarPorId(dados.produtoId)
 
@@ -157,24 +172,49 @@ export class ProdutoRepository {
     }
 
     const agora = agoraEmIsoUtc()
+    const fiscal = resolverDadosFiscaisProduto({
+      fiscalNcm: dados.fiscalNcm !== undefined ? dados.fiscalNcm : existente.fiscalNcm,
+      fiscalCest: dados.fiscalCest !== undefined ? dados.fiscalCest : existente.fiscalCest,
+      fiscalCfop: dados.fiscalCfop ?? existente.fiscalCfop,
+      fiscalIcmsOrigem: dados.fiscalIcmsOrigem ?? existente.fiscalIcmsOrigem,
+      fiscalIcmsCsosn: dados.fiscalIcmsCsosn ?? existente.fiscalIcmsCsosn,
+      fiscalPisCst: dados.fiscalPisCst ?? existente.fiscalPisCst,
+      fiscalCofinsCst: dados.fiscalCofinsCst ?? existente.fiscalCofinsCst,
+      fiscalAliquotaNacional:
+        dados.fiscalAliquotaNacional !== undefined
+          ? dados.fiscalAliquotaNacional
+          : existente.fiscalAliquotaNacional,
+    })
     const atualizado: Produto = {
       ...existente,
       categoriaId: dados.categoriaId ?? existente.categoriaId,
       nome: dados.nome ?? existente.nome,
       descricao: dados.descricao !== undefined ? dados.descricao : existente.descricao,
       precoCentavos: dados.precoCentavos ?? existente.precoCentavos,
+      ...fiscal,
       atualizadoEm: agora,
     }
 
     conexao.instancia.run(
       `UPDATE produto
-       SET categoria_id = ?, nome = ?, descricao = ?, preco_centavos = ?, atualizado_em = ?
+       SET categoria_id = ?, nome = ?, descricao = ?, preco_centavos = ?,
+           fiscal_ncm = ?, fiscal_cest = ?, fiscal_cfop = ?, fiscal_icms_origem = ?,
+           fiscal_icms_csosn = ?, fiscal_pis_cst = ?, fiscal_cofins_cst = ?,
+           fiscal_aliquota_nacional = ?, atualizado_em = ?
        WHERE id = ?`,
       [
         atualizado.categoriaId,
         atualizado.nome,
         atualizado.descricao,
         atualizado.precoCentavos,
+        atualizado.fiscalNcm,
+        atualizado.fiscalCest,
+        atualizado.fiscalCfop,
+        atualizado.fiscalIcmsOrigem,
+        atualizado.fiscalIcmsCsosn,
+        atualizado.fiscalPisCst,
+        atualizado.fiscalCofinsCst,
+        atualizado.fiscalAliquotaNacional,
         agora,
         dados.produtoId,
       ],

@@ -14,9 +14,13 @@ import '../../delivery/pages/delivery.css'
 
 interface PedidosPageProps {
   pedidos: UsePedidosResultado
+  permitirAlterarTaxaEntrega?: boolean
 }
 
-export function PedidosPage({ pedidos }: PedidosPageProps) {
+export function PedidosPage({
+  pedidos,
+  permitirAlterarTaxaEntrega = false,
+}: PedidosPageProps) {
   const [exibirFormDelivery, setExibirFormDelivery] = useState(false)
   const [exibirTaxaPadrao, setExibirTaxaPadrao] = useState(false)
 
@@ -69,6 +73,7 @@ export function PedidosPage({ pedidos }: PedidosPageProps) {
           onAplicarDesconto={pedidos.aplicarDescontoPedido}
           onCancelarPedido={pedidos.cancelarPedido}
           onRegistrarPagamento={pedidos.registrarPagamento}
+          onAtualizarSolicitacaoFiscal={pedidos.atualizarSolicitacaoFiscal}
           onCriarDivisaoConta={pedidos.criarDivisaoConta}
           onRegistrarPagamentoParte={pedidos.registrarPagamentoParte}
           onCancelarDivisaoConta={pedidos.cancelarDivisaoConta}
@@ -121,14 +126,16 @@ export function PedidosPage({ pedidos }: PedidosPageProps) {
                 >
                   Cadastrar mesas
                 </button>
-                <button
-                  type="button"
-                  className="pedidos__botao-secundario"
-                  data-testid="botao-taxa-entrega"
-                  onClick={() => setExibirTaxaPadrao(true)}
-                >
-                  Taxa entrega
-                </button>
+                {permitirAlterarTaxaEntrega ? (
+                  <button
+                    type="button"
+                    className="pedidos__botao-secundario"
+                    data-testid="botao-taxa-entrega"
+                    onClick={() => setExibirTaxaPadrao(true)}
+                  >
+                    Taxa entrega
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   data-testid="botao-pedido-balcao"

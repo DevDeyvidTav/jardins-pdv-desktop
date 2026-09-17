@@ -5,6 +5,7 @@ import {
   CODIGOS_ERRO_PRODUTOS,
   ErroProdutos,
 } from './errors/erros-produtos'
+import { ErroConfiguracoes } from '../configuracoes/errors/erros-configuracoes'
 import {
   atualizarCategoriaProdutoSchema,
   criarCategoriaProdutoSchema,
@@ -39,6 +40,10 @@ import { atualizarProduto } from './use-cases/atualizar-produto'
 import { obterProdutoPorId } from './use-cases/obter-produto-por-id'
 
 function tratarErroProdutos(erro: unknown): never {
+  if (erro instanceof ErroConfiguracoes) {
+    throw erro
+  }
+
   if (erro instanceof ErroProdutos) {
     throw erro
   }

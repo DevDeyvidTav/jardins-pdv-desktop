@@ -12,12 +12,14 @@ import type { ProdutoRepository } from '../repositories/produto.repository'
 import { criarProdutoRepository } from '../repositories/produto.repository'
 import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
 import { registrarProdutoSync } from '../../sincronizacao/services/registrar-cadastro-sync'
+import { validarRestricaoFiscalAtualizar } from '../util/restaurar-fiscal-produto'
 
 export function criarAtualizarProduto(
   repositorioProduto: ProdutoRepository = criarProdutoRepository(),
   repositorioCategoria: CategoriaProdutoRepository = criarCategoriaProdutoRepository(),
 ) {
   return function atualizarProduto(entrada: AtualizarProdutoEntrada): Produto {
+    validarRestricaoFiscalAtualizar(entrada)
     const existente = repositorioProduto.buscarPorId(entrada.produtoId)
 
     if (!existente) {
@@ -65,6 +67,14 @@ export function criarAtualizarProduto(
       nome: entrada.nome?.trim(),
       descricao: entrada.descricao,
       precoCentavos: entrada.precoCentavos,
+      fiscalNcm: entrada.fiscalNcm,
+      fiscalCest: entrada.fiscalCest,
+      fiscalCfop: entrada.fiscalCfop,
+      fiscalIcmsOrigem: entrada.fiscalIcmsOrigem,
+      fiscalIcmsCsosn: entrada.fiscalIcmsCsosn,
+      fiscalPisCst: entrada.fiscalPisCst,
+      fiscalCofinsCst: entrada.fiscalCofinsCst,
+      fiscalAliquotaNacional: entrada.fiscalAliquotaNacional,
     })
     registrarProdutoSync(produto, OPERACAO_SYNC.UPDATE)
     return produto

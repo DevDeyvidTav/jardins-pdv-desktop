@@ -78,6 +78,26 @@
   border-radius: 4px;
 }
 
+.pizzas-catalogo__regra-inline {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-top: 0.35rem;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.pizzas-catalogo__regra-inline select {
+  width: 100%;
+  max-width: 12rem;
+  padding: 0.2rem 0.35rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 0.8125rem;
+  color: #111827;
+  background: #fff;
+}
+
 .cardapio {
   height: calc(100vh - 4.5rem);
   min-height: calc(100vh - 4.5rem);

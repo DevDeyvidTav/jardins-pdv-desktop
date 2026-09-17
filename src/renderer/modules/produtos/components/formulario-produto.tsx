@@ -1,10 +1,42 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import type { CategoriaProduto } from '@shared/types/categoria-produto'
-import type { ProdutoComCategoria } from '@shared/types/produto'
+import type { ProdutoComCategoria, SalvarProdutoFormulario } from '@shared/types/produto'
+import { FISCAL_PRODUTO_PADRAO } from '@shared/utils/fiscal-produto'
 import { converterReaisParaCentavos, formatarMoeda } from '@shared/utils/moeda'
 
 function formatarCentavosParaInput(centavos: number): string {
   return (centavos / 100).toFixed(2).replace('.', ',')
+}
+
+function formatarAliquotaParaInput(aliquota: number | null | undefined): string {
+  if (aliquota === null || aliquota === undefined) {
+    return ''
+  }
+
+  return String(aliquota).replace('.', ',')
+}
+
+function converterAliquotaParaNumero(valor: string): number | null {
+  const normalizado = valor.trim().replace(',', '.')
+  if (normalizado === '') {
+    return null
+  }
+
+  const numero = Number(normalizado)
+  return Number.isFinite(numero) ? numero : null
+}
+
+function validarCodigoNumerico(valor: string, tamanho: number, rotulo: string): string | null {
+  const apenasDigitos = valor.replace(/\D/g, '')
+  if (apenasDigitos === '') {
+    return null
+  }
+
+  if (apenasDigitos.length !== tamanho) {
+    return `${rotulo} deve ter ${tamanho} digitos.`
+  }
+
+  return null
 }
 
 interface FormularioProdutoProps {
@@ -12,14 +44,10 @@ interface FormularioProdutoProps {
   categoriaPadraoId?: string
   produtoInicial?: ProdutoComCategoria | null
   carregando: boolean
-  onSalvar: (
-    categoriaId: string,
-    nome: string,
-    precoCentavos: number,
-    descricao?: string,
-  ) => Promise<boolean>
+  onSalvar: (dados: SalvarProdutoFormulario) => Promise<boolean>
   onLimparFeedback: () => void
   onCancelar?: () => void
+  permitirFiscal?: boolean
 }
 
 export function FormularioProduto({
@@ -30,6 +58,7 @@ export function FormularioProduto({
   onSalvar,
   onLimparFeedback,
   onCancelar,
+  permitirFiscal = false,
 }: FormularioProdutoProps) {
   const editando = produtoInicial !== null
   const categoriasAtivas = categorias.filter((categoria) => categoria.ativo)
@@ -52,8 +81,39 @@ export function FormularioProduto({
   const [preco, setPreco] = useState(
     produtoInicial ? formatarCentavosParaInput(produtoInicial.precoCentavos) : '',
   )
+  const [fiscalNcm, setFiscalNcm] = useState(produtoInicial?.fiscalNcm ?? '')
+  const [fiscalCest, setFiscalCest] = useState(produtoInicial?.fiscalCest ?? '')
+  const [fiscalCfop, setFiscalCfop] = useState(
+    produtoInicial?.fiscalCfop ?? FISCAL_PRODUTO_PADRAO.fiscalCfop,
+  )
+  const [fiscalIcmsOrigem, setFiscalIcmsOrigem] = useState(
+    String(produtoInicial?.fiscalIcmsOrigem ?? FISCAL_PRODUTO_PADRAO.fiscalIcmsOrigem),
+  )
+  const [fiscalIcmsCsosn, setFiscalIcmsCsosn] = useState(
+    produtoInicial?.fiscalIcmsCsosn ?? FISCAL_PRODUTO_PADRAO.fiscalIcmsCsosn,
+  )
+  const [fiscalPisCst, setFiscalPisCst] = useState(
+    produtoInicial?.fiscalPisCst ?? FISCAL_PRODUTO_PADRAO.fiscalPisCst,
+  )
+  const [fiscalCofinsCst, setFiscalCofinsCst] = useState(
+    produtoInicial?.fiscalCofinsCst ?? FISCAL_PRODUTO_PADRAO.fiscalCofinsCst,
+  )
+  const [fiscalAliquotaNacional, setFiscalAliquotaNacional] = useState(
+    formatarAliquotaParaInput(produtoInicial?.fiscalAliquotaNacional),
+  )
   const [erroValidacao, setErroValidacao] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
+
+  function resetarCamposFiscaisPadrao() {
+    setFiscalNcm('')
+    setFiscalCest('')
+    setFiscalCfop(FISCAL_PRODUTO_PADRAO.fiscalCfop)
+    setFiscalIcmsOrigem(String(FISCAL_PRODUTO_PADRAO.fiscalIcmsOrigem))
+    setFiscalIcmsCsosn(FISCAL_PRODUTO_PADRAO.fiscalIcmsCsosn)
+    setFiscalPisCst(FISCAL_PRODUTO_PADRAO.fiscalPisCst)
+    setFiscalCofinsCst(FISCAL_PRODUTO_PADRAO.fiscalCofinsCst)
+    setFiscalAliquotaNacional('')
+  }
 
   // Sincroniza o formulario so quando o produto em edicao muda (por id),
   // evitando resetar a digitacao a cada re-render do pai.
@@ -63,6 +123,14 @@ export function FormularioProduto({
       setNome(produtoInicial.nome)
       setDescricao(produtoInicial.descricao ?? '')
       setPreco(formatarCentavosParaInput(produtoInicial.precoCentavos))
+      setFiscalNcm(produtoInicial.fiscalNcm ?? '')
+      setFiscalCest(produtoInicial.fiscalCest ?? '')
+      setFiscalCfop(produtoInicial.fiscalCfop)
+      setFiscalIcmsOrigem(String(produtoInicial.fiscalIcmsOrigem))
+      setFiscalIcmsCsosn(produtoInicial.fiscalIcmsCsosn)
+      setFiscalPisCst(produtoInicial.fiscalPisCst)
+      setFiscalCofinsCst(produtoInicial.fiscalCofinsCst)
+      setFiscalAliquotaNacional(formatarAliquotaParaInput(produtoInicial.fiscalAliquotaNacional))
       setErroValidacao(null)
       return
     }
@@ -70,6 +138,7 @@ export function FormularioProduto({
     setNome('')
     setDescricao('')
     setPreco('')
+    resetarCamposFiscaisPadrao()
     setErroValidacao(null)
 
     if (
@@ -129,20 +198,90 @@ export function FormularioProduto({
       return
     }
 
+    let dadosFiscais: Partial<SalvarProdutoFormulario> = {}
+
+    if (permitirFiscal) {
+      const erroNcm = validarCodigoNumerico(fiscalNcm, 8, 'NCM')
+      if (erroNcm) {
+        setErroValidacao(erroNcm)
+        return
+      }
+
+      const erroCest = validarCodigoNumerico(fiscalCest, 7, 'CEST')
+      if (erroCest) {
+        setErroValidacao(erroCest)
+        return
+      }
+
+      const erroCfop = validarCodigoNumerico(fiscalCfop, 4, 'CFOP')
+      if (erroCfop) {
+        setErroValidacao(erroCfop)
+        return
+      }
+
+      const erroCsosn = validarCodigoNumerico(fiscalIcmsCsosn, 3, 'CSOSN')
+      if (erroCsosn) {
+        setErroValidacao(erroCsosn)
+        return
+      }
+
+      const erroPis = validarCodigoNumerico(fiscalPisCst, 2, 'CST PIS')
+      if (erroPis) {
+        setErroValidacao(erroPis)
+        return
+      }
+
+      const erroCofins = validarCodigoNumerico(fiscalCofinsCst, 2, 'CST COFINS')
+      if (erroCofins) {
+        setErroValidacao(erroCofins)
+        return
+      }
+
+      const origem = Number(fiscalIcmsOrigem)
+      if (!Number.isInteger(origem) || origem < 0 || origem > 8) {
+        setErroValidacao('Origem ICMS deve ser um numero entre 0 e 8.')
+        return
+      }
+
+      const aliquota = converterAliquotaParaNumero(fiscalAliquotaNacional)
+      if (fiscalAliquotaNacional.trim() !== '' && aliquota === null) {
+        setErroValidacao('Informe uma aliquota nacional valida.')
+        return
+      }
+
+      if (aliquota !== null && (aliquota < 0 || aliquota > 100)) {
+        setErroValidacao('Aliquota nacional deve ficar entre 0 e 100%.')
+        return
+      }
+
+      dadosFiscais = {
+        fiscalNcm: fiscalNcm.replace(/\D/g, '') || null,
+        fiscalCest: fiscalCest.replace(/\D/g, '') || null,
+        fiscalCfop: fiscalCfop.replace(/\D/g, ''),
+        fiscalIcmsOrigem: origem,
+        fiscalIcmsCsosn: fiscalIcmsCsosn.replace(/\D/g, ''),
+        fiscalPisCst: fiscalPisCst.replace(/\D/g, ''),
+        fiscalCofinsCst: fiscalCofinsCst.replace(/\D/g, ''),
+        fiscalAliquotaNacional: aliquota,
+      }
+    }
+
     setEnviando(true)
 
     try {
-      const sucesso = await onSalvar(
+      const sucesso = await onSalvar({
         categoriaId,
         nome,
         precoCentavos,
-        descricao.trim() || undefined,
-      )
+        descricao: descricao.trim() || undefined,
+        ...dadosFiscais,
+      })
 
       if (sucesso && !editando) {
         setNome('')
         setDescricao('')
         setPreco('')
+        resetarCamposFiscaisPadrao()
       }
     } finally {
       setEnviando(false)
@@ -217,6 +356,126 @@ export function FormularioProduto({
           disabled={enviando}
         />
       </label>
+
+      {permitirFiscal ? (
+      <fieldset className="formulario-produto__fiscal" data-testid="secao-fiscal-produto">
+        <legend>Dados fiscais (NFC-e)</legend>
+        <p className="formulario-produto__fiscal-ajuda">
+          Padrao Simples Nacional: CFOP 5102, CSOSN 102 (tributado) ou 500 (ST), PIS/COFINS 07.
+        </p>
+
+        <div className="formulario-produto__fiscal-grid">
+          <label className="formulario-produto__campo" htmlFor="fiscal-ncm-produto">
+            NCM
+            <input
+              id="fiscal-ncm-produto"
+              data-testid="campo-fiscal-ncm-produto"
+              type="text"
+              inputMode="numeric"
+              placeholder="8 digitos"
+              value={fiscalNcm}
+              onChange={(evento) => setFiscalNcm(evento.target.value)}
+              disabled={enviando}
+            />
+          </label>
+
+          <label className="formulario-produto__campo" htmlFor="fiscal-cest-produto">
+            CEST
+            <input
+              id="fiscal-cest-produto"
+              data-testid="campo-fiscal-cest-produto"
+              type="text"
+              inputMode="numeric"
+              placeholder="Opcional"
+              value={fiscalCest}
+              onChange={(evento) => setFiscalCest(evento.target.value)}
+              disabled={enviando}
+            />
+          </label>
+
+          <label className="formulario-produto__campo" htmlFor="fiscal-cfop-produto">
+            CFOP
+            <input
+              id="fiscal-cfop-produto"
+              data-testid="campo-fiscal-cfop-produto"
+              type="text"
+              inputMode="numeric"
+              value={fiscalCfop}
+              onChange={(evento) => setFiscalCfop(evento.target.value)}
+              disabled={enviando}
+            />
+          </label>
+
+          <label className="formulario-produto__campo" htmlFor="fiscal-origem-produto">
+            Origem ICMS
+            <input
+              id="fiscal-origem-produto"
+              data-testid="campo-fiscal-origem-produto"
+              type="number"
+              min={0}
+              max={8}
+              value={fiscalIcmsOrigem}
+              onChange={(evento) => setFiscalIcmsOrigem(evento.target.value)}
+              disabled={enviando}
+            />
+          </label>
+
+          <label className="formulario-produto__campo" htmlFor="fiscal-csosn-produto">
+            CSOSN
+            <select
+              id="fiscal-csosn-produto"
+              data-testid="campo-fiscal-csosn-produto"
+              value={fiscalIcmsCsosn}
+              onChange={(evento) => setFiscalIcmsCsosn(evento.target.value)}
+              disabled={enviando}
+            >
+              <option value="102">102 - Tributado SN</option>
+              <option value="500">500 - ICMS cobrado anteriormente por ST</option>
+            </select>
+          </label>
+
+          <label className="formulario-produto__campo" htmlFor="fiscal-pis-produto">
+            CST PIS
+            <input
+              id="fiscal-pis-produto"
+              data-testid="campo-fiscal-pis-produto"
+              type="text"
+              inputMode="numeric"
+              value={fiscalPisCst}
+              onChange={(evento) => setFiscalPisCst(evento.target.value)}
+              disabled={enviando}
+            />
+          </label>
+
+          <label className="formulario-produto__campo" htmlFor="fiscal-cofins-produto">
+            CST COFINS
+            <input
+              id="fiscal-cofins-produto"
+              data-testid="campo-fiscal-cofins-produto"
+              type="text"
+              inputMode="numeric"
+              value={fiscalCofinsCst}
+              onChange={(evento) => setFiscalCofinsCst(evento.target.value)}
+              disabled={enviando}
+            />
+          </label>
+
+          <label className="formulario-produto__campo" htmlFor="fiscal-aliquota-produto">
+            Aliquota nacional (%)
+            <input
+              id="fiscal-aliquota-produto"
+              data-testid="campo-fiscal-aliquota-produto"
+              type="text"
+              inputMode="decimal"
+              placeholder="Opcional"
+              value={fiscalAliquotaNacional}
+              onChange={(evento) => setFiscalAliquotaNacional(evento.target.value)}
+              disabled={enviando}
+            />
+          </label>
+        </div>
+      </fieldset>
+      ) : null}
 
       {precoPreview !== null ? (
         <p className="formulario-produto__preview" data-testid="preview-preco-produto">

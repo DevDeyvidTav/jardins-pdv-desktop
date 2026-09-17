@@ -72,6 +72,25 @@ describe('produtos', () => {
     expect(produto.nome).toBe('Coca-Cola lata')
     expect(produto.precoCentavos).toBe(600)
     expect(produto.ativo).toBe(true)
+    expect(produto.fiscalCfop).toBe('5102')
+    expect(produto.fiscalIcmsCsosn).toBe('102')
+    expect(produto.fiscalPisCst).toBe('07')
+    expect(produto.fiscalCofinsCst).toBe('07')
+  })
+
+  it('persiste dados fiscais informados', async () => {
+    const { categoria, criarProduto } = await prepararCatalogo()
+
+    const produto = criarProduto({
+      categoriaId: categoria.id,
+      nome: 'Cerveja',
+      precoCentavos: 1200,
+      fiscalNcm: '22030000',
+      fiscalIcmsCsosn: '500',
+    })
+
+    expect(produto.fiscalNcm).toBe('22030000')
+    expect(produto.fiscalIcmsCsosn).toBe('500')
   })
 
   it('impede produto com nome vazio', async () => {

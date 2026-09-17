@@ -5,6 +5,21 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['tests/unit/**/*.test.ts', 'tests/integration/**/*.test.ts'],
+    coverage: {
+      provider: 'v8',
+      include: [
+        'src/main/modules/**/use-cases/**/*.ts',
+        'src/main/modules/**/services/**/*.ts',
+        'src/main/modules/**/util/**/*.ts',
+        'src/shared/utils/**/*.ts',
+      ],
+      thresholds: {
+        lines: 85,
+        functions: 85,
+        statements: 85,
+        branches: 75,
+      },
+    },
   },
   resolve: {
     alias: {

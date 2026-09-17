@@ -104,6 +104,8 @@ export interface RegistrarPagamentoPedidoEntrada {
   motivoCortesia?: string
   /** Quando informado, vincula o pagamento a uma parte da divisao. */
   pedidoDivisaoParteId?: string
+  fiscalSolicitado?: boolean
+  fiscalCpfDestinatario?: string | null
 }
 
 export interface ListarPagamentosPedidoEntrada {

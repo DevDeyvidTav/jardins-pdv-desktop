@@ -88,3 +88,29 @@ export function codificarCupomEscPos(linhas: string[]): Buffer {
 
   return Buffer.concat(partes)
 }
+
+/**
+ * A MP-4200 TH nao imprime QR: ignora GS (k (firmware antigo), trava o USB
+ * com bitmap (ESC * / GS v 0) e a fonte interna subpreenche os blocos de
+ * texto (~50% de gap, ilegivel). O DANFE sai com chave + URL de consulta;
+ * QR so via driver do Windows ou atualizacao de firmware.
+ */
+export function codificarCupomEscPosComQr(linhas: string[], _qr?: string | null): Buffer {
+  const partes: Buffer[] = [
+    Buffer.from([ESC, 0x40]),
+    Buffer.from([ESC, 0x74, CODEPAGE_PC850]),
+    Buffer.from([ESC, 0x61, 0x00]),
+  ]
+
+  for (const linha of linhas) {
+    if (linha.trim() === '{QR}') {
+      // MP-4200 TH nao imprime QR — ver nota acima.
+      continue
+    }
+
+    partes.push(codificarTextoTermica(`${linha}\n`))
+  }
+
+  partes.push(montarFinalizacaoCupomEscPos())
+  return Buffer.concat(partes)
+}

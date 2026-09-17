@@ -6,6 +6,21 @@ const apiPdv: PdvApi = {
   sistema: {
     obterInformacoes: () =>
       ipcRenderer.invoke(CANAIS_IPC.SISTEMA_OBTER_INFORMACOES),
+    obterEstadoAtualizacao: () =>
+      ipcRenderer.invoke(CANAIS_IPC.SISTEMA_OBTER_ESTADO_ATUALIZACAO),
+    verificarAtualizacao: () =>
+      ipcRenderer.invoke(CANAIS_IPC.SISTEMA_VERIFICAR_ATUALIZACAO),
+    instalarAtualizacao: () =>
+      ipcRenderer.invoke(CANAIS_IPC.SISTEMA_INSTALAR_ATUALIZACAO),
+    onAtualizacaoEvento: (callback) => {
+      const listener = (_evento: Electron.IpcRendererEvent, estado: unknown) => {
+        callback(estado as import('@shared/types/atualizacao').EstadoAtualizacao)
+      }
+      ipcRenderer.on(CANAIS_IPC.SISTEMA_ATUALIZACAO_EVENTO, listener)
+      return () => {
+        ipcRenderer.removeListener(CANAIS_IPC.SISTEMA_ATUALIZACAO_EVENTO, listener)
+      }
+    },
   },
   caixa: {
     abrirSessaoCaixa: (entrada) =>
@@ -53,6 +68,10 @@ const apiPdv: PdvApi = {
     obterProdutoPorId: (entrada) =>
       ipcRenderer.invoke(CANAIS_IPC.PRODUTOS_OBTER_PRODUTO_POR_ID, entrada),
   },
+  catalogo: {
+    buscarCategorias: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.CATALOGO_BUSCAR_CATEGORIAS, entrada),
+  },
   mesas: {
     criarMesasPorIntervalo: (entrada) =>
       ipcRenderer.invoke(CANAIS_IPC.MESAS_CRIAR_INTERVALO, entrada),
@@ -99,6 +118,8 @@ const apiPdv: PdvApi = {
       ipcRenderer.invoke(CANAIS_IPC.PEDIDOS_ADICIONAR_PIZZA, entrada),
     obterPizzaItem: (entrada) =>
       ipcRenderer.invoke(CANAIS_IPC.PEDIDOS_OBTER_PIZZA_ITEM, entrada),
+    atualizarSolicitacaoFiscal: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.PEDIDOS_ATUALIZAR_SOLICITACAO_FISCAL, entrada),
   },
   pizzas: {
     listarCategorias: (entrada) =>
@@ -115,6 +136,8 @@ const apiPdv: PdvApi = {
       ipcRenderer.invoke(CANAIS_IPC.PIZZAS_ATUALIZAR_TAMANHO, entrada),
     listarSabores: (entrada) =>
       ipcRenderer.invoke(CANAIS_IPC.PIZZAS_LISTAR_SABORES, entrada),
+    listarSaboresComCategorias: () =>
+      ipcRenderer.invoke(CANAIS_IPC.PIZZAS_LISTAR_SABORES_COM_CATEGORIAS),
     criarSabor: (entrada) => ipcRenderer.invoke(CANAIS_IPC.PIZZAS_CRIAR_SABOR, entrada),
     atualizarSabor: (entrada) =>
       ipcRenderer.invoke(CANAIS_IPC.PIZZAS_ATUALIZAR_SABOR, entrada),
@@ -192,6 +215,32 @@ const apiPdv: PdvApi = {
   },
   sync: {
     obterEstado: () => ipcRenderer.invoke(CANAIS_IPC.SYNC_OBTER_ESTADO),
+  },
+  config: {
+    listarImpressoras: () => ipcRenderer.invoke(CANAIS_IPC.CONFIG_LISTAR_IMPRESSORAS),
+    listarImpressorasSistema: () =>
+      ipcRenderer.invoke(CANAIS_IPC.CONFIG_LISTAR_IMPRESSORAS_SISTEMA),
+    recuperarImpressoras: () =>
+      ipcRenderer.invoke(CANAIS_IPC.CONFIG_RECUPERAR_IMPRESSORAS),
+    salvarImpressoras: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.CONFIG_SALVAR_IMPRESSORAS, entrada),
+    atualizarSetorCategoria: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.CONFIG_ATUALIZAR_SETOR_CATEGORIA, entrada),
+    obterOperador: () => ipcRenderer.invoke(CANAIS_IPC.CONFIG_OBTER_OPERADOR),
+    listarOperadoresEntrada: () =>
+      ipcRenderer.invoke(CANAIS_IPC.CONFIG_LISTAR_OPERADORES_ENTRADA),
+    listarOperadores: () => ipcRenderer.invoke(CANAIS_IPC.CONFIG_LISTAR_OPERADORES),
+    salvarOperador: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.CONFIG_SALVAR_OPERADOR, entrada),
+    autenticarOperador: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.CONFIG_AUTENTICAR_OPERADOR, entrada),
+    obterInfoSync: () => ipcRenderer.invoke(CANAIS_IPC.CONFIG_OBTER_INFO_SYNC),
+  },
+  fiscal: {
+    obterDocumento: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.FISCAL_OBTER_DOCUMENTO, entrada),
+    imprimirDanfe: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.FISCAL_IMPRIMIR_DANFE, entrada),
   },
 }
 

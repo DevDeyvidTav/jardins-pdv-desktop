@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   LINHAS_AVANCO_CUPOM,
   codificarCupomEscPos,
+  codificarCupomEscPosComQr,
   codificarTextoTermica,
   montarFinalizacaoCupomEscPos,
 } from '../../../src/main/modules/impressao/infraestrutura/encoder-escpos'
@@ -26,6 +27,17 @@ describe('encoder ESC/POS', () => {
         Buffer.from([0x1b, 0x69]),
       ]),
     )).toBe(true)
+  })
+
+  it('omite o QR na MP-4200, que nao tem comando suportado', () => {
+    const cupom = codificarCupomEscPosComQr(
+      ['DANFE', '{QR}'],
+      '35200914200166000187550020462799281000000010',
+    )
+    expect(cupom.includes(Buffer.from([0x1b, 0x2a, 33]))).toBe(false)
+    expect(cupom.includes(Buffer.from([0x1d, 0x76, 0x30]))).toBe(false)
+    expect(cupom.includes(0xdb)).toBe(false)
+    expect(cupom.includes(Buffer.from('DANFE', 'latin1'))).toBe(true)
   })
 
   it('converte acentos para CP850 em vez de latin1', () => {

@@ -1,0 +1,362 @@
+.configuracoes {
+  min-height: calc(100vh - 4.5rem);
+  padding: 1rem 1.25rem 2rem;
+  background: #f5f7fa;
+}
+
+.configuracoes__cabecalho {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.configuracoes__cabecalho h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.configuracoes__badge-sync {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  background: #fff;
+  border: 1px solid #d1d5db;
+}
+
+.configuracoes__badge-sync[data-erro='true'] {
+  border-color: #fca5a5;
+  color: #b91c1c;
+}
+
+.configuracoes__abas {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.configuracoes__abas button {
+  border: 1px solid #d1d5db;
+  background: #fff;
+  padding: 0.5rem 0.85rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.configuracoes__abas button[data-ativo='true'] {
+  background: #111827;
+  color: #fff;
+  border-color: #111827;
+}
+
+.config-painel {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  padding: 1rem;
+}
+
+.config-painel h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.1rem;
+}
+
+.config-impressoras-detectadas {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.config-impressoras-detectadas__cabecalho {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.config-impressoras-detectadas__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.config-impressoras-detectadas__alerta {
+  margin: 0 0 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.5rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  font-size: 0.9rem;
+}
+
+.config-impressoras-detectadas__alerta--info {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #92400e;
+}
+
+.config-impressoras-detectadas__cabecalho h2 {
+  margin: 0;
+}
+
+.config-impressoras-detectadas__atualizar {
+  border: 1px solid #d1d5db;
+  background: #fff;
+  padding: 0.4rem 0.75rem;
+  border-radius: 0.375rem;
+  cursor: pointer;
+}
+
+.config-impressoras-detectadas__vazio {
+  margin: 0;
+  color: #6b7280;
+}
+
+.config-impressoras-detectadas__tabela {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 0.75rem;
+}
+
+.config-impressoras-detectadas__tabela th,
+.config-impressoras-detectadas__tabela td {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 0.5rem;
+  text-align: left;
+}
+
+.config-impressoras-detectadas__tabela select {
+  width: 100%;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+}
+
+.config-impressoras-detectadas__padrao {
+  margin-left: 0.35rem;
+  font-size: 0.75rem;
+  color: #047857;
+}
+
+.config-portas-com h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+.config-portas-com ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.config-portas-com li {
+  padding: 0.35rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+}
+
+.config-portas-com li[data-ocupada='true'] {
+  background: #fef3c7;
+  border-color: #fcd34d;
+}
+
+.config-impressoras__testar {
+  border: 1px solid #d1d5db;
+  background: #fff;
+  padding: 0.4rem 0.75rem;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.config-impressoras__testar:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.config-impressoras__dica {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+  color: #4b5563;
+}
+
+.config-impressoras__tabela,
+.config-categorias__tabela {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+}
+
+.config-impressoras__tabela th,
+.config-impressoras__tabela td,
+.config-categorias__tabela th,
+.config-categorias__tabela td {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 0.5rem;
+  text-align: left;
+}
+
+.config-impressoras__tabela input,
+.config-categorias__tabela select,
+.config-operador input {
+  width: 100%;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+}
+
+.config-sync__lista {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0 0 1rem;
+}
+
+.config-sync__lista div {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 0.5rem;
+}
+
+.config-sync__lista dt {
+  font-weight: 600;
+}
+
+.config-sync__lista dd {
+  margin: 0;
+}
+
+.config-sync__erro dd {
+  color: #b91c1c;
+}
+
+.config-erro,
+.config-sucesso {
+  margin: 0.75rem 0 0;
+}
+
+.config-erro {
+  color: #b91c1c;
+}
+
+.config-sucesso {
+  color: #047857;
+}
+
+.config-operador__campo {
+  display: grid;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+  max-width: 320px;
+}
+
+.modal-operador {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-operador__conteudo {
+  width: min(420px, calc(100vw - 2rem));
+  background: #fff;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+}
+
+.modal-operador__conteudo h2 {
+  margin: 0 0 0.35rem;
+}
+
+.modal-operador__campo {
+  display: grid;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+}
+
+.modal-operador__campo input,
+.modal-operador__campo select {
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+}
+
+.modal-operador__erro {
+  color: #b91c1c;
+}
+
+.config-atualizacao__intro {
+  margin: 0 0 1rem;
+  color: #4b5563;
+  line-height: 1.5;
+}
+
+.config-atualizacao__resumo {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0 0 1rem;
+}
+
+.config-atualizacao__resumo div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.config-atualizacao__resumo dt {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7280;
+}
+
+.config-atualizacao__resumo dd {
+  margin: 0;
+  font-size: 1rem;
+  color: #111827;
+}
+
+.config-atualizacao__barra {
+  height: 0.5rem;
+  margin-bottom: 1rem;
+  border-radius: 999px;
+  background: #e5e7eb;
+  overflow: hidden;
+}
+
+.config-atualizacao__barra span {
+  display: block;
+  height: 100%;
+  background: #2563eb;
+  transition: width 0.2s ease;
+}
+
+.config-atualizacao__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.config-atualizacao__instalar {
+  background: #2563eb;
+  color: #fff;
+  border-color: #2563eb;
+}
+
+.config-atualizacao__aviso {
+  margin-top: 1rem;
+  color: #6b7280;
+  font-size: 0.9rem;
+}

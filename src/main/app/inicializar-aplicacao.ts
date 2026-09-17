@@ -14,6 +14,7 @@ import {
   registrarErro,
   registrarInfo,
 } from '../logging/logger'
+import { encerrarServicoAtualizacao } from './servico-atualizacao'
 
 export async function inicializarAplicacao(): Promise<void> {
   try {
@@ -91,6 +92,7 @@ export function configurarCicloDeVida(): void {
   })
 
   app.on('before-quit', () => {
+    encerrarServicoAtualizacao()
     encerrarBancoLocal()
   })
 }

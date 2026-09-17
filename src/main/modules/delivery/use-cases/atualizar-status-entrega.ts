@@ -9,6 +9,8 @@ import {
   criarPedidoRepository,
   type PedidoRepository,
 } from '../../pedidos/repositories/pedido.repository'
+import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
+import { registrarEventoPedidoSync } from '../../sincronizacao/services/registrar-evento-pedido'
 
 const TRANSICOES_VALIDAS: Record<string, string[]> = {
   [STATUS_ENTREGA.AGUARDANDO_PREPARO]: [STATUS_ENTREGA.EM_PREPARO],
@@ -68,7 +70,12 @@ export function criarAtualizarStatusEntrega(
       )
     }
 
-    return repositorioEntrega.atualizarStatus(entrada.pedidoId, entrada.status)
+    const entregaAtualizada = repositorioEntrega.atualizarStatus(
+      entrada.pedidoId,
+      entrada.status,
+    )
+    registrarEventoPedidoSync(entrada.pedidoId, OPERACAO_SYNC.UPDATE)
+    return entregaAtualizada
   }
 }
 

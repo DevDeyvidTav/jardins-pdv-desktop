@@ -19,7 +19,10 @@ import { criarMesaRepository } from '../../../src/main/modules/mesas/repositorie
 import { criarPagamentoPedidoRepository } from '../../../src/main/modules/pagamentos/repositories/pagamento-pedido.repository'
 import { criarRegistrarPagamentoPedido } from '../../../src/main/modules/pagamentos/use-cases/registrar-pagamento-pedido'
 import { obterConexaoBancoLocal } from '../../../src/main/database/inicializar-banco'
+import { ENTIDADE_SYNC, OPERACAO_SYNC, STATUS_SYNC_OUTBOX } from '@shared/types/sincronizacao'
 import { STATUS_ENTREGA, TIPO_PEDIDO } from '@shared/types/pedido'
+import { criarSyncOutboxRepository } from '../../../src/main/modules/sincronizacao/repositories/sync-outbox.repository'
+import { criarAtualizarDadosEntrega } from '../../../src/main/modules/delivery/use-cases/atualizar-dados-entrega'
 
 const DADOS_ENTREGA_PADRAO = {
   clienteNome: 'Maria da Silva',
@@ -48,6 +51,7 @@ async function prepararAmbiente() {
   )
   const obterEntregaPorPedido = criarObterEntregaPorPedido(repositorioEntrega)
   const atualizarStatusEntrega = criarAtualizarStatusEntrega(repositorioEntrega, repositorioPedido)
+  const atualizarDadosEntrega = criarAtualizarDadosEntrega(repositorioEntrega, repositorioPedido)
   const atualizarTaxaEntrega = criarAtualizarTaxaEntrega(
     repositorioPedido, repositorioItem, repositorioEntrega, obterConexaoBancoLocal,
   )
@@ -79,6 +83,7 @@ async function prepararAmbiente() {
     criarPedidoDelivery,
     obterEntregaPorPedido,
     atualizarStatusEntrega,
+    atualizarDadosEntrega,
     atualizarTaxaEntrega,
     adicionarItemPedido,
     cancelarPedido,
@@ -348,6 +353,48 @@ describe('delivery', () => {
     const entrega = env.obterEntregaPorPedido({ pedidoId: pedido.id })
     expect(entrega.status).toBe(STATUS_ENTREGA.CANCELADA)
     expect(entrega.motivoCancelamento).toBe('Cliente desistiu')
+  })
+
+  it('atualizar status de entrega enfileira evento PEDIDO UPDATE na outbox', async () => {
+    const env = await prepararAmbiente()
+    encerrar = env.encerrar
+
+    const { pedido } = env.criarPedidoDelivery(DADOS_ENTREGA_PADRAO)
+    env.atualizarStatusEntrega({ pedidoId: pedido.id, status: STATUS_ENTREGA.EM_PREPARO })
+
+    const pendentes = criarSyncOutboxRepository().listarPendentes(20)
+    const evento = pendentes.find(
+      (item) =>
+        item.entidade === ENTIDADE_SYNC.PEDIDO &&
+        item.entidadeId === pedido.id &&
+        item.operacao === OPERACAO_SYNC.UPDATE,
+    )
+
+    expect(evento).toBeDefined()
+    expect(evento?.status).toBe(STATUS_SYNC_OUTBOX.PENDENTE)
+  })
+
+  it('atualizar dados de entrega enfileira evento PEDIDO UPDATE na outbox', async () => {
+    const env = await prepararAmbiente()
+    encerrar = env.encerrar
+
+    const { pedido } = env.criarPedidoDelivery(DADOS_ENTREGA_PADRAO)
+    env.atualizarDadosEntrega({
+      pedidoId: pedido.id,
+      clienteNome: 'Joao Atualizado',
+      telefone: '81988887777',
+    })
+
+    const pendentes = criarSyncOutboxRepository().listarPendentes(20)
+    const evento = pendentes.find(
+      (item) =>
+        item.entidade === ENTIDADE_SYNC.PEDIDO &&
+        item.entidadeId === pedido.id &&
+        item.operacao === OPERACAO_SYNC.UPDATE,
+    )
+
+    expect(evento).toBeDefined()
+    expect(evento?.status).toBe(STATUS_SYNC_OUTBOX.PENDENTE)
   })
 
   it('pagamento finalizado nao altera status operacional da entrega', async () => {

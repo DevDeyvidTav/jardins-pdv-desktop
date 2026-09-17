@@ -63,7 +63,6 @@ export interface UsePedidosResultado {
     observacao?: string,
   ) => Promise<boolean>
   adicionarPizza: (
-    categoriaId: string,
     tamanhoId: string,
     saborIds: string[],
     observacao?: string,
@@ -73,6 +72,9 @@ export interface UsePedidosResultado {
   aplicarDescontoPedido: (descontoCentavos: number, motivoDesconto?: string) => Promise<boolean>
   cancelarPedido: (motivoCancelamento: string) => Promise<boolean>
   registrarPagamento: (pagamento: PagamentoInformado) => Promise<boolean>
+  atualizarSolicitacaoFiscal: (solicitado: boolean, cpf: string) => Promise<boolean>
+  emissaoNfcePedidoId: string | null
+  fecharEmissaoNfce: () => void
   criarDivisaoConta: (partes: CriarParteDivisaoEntrada[]) => Promise<boolean>
   registrarPagamentoParte: (
     parteId: string,
@@ -131,6 +133,7 @@ export function usePedidos(): UsePedidosResultado {
   >('')
   const [erro, setErro] = useState<string | null>(null)
   const [sucesso, setSucesso] = useState<string | null>(null)
+  const [emissaoNfcePedidoId, setEmissaoNfcePedidoId] = useState<string | null>(null)
   const [deliveriesAbertos, setDeliveriesAbertos] = useState<ItemDeliveryAberto[]>([])
   const [taxaEntregaPadraoCentavos, setTaxaEntregaPadraoCentavos] = useState(0)
   const [resumoAgrupamento, setResumoAgrupamento] = useState<ResumoMesaAgrupamento | null>(
@@ -502,7 +505,6 @@ export function usePedidos(): UsePedidosResultado {
 
   const adicionarPizza = useCallback(
     async (
-      categoriaId: string,
       tamanhoId: string,
       saborIds: string[],
       observacao?: string,
@@ -517,7 +519,6 @@ export function usePedidos(): UsePedidosResultado {
       try {
         const resumo = await window.pdv.pedidos.adicionarPizza({
           pedidoId: resumoPedido.pedido.id,
-          categoriaId,
           tamanhoId,
           saborIds,
           observacao,
@@ -649,17 +650,26 @@ export function usePedidos(): UsePedidosResultado {
           valorCentavos: pagamento.valorCentavos,
           valorRecebidoCentavos: pagamento.valorRecebidoCentavos,
           motivoCortesia: pagamento.motivoCortesia,
+          fiscalSolicitado: resumoPedido.pedido.fiscalSolicitado,
+          fiscalCpfDestinatario: resumoPedido.pedido.fiscalCpfDestinatario,
         })
         await carregarDados()
 
         if (resultado.valorRestanteCentavos === 0) {
+          if (resumoPedido.pedido.fiscalSolicitado) {
+            setEmissaoNfcePedidoId(resumoPedido.pedido.id)
+          }
           setResumoPedido(null)
           setExibirFormularioItem(false)
           setMesaSelecionada(null)
           setAbaAtiva('historico')
           setFiltroHistoricoStatus(FILTRO_STATUS_HISTORICO_PEDIDO.FINALIZADO)
           setHistoricoPedidoSelecionadoId(null)
-          setSucesso('Pagamento confirmado e pedido finalizado.')
+          setSucesso(
+            resumoPedido.pedido.fiscalSolicitado
+              ? 'Pagamento confirmado. Nota solicitada. Imprime quando autorizar.'
+              : 'Pagamento confirmado e pedido finalizado.',
+          )
         } else {
           await atualizarResumo(resumoPedido.pedido.id)
           setSucesso('Pagamento parcial registrado.')
@@ -672,6 +682,33 @@ export function usePedidos(): UsePedidosResultado {
     },
     [atualizarResumo, carregarDados, resumoPedido],
   )
+
+  const atualizarSolicitacaoFiscal = useCallback(
+    async (solicitado: boolean, cpf: string): Promise<boolean> => {
+      if (!resumoPedido) return false
+      setErro(null)
+      try {
+        await window.pdv.pedidos.atualizarSolicitacaoFiscal({
+          pedidoId: resumoPedido.pedido.id,
+          fiscalSolicitado: solicitado,
+          fiscalCpfDestinatario: cpf,
+        })
+        await atualizarResumo(resumoPedido.pedido.id)
+        if (solicitado) {
+          setSucesso('Nota solicitada. Imprime quando autorizar.')
+        }
+        return true
+      } catch (causa) {
+        setErro(extrairMensagemErro(causa))
+        return false
+      }
+    },
+    [atualizarResumo, resumoPedido],
+  )
+
+  const fecharEmissaoNfce = useCallback(() => {
+    setEmissaoNfcePedidoId(null)
+  }, [])
 
   const criarDivisaoConta = useCallback(
     async (partes: CriarParteDivisaoEntrada[]): Promise<boolean> => {
@@ -707,10 +744,15 @@ export function usePedidos(): UsePedidosResultado {
           valorCentavos: pagamento.valorCentavos,
           valorRecebidoCentavos: pagamento.valorRecebidoCentavos,
           motivoCortesia: pagamento.motivoCortesia,
+          fiscalSolicitado: resumoPedido.pedido.fiscalSolicitado,
+          fiscalCpfDestinatario: resumoPedido.pedido.fiscalCpfDestinatario,
         })
         await carregarDados()
 
         if (resultado.totais.valorRestanteCentavos === 0) {
+          if (resumoPedido.pedido.fiscalSolicitado) {
+            setEmissaoNfcePedidoId(resumoPedido.pedido.id)
+          }
           setResumoPedido(null)
           setHistoricoDivisaoConta([])
           setExibirFormularioItem(false)
@@ -977,6 +1019,9 @@ export function usePedidos(): UsePedidosResultado {
     aplicarDescontoPedido,
     cancelarPedido,
     registrarPagamento,
+    atualizarSolicitacaoFiscal,
+    emissaoNfcePedidoId,
+    fecharEmissaoNfce,
     criarDivisaoConta,
     registrarPagamentoParte,
     cancelarDivisaoConta,

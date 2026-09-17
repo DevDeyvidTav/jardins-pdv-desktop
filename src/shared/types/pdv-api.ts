@@ -1,4 +1,7 @@
-import type { InformacoesSistema } from './informacoes-sistema'
+import type {
+  BuscarCategoriasCatalogoEntrada,
+  CategoriaCatalogo,
+} from './categoria-catalogo'
 import type {
   AtualizarCategoriaProdutoEntrada,
   CategoriaProduto,
@@ -105,13 +108,33 @@ import type {
   RegistrarBaixaTalaoEntrada,
   TalaoBaixa,
 } from './talao'
+import type {
+  AtualizarSetorCategoriaEntrada,
+  ConfigImpressora,
+  ImpressorasSistemaResposta,
+  SalvarConfigImpressorasEntrada,
+} from './config-impressora'
+import type {
+  AutenticarOperadorEntrada,
+  OperadorConfig,
+  OperadorEntradaResumo,
+  OperadorResumo,
+  SalvarOperadorEntrada,
+} from './operador'
 import type { EstadoSincronizacao } from './sincronizacao'
+import type {
+  AtualizarSolicitacaoFiscalEntrada,
+  DocumentoFiscalLocal,
+  ImprimirDanfeNfceEntrada,
+} from './documento-fiscal'
 import type {
   ImprimirAmostraEntrada,
   ImprimirPedidoEntrada,
   ResultadoImpressao,
   ResultadoImpressaoAmostra,
 } from './impressao'
+import type { InformacoesSistema } from './informacoes-sistema'
+import type { EstadoAtualizacao } from './atualizacao'
 import type {
   AdicionarPizzaAoPedidoEntrada,
   AtualizarPizzaCategoriaEntrada,
@@ -126,6 +149,7 @@ import type {
   PizzaCategoria,
   PizzaPedidoItemResumo,
   PizzaSabor,
+  PizzaSaborComCategoria,
   PizzaSaborPreco,
   PizzaTamanho,
   PreviewPizza,
@@ -135,6 +159,12 @@ import type {
 export interface PdvApi {
   sistema: {
     obterInformacoes: () => Promise<InformacoesSistema>
+    obterEstadoAtualizacao: () => Promise<EstadoAtualizacao>
+    verificarAtualizacao: () => Promise<EstadoAtualizacao>
+    instalarAtualizacao: () => Promise<EstadoAtualizacao>
+    onAtualizacaoEvento: (
+      callback: (estado: EstadoAtualizacao) => void,
+    ) => () => void
   }
   caixa: {
     abrirSessaoCaixa: (entrada: AbrirSessaoCaixaEntrada) => Promise<SessaoCaixa>
@@ -225,6 +255,9 @@ export interface PdvApi {
     obterPizzaItem: (
       entrada: ObterPizzaPedidoItemEntrada,
     ) => Promise<PizzaPedidoItemResumo>
+    atualizarSolicitacaoFiscal: (
+      entrada: AtualizarSolicitacaoFiscalEntrada,
+    ) => Promise<Pedido>
   }
   pizzas: {
     listarCategorias: (entrada?: { apenasAtivas?: boolean }) => Promise<PizzaCategoria[]>
@@ -239,6 +272,7 @@ export interface PdvApi {
       apenasAtivos?: boolean
       categoriaId?: string
     }) => Promise<PizzaSabor[]>
+    listarSaboresComCategorias: () => Promise<PizzaSaborComCategoria[]>
     criarSabor: (entrada: CriarPizzaSaborEntrada) => Promise<PizzaSabor>
     atualizarSabor: (entrada: AtualizarPizzaSaborEntrada) => Promise<PizzaSabor>
     vincularSaborCategoria: (entrada: VincularSaborCategoriaEntrada) => Promise<void>
@@ -298,6 +332,11 @@ export interface PdvApi {
     listarContas: (entrada?: ListarContasTalaoEntrada) => Promise<ContaTalaoCliente[]>
     registrarBaixa: (entrada: RegistrarBaixaTalaoEntrada) => Promise<TalaoBaixa>
   }
+  catalogo: {
+    buscarCategorias: (
+      entrada?: BuscarCategoriasCatalogoEntrada,
+    ) => Promise<CategoriaCatalogo[]>
+  }
   impressao: {
     imprimirAmostra: (
       entrada: ImprimirAmostraEntrada,
@@ -307,6 +346,33 @@ export interface PdvApi {
   }
   sync: {
     obterEstado: () => Promise<EstadoSincronizacao>
+  }
+  config: {
+    listarImpressoras: () => Promise<ConfigImpressora[]>
+    listarImpressorasSistema: () => Promise<ImpressorasSistemaResposta>
+    recuperarImpressoras: () => Promise<
+      Array<{ nome: string; status: string | null; jobCount: number | null }>
+    >
+    salvarImpressoras: (
+      entrada: SalvarConfigImpressorasEntrada,
+    ) => Promise<ConfigImpressora[]>
+    atualizarSetorCategoria: (
+      entrada: AtualizarSetorCategoriaEntrada,
+    ) => Promise<CategoriaProduto>
+    obterOperador: () => Promise<OperadorConfig | null>
+    listarOperadoresEntrada: () => Promise<OperadorEntradaResumo[]>
+    listarOperadores: () => Promise<OperadorResumo[]>
+    salvarOperador: (entrada: SalvarOperadorEntrada) => Promise<OperadorConfig>
+    autenticarOperador: (entrada: AutenticarOperadorEntrada) => Promise<OperadorConfig>
+    obterInfoSync: () => Promise<{
+      apiUrl: string | null
+      dispositivoId: string | null
+      apiConfigurada: boolean
+    }>
+  }
+  fiscal: {
+    obterDocumento: (entrada: { pedidoId: string }) => Promise<DocumentoFiscalLocal | null>
+    imprimirDanfe: (entrada: ImprimirDanfeNfceEntrada) => Promise<ResultadoImpressao>
   }
 }
 

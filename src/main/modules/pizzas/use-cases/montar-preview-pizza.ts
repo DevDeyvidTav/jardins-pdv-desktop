@@ -20,7 +20,7 @@ function mapearPreview(composicao: ComposicaoPizzaResolvida): PreviewPizza {
     categoria: {
       id: composicao.categoria.id,
       nome: composicao.categoria.nome,
-      regraPrecificacao: composicao.categoria.regraPrecificacao,
+      regraPrecificacao: composicao.regraPrecificacaoAplicada,
     },
     tamanho: {
       id: composicao.tamanho.id,

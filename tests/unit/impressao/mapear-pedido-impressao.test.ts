@@ -5,6 +5,7 @@ import type { PagamentoPedido } from '../../../src/shared/types/pagamento-pedido
 import type { ResumoPedido } from '../../../src/shared/types/pedido'
 import {
   categoriaEhBebida,
+  itemPedidoNaoEntraNaComanda,
   mapearPedidoParaComanda,
   mapearPedidoParaConta,
 } from '../../../src/main/modules/impressao/templates/mapear-pedido-impressao'
@@ -36,6 +37,8 @@ function criarResumo(parcial: Partial<ResumoPedido['pedido']> = {}): ResumoPedid
       finalizadoEm: null,
       canceladoEm: null,
       motivoCancelamento: null,
+      fiscalSolicitado: false,
+      fiscalCpfDestinatario: null,
       ...parcial,
     },
     itens: [
@@ -55,6 +58,12 @@ function criarResumo(parcial: Partial<ResumoPedido['pedido']> = {}): ResumoPedid
         atualizadoEm: agora,
         canceladoEm: null,
         motivoCancelamento: null,
+        fiscalNcm: null,
+        fiscalCfop: null,
+        fiscalIcmsOrigem: null,
+        fiscalIcmsCsosn: null,
+        fiscalPisCst: null,
+        fiscalCofinsCst: null,
       },
       {
         id: 'item-2',
@@ -72,6 +81,12 @@ function criarResumo(parcial: Partial<ResumoPedido['pedido']> = {}): ResumoPedid
         atualizadoEm: agora,
         canceladoEm: agora,
         motivoCancelamento: 'erro',
+        fiscalNcm: null,
+        fiscalCfop: null,
+        fiscalIcmsOrigem: null,
+        fiscalIcmsCsosn: null,
+        fiscalPisCst: null,
+        fiscalCofinsCst: null,
       },
     ],
     entrega: null,
@@ -118,6 +133,12 @@ describe('mapearPedidoParaConta', () => {
       atualizadoEm: agora,
       canceladoEm: null,
       motivoCancelamento: null,
+      fiscalNcm: null,
+      fiscalCfop: null,
+      fiscalIcmsOrigem: null,
+      fiscalIcmsCsosn: null,
+      fiscalPisCst: null,
+      fiscalCofinsCst: null,
     })
 
     const conta = mapearPedidoParaConta(resumo, mesa, [])
@@ -178,6 +199,12 @@ describe('mapearPedidoParaComanda', () => {
       atualizadoEm: agora,
       canceladoEm: null,
       motivoCancelamento: null,
+      fiscalNcm: null,
+      fiscalCfop: null,
+      fiscalIcmsOrigem: null,
+      fiscalIcmsCsosn: null,
+      fiscalPisCst: null,
+      fiscalCofinsCst: null,
     })
 
     const comanda = mapearPedidoParaComanda(resumo, mesa)
@@ -203,6 +230,12 @@ describe('mapearPedidoParaComanda', () => {
         atualizadoEm: agora,
         canceladoEm: null,
         motivoCancelamento: null,
+        fiscalNcm: '19059090',
+        fiscalCfop: '5102',
+        fiscalIcmsOrigem: 0,
+        fiscalIcmsCsosn: '102',
+        fiscalPisCst: '07',
+        fiscalCofinsCst: '07',
         pizza: {
           id: 'ppi-1',
           pedidoItemId: 'item-pizza',
@@ -240,5 +273,29 @@ describe('categoriaEhBebida', () => {
     expect(categoriaEhBebida('Bebidas geladas')).toBe(true)
     expect(categoriaEhBebida('Pratos')).toBe(false)
     expect(categoriaEhBebida(null)).toBe(false)
+  })
+})
+
+describe('itemPedidoNaoEntraNaComanda', () => {
+  const itemProduto = criarResumo().itens[0]!
+
+  it('exclui produtos do setor BALCAO da comanda', () => {
+    const resultado = itemPedidoNaoEntraNaComanda(
+      itemProduto,
+      () => 'Refrigerantes',
+      () => 'BALCAO',
+    )
+
+    expect(resultado).toBe(true)
+  })
+
+  it('mantem produtos de cozinha na comanda', () => {
+    const resultado = itemPedidoNaoEntraNaComanda(
+      itemProduto,
+      () => 'Combos',
+      () => 'JAPONESA',
+    )
+
+    expect(resultado).toBe(false)
   })
 })

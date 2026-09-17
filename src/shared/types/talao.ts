@@ -1,6 +1,12 @@
 import type { Cliente } from './cliente'
 import type { FormaPagamento } from './pagamento-pedido'
 
+/**
+ * Competencia sintetica para a visao consolidada do talao (todos os meses).
+ * Baixas continuam exigindo uma competencia mensal real (YYYY-MM).
+ */
+export const COMPETENCIA_TODAS_MESES = 'TODAS'
+
 export interface TalaoBaixa {
   id: string
   clienteId: string
@@ -37,6 +43,7 @@ export interface ContaTalaoCliente {
 
 export interface ObterContaTalaoEntrada {
   clienteId: string
+  /** YYYY-MM ou COMPETENCIA_TODAS_MESES para consolidar todos os meses. */
   competencia?: string
 }
 

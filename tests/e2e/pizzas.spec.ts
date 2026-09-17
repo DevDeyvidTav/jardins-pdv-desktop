@@ -98,16 +98,16 @@ async function abrirFormularioAdicionarItem(janela: Page) {
   await janela.getByTestId('botao-adicionar-item-painel').click()
 }
 
-async function selecionarCategoriaPizza(janela: Page, nomeCategoria = 'Tradicional') {
-  const select = janela.getByTestId('campo-categoria-produto-pedido')
-  await expect(select).toBeVisible()
-  const valor = await select
-    .locator('optgroup[label="Pizzas"] option')
-    .filter({ hasText: nomeCategoria })
+async function selecionarCategoriaPizza(janela: Page) {
+  const campo = janela.getByTestId('campo-categoria-produto-pedido')
+  await expect(campo).toBeVisible()
+  await campo.click()
+  const opcao = janela
+    .getByTestId('lista-opcoes-categoria-pedido')
+    .getByRole('option', { name: 'Pizzas' })
     .first()
-    .getAttribute('value')
-  expect(valor).toBeTruthy()
-  await select.selectOption(valor!)
+  await expect(opcao).toBeVisible({ timeout: 10_000 })
+  await opcao.click()
 }
 
 async function adicionarPizzaComSabores(

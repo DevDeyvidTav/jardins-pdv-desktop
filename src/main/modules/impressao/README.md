@@ -25,6 +25,48 @@ Ordem de tentativa:
 
 Uma falha so gera nova tentativa quando ela acontece **antes de qualquer byte sair** (prefixo `ABERTURA:` na saida do script). Se a escrita ja comecou, o erro sobe para a tela sem reenviar: reenviar depois de uma escrita parcial imprimia o cabecalho duas vezes.
 
+### "Imprimiu, mas deu erro" (falso timeout)
+
+Sintoma: o cupom sai, e ~45s depois aparece *"A impressora nao respondeu a tempo"*.
+
+Causa: com a MP-4200 na porta virtual `Bematech_USB`, o `WritePrinter` entrega os bytes (e a impressora imprime), mas o final do script (`EndDocPrinter`/`CloseHandle`) trava com a impressora em `Error`. O `execFileSync` estourava o timeout e virava erro; o fallback ainda tentava uma porta COM inexistente (`COM10`), somando mais um timeout.
+
+Correcoes:
+
+- Os scripts emitem `WROTE:<bytes>` logo apos a escrita; `concluirScriptImpressora` trata isso como **sucesso**, mesmo que o processo seja morto depois.
+- Timeout do spooler separado e menor (`15s`) — `WritePrinter` e rapido.
+- O fallback COM so acontece se existir **porta COM real** para aquela impressora (`Get-Printer`); em `Bematech_USB` nao inventa `COM10`.
+- Status `Error` no Windows **nao bloqueia** o envio nem invalida a impressao: na Bematech e falso positivo frequente. A fila so e limpa quando ha job preso ou impressora pausada.
+- A mensagem de erro inclui o detalhe tecnico entre colchetes para diagnostico.
+
+### Fila travada com job "Retained"
+
+Sintoma pior: a impressora **para de imprimir de vez**, e nem reiniciar o app resolve.
+
+`Get-PrintJob` mostra algo como `Error, Printing, Retained` com `Size 0`. Esse job segura a porta e **todos** os envios seguintes ficam enfileirados atras dele. `Remove-PrintJob` sozinho costuma deixar o job em `Deleting` sem sair.
+
+O que o PDV faz agora:
+
+- Tenta limpar a fila ate **3 vezes** (600ms entre tentativas) antes de enviar
+- O modo `Limpar` do script PowerShell faz **6 voltas** com 350ms — um `Remove-PrintJob` unico nao derruba job `Retained`
+- Se a fila nao zerar, **falha antes de enviar** com orientacao — empilhar outro job so piora
+
+Recuperacao manual (PowerShell **como Administrador**):
+
+`powershell -ExecutionPolicy Bypass -File apps/desktop/scripts/recuperar-impressora.ps1`
+
+O script remove os jobs, e se nao saírem para o **Spooler de Impressao**, limpa `%SystemRoot%\System32\spool\PRINTERS` e sobe o servico de novo.
+
+### Setor sem impressora nao imprime
+
+`resolverDestinoImpressoraPorSetor` retorna `NAO_CONFIGURADO` quando o setor nao tem nome salvo em `config_impressora`. Antes caia na impressora padrao, e **toda comanda saia na mesma impressora**.
+
+Na tela **Configuracoes → Impressoras** existem:
+
+- **Atualizar lista** — le impressoras e portas COM do Windows (`Get-Printer` + `SerialPort.GetPortNames`)
+- **Limpar fila / recuperar** — retoma e remove jobs presos das impressoras configuradas
+- **Testar** por setor — imprime cupom de amostra no destino daquele setor
+
 Para medir o tempo do envio serial no caixa:
 
 `powershell -ExecutionPolicy Bypass -File apps/desktop/scripts/medir-envio-com.ps1 -PortName COM10`

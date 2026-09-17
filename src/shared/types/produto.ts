@@ -1,4 +1,17 @@
-export interface Produto {
+export interface DadosFiscaisProduto {
+  fiscalNcm: string | null
+  fiscalCest: string | null
+  fiscalCfop: string
+  fiscalIcmsOrigem: number
+  fiscalIcmsCsosn: string
+  fiscalPisCst: string
+  fiscalCofinsCst: string
+  fiscalAliquotaNacional: number | null
+}
+
+export type DadosFiscaisProdutoEntrada = Partial<DadosFiscaisProduto>
+
+export interface Produto extends DadosFiscaisProduto {
   id: string
   categoriaId: string
   nome: string
@@ -13,14 +26,14 @@ export interface ProdutoComCategoria extends Produto {
   categoriaNome: string
 }
 
-export interface CriarProdutoEntrada {
+export interface CriarProdutoEntrada extends DadosFiscaisProdutoEntrada {
   categoriaId: string
   nome: string
   descricao?: string
   precoCentavos: number
 }
 
-export interface AtualizarProdutoEntrada {
+export interface AtualizarProdutoEntrada extends DadosFiscaisProdutoEntrada {
   produtoId: string
   categoriaId?: string
   nome?: string
@@ -59,3 +72,10 @@ export interface ExcluirProdutoEntrada {
 export type ResultadoRemocaoCatalogo = {
   modo: 'EXCLUIDO' | 'INATIVADO'
 }
+
+export type SalvarProdutoFormulario = {
+  categoriaId: string
+  nome: string
+  precoCentavos: number
+  descricao?: string
+} & DadosFiscaisProdutoEntrada

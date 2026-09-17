@@ -5,6 +5,7 @@ import type {
   RegistrarBaixaTalaoEntrada,
   TalaoBaixa,
 } from '@shared/types/talao'
+import { COMPETENCIA_TODAS_MESES } from '@shared/types/talao'
 import { FORMAS_PAGAMENTO_BAIXA_TALAO } from '@shared/types/pagamento-pedido'
 import { competenciaAtualUtc } from '@shared/utils/data-hora'
 import { mensagemErroValorRecebidoDinheiro } from '@shared/utils/troco-dinheiro'
@@ -38,8 +39,10 @@ function montarConta(
     )
   }
 
-  const lancamentos = repositorioTalao.listarLancamentos(clienteId, competencia)
-  const baixas = repositorioTalao.listarBaixas(clienteId, competencia)
+  // A competencia sintetica TODAS consolida lancamentos e baixas sem filtro de mes.
+  const filtroCompetencia = competencia === COMPETENCIA_TODAS_MESES ? null : competencia
+  const lancamentos = repositorioTalao.listarLancamentos(clienteId, filtroCompetencia)
+  const baixas = repositorioTalao.listarBaixas(clienteId, filtroCompetencia)
   const totalLancadoCentavos = lancamentos.reduce((acc, item) => acc + item.valorCentavos, 0)
   const totalBaixadoCentavos = baixas.reduce((acc, item) => acc + item.valorCentavos, 0)
 

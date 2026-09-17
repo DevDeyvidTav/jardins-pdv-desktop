@@ -33,6 +33,7 @@ import { criarPizzaTamanhoRepository } from '../repositories/pizza-tamanho.repos
 import { criarResolverComposicaoPizza } from './resolver-composicao-pizza'
 import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
 import { registrarEventoPedidoSync } from '../../sincronizacao/services/registrar-evento-pedido'
+import { SNAPSHOT_FISCAL_PIZZA } from '@shared/utils/snapshot-fiscal-item'
 
 export function criarAdicionarPizzaAoPedido(
   repositorioPedido: PedidoRepository = criarPedidoRepository(),
@@ -89,13 +90,14 @@ export function criarAdicionarPizzaAoPedido(
         precoUnitarioCentavos: composicao.valorFinalCentavos,
         descontoCentavos: 0,
         observacao: entrada.observacao?.trim() || null,
+        fiscal: SNAPSHOT_FISCAL_PIZZA,
       })
 
       repositorioPizzaItem.inserir({
         pedidoItemId: item.id,
         pizzaCategoriaId: composicao.categoria.id,
         pizzaTamanhoId: composicao.tamanho.id,
-        regraPrecificacaoSnapshot: composicao.categoria.regraPrecificacao,
+        regraPrecificacaoSnapshot: composicao.regraPrecificacaoAplicada,
         valorCalculadoCentavos: composicao.valorFinalCentavos,
         observacao: entrada.observacao?.trim() || null,
         categoriaNomeSnapshot: composicao.categoria.nome,

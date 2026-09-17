@@ -82,6 +82,8 @@ test.describe('Evolucao da Etapa 7 - Pagamentos parciais, desconto e cortesia', 
 
       // Adicionar item: Almoco Executivo (30,00) x 2 = 60,00
       await janela.getByTestId('botao-adicionar-item-painel').click()
+      await janela.getByTestId('campo-categoria-produto-pedido').click()
+      await janela.getByTestId('opcao-categoria-pedido').first().click()
       await janela.getByTestId('campo-produto-pedido').click()
       await janela.getByTestId('opcao-produto-pedido').first().click()
       await janela.getByTestId('campo-quantidade-item').fill('2')

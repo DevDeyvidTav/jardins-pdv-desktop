@@ -2,6 +2,7 @@ import { z } from 'zod'
 import {
   FORMAS_PAGAMENTO_BAIXA_TALAO,
 } from '@shared/types/pagamento-pedido'
+import { COMPETENCIA_TODAS_MESES } from '@shared/types/talao'
 import {
   refinarTrocoDinheiro,
   valorRecebidoCentavosSchema,
@@ -47,8 +48,10 @@ export const vincularClientePedidoSchema = z.object({
 export const obterContaTalaoSchema = z.object({
   clienteId: z.string().uuid('clienteId invalido.'),
   competencia: z
-    .string()
-    .regex(/^\d{4}-\d{2}$/, 'Competencia deve estar no formato YYYY-MM.')
+    .union([
+      z.string().regex(/^\d{4}-\d{2}$/, 'Competencia deve estar no formato YYYY-MM.'),
+      z.literal(COMPETENCIA_TODAS_MESES),
+    ])
     .optional(),
 })
 

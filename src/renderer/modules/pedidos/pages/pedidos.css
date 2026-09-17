@@ -389,6 +389,165 @@
   color: #16a34a;
 }
 
+.badge-documento-fiscal {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+}
+
+.badge-documento-fiscal button {
+  font-size: 0.75rem;
+}
+
+.modal-emissao-nfce__etapas {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.modal-emissao-nfce__etapa {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  font-size: 0.9375rem;
+  color: #9ca3af;
+}
+
+.modal-emissao-nfce__etapa[data-ativa='true'] {
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+.modal-emissao-nfce__etapa[data-concluida='true'] {
+  color: #047857;
+}
+
+.modal-emissao-nfce__marcador {
+  width: 1.25rem;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.modal-emissao-nfce__etapa[data-ativa='true'] .modal-emissao-nfce__marcador {
+  animation: modal-emissao-nfce-pulsar 1s ease-in-out infinite;
+}
+
+@keyframes modal-emissao-nfce-pulsar {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.modal-emissao-nfce__nota {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #6b7280;
+}
+
+.modal-emissao-nfce__painel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  border-radius: 10px;
+  padding: 0.875rem 1rem;
+}
+
+.modal-emissao-nfce__painel--sucesso {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+}
+
+.modal-emissao-nfce__painel--erro {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+}
+
+.modal-emissao-nfce__painel--aviso {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+}
+
+.modal-emissao-nfce__titulo-painel {
+  margin: 0;
+  font-weight: 700;
+  font-size: 0.9375rem;
+}
+
+.modal-emissao-nfce__painel--sucesso .modal-emissao-nfce__titulo-painel {
+  color: #047857;
+}
+
+.modal-emissao-nfce__painel--erro .modal-emissao-nfce__titulo-painel {
+  color: #b91c1c;
+}
+
+.modal-emissao-nfce__painel--aviso .modal-emissao-nfce__titulo-painel {
+  color: #b45309;
+}
+
+.modal-emissao-nfce__detalhes {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+}
+
+.modal-emissao-nfce__detalhes > div {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.modal-emissao-nfce__detalhes dt {
+  font-weight: 600;
+  color: #374151;
+  min-width: 6.5rem;
+}
+
+.modal-emissao-nfce__detalhes dd {
+  margin: 0;
+  color: #111827;
+}
+
+.modal-emissao-nfce__chave {
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 0.75rem;
+  word-break: break-all;
+}
+
+.modal-emissao-nfce__mensagem-rejeicao {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #7f1d1d;
+}
+
+.modal-emissao-nfce__erro-impressao {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #b91c1c;
+}
+
+.modal-emissao-nfce__botao-primario {
+  padding: 0.5rem 1rem;
+  font-size: 0.8125rem;
+  background: #047857;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+}
+
+.modal-emissao-nfce__botao-primario:disabled {
+  opacity: 0.6;
+}
+
 .busca-produtos-pedido__botao-adicionar {
   align-self: end;
   white-space: nowrap;
@@ -1200,7 +1359,7 @@
   padding: 0.375rem 0.5rem;
   border: 1px solid #e5e7eb;
   border-radius: 6px;
-  max-height: 7.5rem;
+  max-height: 12rem;
   overflow: auto;
 }
 
@@ -1211,9 +1370,42 @@
 }
 
 .formulario-adicionar-item__sabores-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.formulario-adicionar-item__grupo-sabor-titulo {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #374151;
+}
+
+.formulario-adicionar-item__grupo-sabor-lista {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
   gap: 0.25rem 0.5rem;
+}
+
+.busca-produtos-pedido__opcao-grupo {
+  list-style: none;
+}
+
+.busca-produtos-pedido__opcao-grupo > span {
+  display: block;
+  padding: 0.375rem 0.625rem 0.125rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7280;
+}
+
+.busca-produtos-pedido__opcao-grupo ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .formulario-adicionar-item__sabor {
@@ -1314,7 +1506,8 @@
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
 }
 
-.busca-produtos-pedido__opcao {
+/* Precisa vencer a especificidade de ".busca-produtos-pedido button" (fundo escuro). */
+.busca-produtos-pedido .busca-produtos-pedido__opcao {
   display: grid;
   gap: 0.125rem;
   width: 100%;
@@ -1325,12 +1518,35 @@
   color: #111827;
   text-align: left;
   font: inherit;
+  font-weight: 500;
   cursor: pointer;
 }
 
-.busca-produtos-pedido__opcao:hover,
-.busca-produtos-pedido__opcao[aria-selected='true'] {
+.busca-produtos-pedido .busca-produtos-pedido__opcao:hover,
+.busca-produtos-pedido .busca-produtos-pedido__opcao[aria-selected='true'] {
   background: #e3f2fd;
+  color: #111827;
+}
+
+/* Comboboxes com filtro de texto: fundo claro, texto escuro e lupa. */
+.busca-produtos-pedido .busca-produtos-pedido__combobox-controle input {
+  padding-left: 1.9rem;
+  background-color: #ffffff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.8-3.8'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: 0.6rem center;
+  background-size: 0.95rem;
+  color: #111827;
+}
+
+.busca-produtos-pedido select {
+  background: #ffffff;
+  color: #111827;
+}
+
+.busca-produtos-pedido select option {
+  background: #ffffff;
+  color: #111827;
 }
 
 .busca-produtos-pedido__opcao--vazia {

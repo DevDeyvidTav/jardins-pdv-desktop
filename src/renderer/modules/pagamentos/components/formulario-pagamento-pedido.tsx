@@ -7,11 +7,20 @@ import {
 import { converterReaisParaCentavos, formatarMoeda } from '@shared/utils/moeda'
 import { MENSAGEM_VALOR_RECEBIDO_INSUFICIENTE } from '@shared/utils/troco-dinheiro'
 import { CamposTrocoDinheiro } from './campos-troco-dinheiro'
+import { normalizarCpf } from '@shared/utils/cpf'
+
+interface SolicitacaoFiscalFormulario {
+  solicitado: boolean
+  cpf: string
+  aviso?: string | null
+  onChange: (solicitado: boolean, cpf: string) => void
+}
 
 interface Props {
   totalCentavos: number
   erroExterno?: string | null
   permitirTalao?: boolean
+  fiscal?: SolicitacaoFiscalFormulario
   onConfirmar: (pagamento: PagamentoInformado) => Promise<boolean>
 }
 
@@ -32,6 +41,7 @@ export function FormularioPagamentoPedido({
   totalCentavos,
   erroExterno = null,
   permitirTalao = false,
+  fiscal,
   onConfirmar,
 }: Props) {
   const [formaPagamento, setFormaPagamento] = useState<PagamentoInformado['formaPagamento']>(
@@ -42,6 +52,11 @@ export function FormularioPagamentoPedido({
   const [motivoCortesia, setMotivoCortesia] = useState('')
   const [erro, setErro] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
+  const [cpfLocal, setCpfLocal] = useState(fiscal?.cpf ?? '')
+
+  useEffect(() => {
+    setCpfLocal(fiscal?.cpf ?? '')
+  }, [fiscal?.cpf])
 
   const formas = permitirTalao
     ? [...FORMAS_BASE.slice(0, 5), FORMA_PAGAMENTO.TALAO, FORMA_PAGAMENTO.CORTESIA]
@@ -174,6 +189,41 @@ export function FormularioPagamentoPedido({
           />
         ) : null}
       </div>
+      {fiscal ? (
+        <div className="formulario-pagamento__fiscal" data-testid="bloco-fiscal-nfce">
+          <label>
+            <input
+              type="checkbox"
+              data-testid="campo-emitir-nfce"
+              checked={fiscal.solicitado}
+              onChange={(evento) => fiscal.onChange(evento.target.checked, cpfLocal)}
+              disabled={enviando}
+            />
+            Emitir NFC-e
+          </label>
+          {fiscal.solicitado ? (
+            <input
+              data-testid="campo-cpf-nfce"
+              value={cpfLocal}
+              onChange={(evento) => {
+                const proximo = evento.target.value
+                setCpfLocal(proximo)
+                const normalizado = normalizarCpf(proximo)
+                if (normalizado.length === 0 || normalizado.length === 11) {
+                  fiscal.onChange(true, proximo)
+                }
+              }}
+              placeholder="CPF na nota (opcional)"
+              inputMode="numeric"
+              disabled={enviando}
+              aria-label="CPF na nota"
+            />
+          ) : null}
+          {fiscal.aviso ? (
+            <p data-testid="aviso-fiscal-nfce">{fiscal.aviso}</p>
+          ) : null}
+        </div>
+      ) : null}
       <p>Total a pagar: {formatarMoeda(totalCentavos)}</p>
       {mensagemErro ? (
         <p role="alert" data-testid="erro-pagamento">

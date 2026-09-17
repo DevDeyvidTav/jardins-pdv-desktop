@@ -65,6 +65,16 @@ export function criarListarPizzaSabores(
 
 export const listarPizzaSabores = criarListarPizzaSabores()
 
+export function criarListarPizzaSaboresComCategorias(
+  repositorio: PizzaSaborRepository = criarPizzaSaborRepository(),
+) {
+  return function listarPizzaSaboresComCategorias() {
+    return repositorio.listarComCategoriasAtivas()
+  }
+}
+
+export const listarPizzaSaboresComCategorias = criarListarPizzaSaboresComCategorias()
+
 export function criarAtualizarPizzaSabor(
   repositorio: PizzaSaborRepository = criarPizzaSaborRepository(),
 ) {

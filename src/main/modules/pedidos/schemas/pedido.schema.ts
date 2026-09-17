@@ -77,6 +77,12 @@ export const cancelarPedidoSchema = z.object({
   motivoCancelamento: motivoCancelamentoSchema,
 })
 
+export const atualizarSolicitacaoFiscalSchema = z.object({
+  pedidoId: z.string().trim().min(1, 'Pedido e obrigatorio.'),
+  fiscalSolicitado: z.boolean(),
+  fiscalCpfDestinatario: z.string().trim().max(14).nullable().optional(),
+})
+
 export const listarHistoricoPedidosSchema = z.object({
   status: z.enum(['TODOS', 'FINALIZADO', 'CANCELADO']).optional(),
   formaPagamento: z

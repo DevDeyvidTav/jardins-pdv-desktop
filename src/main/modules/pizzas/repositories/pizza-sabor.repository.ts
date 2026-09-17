@@ -193,6 +193,35 @@ export class PizzaSaborRepository {
     return ids
   }
 
+  listarComCategoriasAtivas(): Array<PizzaSabor & { categoriaId: string; categoriaNome: string }> {
+    const conexao = this.obterConexao()
+    const consulta = conexao.instancia.prepare(
+      `SELECT ${obterColunasPizzaSabor('s')},
+              pc.id AS categoria_id,
+              pc.nome AS categoria_nome
+       FROM pizza_sabor s
+       INNER JOIN pizza_categoria_sabor pcs ON pcs.pizza_sabor_id = s.id AND pcs.ativo = 1
+       INNER JOIN pizza_categoria pc ON pc.id = pcs.pizza_categoria_id AND pc.ativa = 1
+       WHERE s.ativa = 1
+       ORDER BY pc.ordem ASC, pc.nome ASC, s.ordem ASC, s.nome ASC`,
+    )
+
+    const sabores: Array<PizzaSabor & { categoriaId: string; categoriaNome: string }> = []
+    while (consulta.step()) {
+      const linha = consulta.getAsObject() as unknown as LinhaPizzaSaborSql & {
+        categoria_id: string
+        categoria_nome: string
+      }
+      sabores.push({
+        ...mapearLinhaPizzaSabor(linha),
+        categoriaId: linha.categoria_id,
+        categoriaNome: linha.categoria_nome,
+      })
+    }
+    consulta.free()
+    return sabores
+  }
+
   vinculoAtivoExiste(categoriaId: string, saborId: string): boolean {
     const conexao = this.obterConexao()
     const consulta = conexao.instancia.prepare(

@@ -1,7 +1,10 @@
 import { ipcMain } from 'electron'
 import { ZodError } from 'zod'
 import { CANAIS_IPC } from '@shared/types/canais-ipc'
+import { PERMISSAO_PDV } from '@shared/types/operador'
+import { executarComPermissao } from '../configuracoes/util/assert-permissao-ipc'
 import { ErroPedidos } from '../pedidos/errors/erros-pedidos'
+import { ErroConfiguracoes } from '../configuracoes/errors/erros-configuracoes'
 import { CODIGOS_ERRO_PIZZAS, ErroPizzas } from './errors/erros-pizzas'
 import {
   adicionarPizzaAoPedidoSchema,
@@ -35,6 +38,7 @@ import {
   definirPrecoSaborPorTamanho,
   listarCategoriasDoSabor,
   listarPizzaSabores,
+  listarPizzaSaboresComCategorias,
   listarPrecosSabor,
   vincularSaborCategoria,
 } from './use-cases/sabores-pizza'
@@ -45,6 +49,10 @@ import {
 } from './use-cases/tamanhos-pizza'
 
 function tratarErroPizzas(erro: unknown): never {
+  if (erro instanceof ErroConfiguracoes) {
+    throw erro
+  }
+
   if (erro instanceof ErroPizzas) {
     throw erro
   }
@@ -66,7 +74,9 @@ function tratarErroPizzas(erro: unknown): never {
 export function registrarHandlersPizzas(): void {
   ipcMain.handle(CANAIS_IPC.PIZZAS_CRIAR_CATEGORIA, (_evento, entrada) => {
     try {
-      return criarPizzaCategoria(criarPizzaCategoriaSchema.parse(entrada))
+      return executarComPermissao(PERMISSAO_PDV.CATALOGO_PIZZA, () =>
+        criarPizzaCategoria(criarPizzaCategoriaSchema.parse(entrada)),
+      )
     } catch (erro) {
       tratarErroPizzas(erro)
     }
@@ -82,7 +92,9 @@ export function registrarHandlersPizzas(): void {
 
   ipcMain.handle(CANAIS_IPC.PIZZAS_ATUALIZAR_CATEGORIA, (_evento, entrada) => {
     try {
-      return atualizarPizzaCategoria(atualizarPizzaCategoriaSchema.parse(entrada))
+      return executarComPermissao(PERMISSAO_PDV.CATALOGO_PIZZA, () =>
+        atualizarPizzaCategoria(atualizarPizzaCategoriaSchema.parse(entrada)),
+      )
     } catch (erro) {
       tratarErroPizzas(erro)
     }
@@ -90,7 +102,9 @@ export function registrarHandlersPizzas(): void {
 
   ipcMain.handle(CANAIS_IPC.PIZZAS_CRIAR_TAMANHO, (_evento, entrada) => {
     try {
-      return criarPizzaTamanho(criarPizzaTamanhoSchema.parse(entrada))
+      return executarComPermissao(PERMISSAO_PDV.CATALOGO_PIZZA, () =>
+        criarPizzaTamanho(criarPizzaTamanhoSchema.parse(entrada)),
+      )
     } catch (erro) {
       tratarErroPizzas(erro)
     }
@@ -106,7 +120,9 @@ export function registrarHandlersPizzas(): void {
 
   ipcMain.handle(CANAIS_IPC.PIZZAS_ATUALIZAR_TAMANHO, (_evento, entrada) => {
     try {
-      return atualizarPizzaTamanho(atualizarPizzaTamanhoSchema.parse(entrada))
+      return executarComPermissao(PERMISSAO_PDV.CATALOGO_PIZZA, () =>
+        atualizarPizzaTamanho(atualizarPizzaTamanhoSchema.parse(entrada)),
+      )
     } catch (erro) {
       tratarErroPizzas(erro)
     }
@@ -114,7 +130,9 @@ export function registrarHandlersPizzas(): void {
 
   ipcMain.handle(CANAIS_IPC.PIZZAS_CRIAR_SABOR, (_evento, entrada) => {
     try {
-      return criarPizzaSabor(criarPizzaSaborSchema.parse(entrada))
+      return executarComPermissao(PERMISSAO_PDV.CATALOGO_PIZZA, () =>
+        criarPizzaSabor(criarPizzaSaborSchema.parse(entrada)),
+      )
     } catch (erro) {
       tratarErroPizzas(erro)
     }
@@ -128,9 +146,19 @@ export function registrarHandlersPizzas(): void {
     }
   })
 
+  ipcMain.handle(CANAIS_IPC.PIZZAS_LISTAR_SABORES_COM_CATEGORIAS, () => {
+    try {
+      return listarPizzaSaboresComCategorias()
+    } catch (erro) {
+      tratarErroPizzas(erro)
+    }
+  })
+
   ipcMain.handle(CANAIS_IPC.PIZZAS_ATUALIZAR_SABOR, (_evento, entrada) => {
     try {
-      return atualizarPizzaSabor(atualizarPizzaSaborSchema.parse(entrada))
+      return executarComPermissao(PERMISSAO_PDV.CATALOGO_PIZZA, () =>
+        atualizarPizzaSabor(atualizarPizzaSaborSchema.parse(entrada)),
+      )
     } catch (erro) {
       tratarErroPizzas(erro)
     }
@@ -138,7 +166,9 @@ export function registrarHandlersPizzas(): void {
 
   ipcMain.handle(CANAIS_IPC.PIZZAS_VINCULAR_SABOR_CATEGORIA, (_evento, entrada) => {
     try {
-      return vincularSaborCategoria(vincularSaborCategoriaSchema.parse(entrada))
+      return executarComPermissao(PERMISSAO_PDV.CATALOGO_PIZZA, () =>
+        vincularSaborCategoria(vincularSaborCategoriaSchema.parse(entrada)),
+      )
     } catch (erro) {
       tratarErroPizzas(erro)
     }
@@ -146,8 +176,8 @@ export function registrarHandlersPizzas(): void {
 
   ipcMain.handle(CANAIS_IPC.PIZZAS_DEFINIR_PRECO, (_evento, entrada) => {
     try {
-      return definirPrecoSaborPorTamanho(
-        definirPrecoSaborPorTamanhoSchema.parse(entrada),
+      return executarComPermissao(PERMISSAO_PDV.CATALOGO_PIZZA, () =>
+        definirPrecoSaborPorTamanho(definirPrecoSaborPorTamanhoSchema.parse(entrada)),
       )
     } catch (erro) {
       tratarErroPizzas(erro)

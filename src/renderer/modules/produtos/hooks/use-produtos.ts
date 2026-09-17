@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { CategoriaProduto } from '@shared/types/categoria-produto'
-import type { ProdutoComCategoria } from '@shared/types/produto'
+import type { ProdutoComCategoria, SalvarProdutoFormulario } from '@shared/types/produto'
 import { extrairMensagemErroIpc } from '@shared/utils/erro-ipc'
 
 export interface UseProdutosResultado {
@@ -21,18 +21,10 @@ export interface UseProdutosResultado {
   inativarCategoria: (categoriaId: string) => Promise<boolean>
   reativarCategoria: (categoriaId: string) => Promise<boolean>
   excluirCategoria: (categoriaId: string) => Promise<boolean>
-  criarProduto: (
-    categoriaId: string,
-    nome: string,
-    precoCentavos: number,
-    descricao?: string,
-  ) => Promise<boolean>
+  criarProduto: (dados: SalvarProdutoFormulario) => Promise<boolean>
   atualizarProduto: (
     produtoId: string,
-    categoriaId: string,
-    nome: string,
-    precoCentavos: number,
-    descricao?: string,
+    dados: SalvarProdutoFormulario,
   ) => Promise<boolean>
   inativarProduto: (produtoId: string) => Promise<boolean>
   reativarProduto: (produtoId: string) => Promise<boolean>
@@ -205,22 +197,12 @@ export function useProdutos(): UseProdutosResultado {
   )
 
   const criarProdutoHandler = useCallback(
-    async (
-      categoriaId: string,
-      nome: string,
-      precoCentavos: number,
-      descricao?: string,
-    ): Promise<boolean> => {
+    async (dados: SalvarProdutoFormulario): Promise<boolean> => {
       setErro(null)
       setSucesso(null)
 
       try {
-        await window.pdv.produtos.criarProduto({
-          categoriaId,
-          nome,
-          precoCentavos,
-          descricao,
-        })
+        await window.pdv.produtos.criarProduto(dados)
         await carregarDados()
         setSucesso('Produto criado com sucesso.')
         return true
@@ -233,23 +215,15 @@ export function useProdutos(): UseProdutosResultado {
   )
 
   const atualizarProdutoHandler = useCallback(
-    async (
-      produtoId: string,
-      categoriaId: string,
-      nome: string,
-      precoCentavos: number,
-      descricao?: string,
-    ): Promise<boolean> => {
+    async (produtoId: string, dados: SalvarProdutoFormulario): Promise<boolean> => {
       setErro(null)
       setSucesso(null)
 
       try {
         await window.pdv.produtos.atualizarProduto({
           produtoId,
-          categoriaId,
-          nome,
-          precoCentavos,
-          descricao: descricao ?? null,
+          ...dados,
+          descricao: dados.descricao ?? null,
         })
         await carregarDados()
         setSucesso('Produto atualizado com sucesso.')

@@ -12,6 +12,11 @@ interface PainelDivisaoContaProps {
   resumo: ResumoDivisaoConta
   erroExterno?: string | null
   permitirTalao?: boolean
+  fiscal?: {
+    solicitado: boolean
+    cpf: string
+    onChange: (solicitado: boolean, cpf: string) => void
+  }
   onRegistrarPagamentoParte: (
     parteId: string,
     pagamento: PagamentoInformado,
@@ -35,6 +40,7 @@ export function PainelDivisaoConta({
   resumo,
   erroExterno = null,
   permitirTalao = false,
+  fiscal,
   onRegistrarPagamentoParte,
   onCancelarDivisao,
 }: PainelDivisaoContaProps) {
@@ -142,6 +148,7 @@ export function PainelDivisaoConta({
             totalCentavos={parteSelecionada.valorRestanteCentavos}
             erroExterno={erroExterno}
             permitirTalao={permitirTalao}
+            fiscal={fiscal}
             onConfirmar={(pagamento) =>
               onRegistrarPagamentoParte(parteSelecionada.id, pagamento)
             }

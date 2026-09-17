@@ -34,6 +34,8 @@ function serializarPedido(pedido: Pedido): Record<string, unknown> {
     finalizadoEm: pedido.finalizadoEm,
     canceladoEm: pedido.canceladoEm,
     motivoCancelamento: pedido.motivoCancelamento,
+    fiscalSolicitado: pedido.fiscalSolicitado,
+    fiscalCpfDestinatario: pedido.fiscalCpfDestinatario,
     version: 1,
   }
 }
@@ -55,6 +57,12 @@ function serializarItem(item: PedidoItem): Record<string, unknown> {
     atualizadoEm: item.atualizadoEm,
     canceladoEm: item.canceladoEm,
     motivoCancelamento: item.motivoCancelamento,
+    fiscalNcm: item.fiscalNcm,
+    fiscalCfop: item.fiscalCfop,
+    fiscalIcmsOrigem: item.fiscalIcmsOrigem,
+    fiscalIcmsCsosn: item.fiscalIcmsCsosn,
+    fiscalPisCst: item.fiscalPisCst,
+    fiscalCofinsCst: item.fiscalCofinsCst,
   }
 }
 

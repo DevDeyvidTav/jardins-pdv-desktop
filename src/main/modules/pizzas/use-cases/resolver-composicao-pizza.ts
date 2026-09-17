@@ -1,8 +1,10 @@
 import {
   calcularPrecoPizzaCentavos,
   REGRA_PRECIFICACAO_PIZZA,
+  resolverRegraPrecificacaoComposicaoPizza,
   type PizzaCategoria,
   type PizzaTamanho,
+  type RegraPrecificacaoPizza,
 } from '@shared/types/pizza'
 import { CODIGOS_ERRO_PIZZAS, ErroPizzas } from '../errors/erros-pizzas'
 import type { PizzaCategoriaRepository } from '../repositories/pizza-categoria.repository'
@@ -16,6 +18,7 @@ import { criarPizzaTamanhoRepository } from '../repositories/pizza-tamanho.repos
 
 export interface ComposicaoPizzaResolvida {
   categoria: PizzaCategoria
+  regraPrecificacaoAplicada: RegraPrecificacaoPizza
   tamanho: PizzaTamanho
   sabores: Array<{
     id: string
@@ -33,33 +36,10 @@ export function criarResolverComposicaoPizza(
   repositorioPreco: PizzaSaborPrecoRepository = criarPizzaSaborPrecoRepository(),
 ) {
   return function resolverComposicaoPizza(entrada: {
-    categoriaId: string
+    categoriaId?: string
     tamanhoId: string
     saborIds: string[]
   }): ComposicaoPizzaResolvida {
-    const categoria = repositorioCategoria.buscarPorId(entrada.categoriaId)
-    if (!categoria) {
-      throw new ErroPizzas(
-        CODIGOS_ERRO_PIZZAS.PIZZA_CATEGORIA_NAO_ENCONTRADA,
-        'Categoria de pizza nao encontrada.',
-      )
-    }
-    if (!categoria.ativa) {
-      throw new ErroPizzas(
-        CODIGOS_ERRO_PIZZAS.PIZZA_CATEGORIA_INATIVA,
-        'Categoria de pizza inativa.',
-      )
-    }
-    if (
-      categoria.regraPrecificacao !== REGRA_PRECIFICACAO_PIZZA.MAIOR_SABOR &&
-      categoria.regraPrecificacao !== REGRA_PRECIFICACAO_PIZZA.MEDIA_SABORES
-    ) {
-      throw new ErroPizzas(
-        CODIGOS_ERRO_PIZZAS.PIZZA_REGRA_PRECIFICACAO_INVALIDA,
-        'Regra de precificacao da categoria e invalida.',
-      )
-    }
-
     const tamanho = repositorioTamanho.buscarPorId(entrada.tamanhoId)
     if (!tamanho) {
       throw new ErroPizzas(
@@ -97,6 +77,10 @@ export function criarResolverComposicaoPizza(
     }
 
     const sabores: ComposicaoPizzaResolvida['sabores'] = []
+    const saboresParaPrecificacao: Array<{
+      valorCentavos: number
+      categoriaIds: string[]
+    }> = []
 
     for (const saborId of entrada.saborIds) {
       const sabor = repositorioSabor.buscarPorId(saborId)
@@ -112,10 +96,23 @@ export function criarResolverComposicaoPizza(
           `Sabor "${sabor.nome}" esta inativo.`,
         )
       }
-      if (!repositorioSabor.vinculoAtivoExiste(categoria.id, sabor.id)) {
+
+      const categoriaIds = repositorioSabor.listarIdsCategoriasDoSabor(sabor.id)
+      const categoriasAtivas = categoriaIds
+        .map((categoriaId) => repositorioCategoria.buscarPorId(categoriaId))
+        .filter((categoria): categoria is PizzaCategoria => !!categoria && categoria.ativa)
+
+      if (categoriasAtivas.length === 0) {
+        if (categoriaIds.length === 0) {
+          throw new ErroPizzas(
+            CODIGOS_ERRO_PIZZAS.PIZZA_SABOR_NAO_PERTENCE_A_CATEGORIA,
+            `Sabor "${sabor.nome}" nao possui categoria vinculada.`,
+          )
+        }
+
         throw new ErroPizzas(
-          CODIGOS_ERRO_PIZZAS.PIZZA_SABOR_NAO_PERTENCE_A_CATEGORIA,
-          `Sabor "${sabor.nome}" nao pertence a categoria selecionada.`,
+          CODIGOS_ERRO_PIZZAS.PIZZA_CATEGORIA_INATIVA,
+          `Categoria do sabor "${sabor.nome}" esta inativa.`,
         )
       }
 
@@ -132,17 +129,53 @@ export function criarResolverComposicaoPizza(
         nome: sabor.nome,
         valorCentavos: preco.valorCentavos,
       })
+      saboresParaPrecificacao.push({
+        valorCentavos: preco.valorCentavos,
+        categoriaIds: categoriasAtivas.map((categoria) => categoria.id),
+      })
+    }
+
+    let regraPrecificacaoAplicada: RegraPrecificacaoPizza
+    let categoriaReferencia: PizzaCategoria
+
+    try {
+      const resolucao = resolverRegraPrecificacaoComposicaoPizza(
+        saboresParaPrecificacao,
+        (categoriaId) => repositorioCategoria.buscarPorId(categoriaId),
+      )
+      regraPrecificacaoAplicada = resolucao.regra
+      categoriaReferencia = resolucao.categoriaReferencia
+    } catch (erro) {
+      if (erro instanceof ErroPizzas) {
+        throw erro
+      }
+
+      throw new ErroPizzas(
+        CODIGOS_ERRO_PIZZAS.PIZZA_REGRA_PRECIFICACAO_INVALIDA,
+        'Regra de precificacao da composicao e invalida.',
+      )
+    }
+
+    if (
+      regraPrecificacaoAplicada !== REGRA_PRECIFICACAO_PIZZA.MAIOR_SABOR &&
+      regraPrecificacaoAplicada !== REGRA_PRECIFICACAO_PIZZA.MEDIA_SABORES
+    ) {
+      throw new ErroPizzas(
+        CODIGOS_ERRO_PIZZAS.PIZZA_REGRA_PRECIFICACAO_INVALIDA,
+        'Regra de precificacao da composicao e invalida.',
+      )
     }
 
     const valorFinalCentavos = calcularPrecoPizzaCentavos(
       sabores.map((sabor) => sabor.valorCentavos),
-      categoria.regraPrecificacao,
+      regraPrecificacaoAplicada,
     )
 
     const produtoNome = `Pizza ${tamanho.sigla} — ${sabores.map((s) => s.nome).join(' / ')}`
 
     return {
-      categoria,
+      categoria: categoriaReferencia,
+      regraPrecificacaoAplicada,
       tamanho,
       sabores,
       valorFinalCentavos,

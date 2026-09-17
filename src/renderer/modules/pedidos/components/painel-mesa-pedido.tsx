@@ -25,6 +25,7 @@ import { PainelDivisaoConta } from './painel-divisao-conta'
 import type { PagamentoInformado } from '@shared/types/pagamento-pedido'
 import { itemPedidoEstaAtivo } from '@shared/types/pedido'
 import { useImpressaoPedido } from '../../impressao/hooks/use-impressao-pedido'
+import { BadgeDocumentoFiscal } from '../../fiscal/components/badge-documento-fiscal'
 
 interface PainelMesaPedidoProps {
   mesaSelecionada: Mesa | null
@@ -44,7 +45,6 @@ interface PainelMesaPedidoProps {
     observacao?: string,
   ) => Promise<boolean>
   onAdicionarPizzaPedido: (
-    categoriaId: string,
     tamanhoId: string,
     saborIds: string[],
     observacao?: string,
@@ -57,6 +57,7 @@ interface PainelMesaPedidoProps {
   ) => Promise<boolean>
   onCancelarPedido: (motivoCancelamento: string) => Promise<boolean>
   onRegistrarPagamento: (pagamento: PagamentoInformado) => Promise<boolean>
+  onAtualizarSolicitacaoFiscal?: (solicitado: boolean, cpf: string) => Promise<boolean>
   onCriarDivisaoConta: (partes: CriarParteDivisaoEntrada[]) => Promise<boolean>
   onRegistrarPagamentoParte: (
     parteId: string,
@@ -91,6 +92,7 @@ export function PainelMesaPedido({
   onAplicarDesconto,
   onCancelarPedido,
   onRegistrarPagamento,
+  onAtualizarSolicitacaoFiscal,
   onCriarDivisaoConta,
   onRegistrarPagamentoParte,
   onCancelarDivisaoConta,
@@ -253,6 +255,12 @@ export function PainelMesaPedido({
             Finalizado
           </span>
         ) : null}
+        {pedidoAtivo ? (
+          <BadgeDocumentoFiscal
+            pedidoId={resumoPedido.pedido.id}
+            fiscalSolicitado={resumoPedido.pedido.fiscalSolicitado}
+          />
+        ) : null}
       </header>
 
       <div className="painel-mesa-pedido__conteudo">
@@ -353,6 +361,17 @@ export function PainelMesaPedido({
               resumo={resumoPedido.divisao}
               erroExterno={erroPagamento}
               permitirTalao={permitirTalao}
+              fiscal={
+                resumoPedido && onAtualizarSolicitacaoFiscal
+                  ? {
+                      solicitado: resumoPedido.pedido.fiscalSolicitado,
+                      cpf: resumoPedido.pedido.fiscalCpfDestinatario ?? '',
+                      onChange: (solicitado, cpf) => {
+                        void onAtualizarSolicitacaoFiscal(solicitado, cpf)
+                      },
+                    }
+                  : undefined
+              }
               onRegistrarPagamentoParte={onRegistrarPagamentoParte}
               onCancelarDivisao={onCancelarDivisaoConta}
             />
@@ -667,6 +686,17 @@ export function PainelMesaPedido({
               totalCentavos={resumoPedido.pedido.valorRestanteCentavos}
               erroExterno={erroPagamento}
               permitirTalao={permitirTalao}
+              fiscal={
+                onAtualizarSolicitacaoFiscal
+                  ? {
+                      solicitado: resumoPedido.pedido.fiscalSolicitado,
+                      cpf: resumoPedido.pedido.fiscalCpfDestinatario ?? '',
+                      onChange: (solicitado, cpf) => {
+                        void onAtualizarSolicitacaoFiscal(solicitado, cpf)
+                      },
+                    }
+                  : undefined
+              }
               onConfirmar={async (pagamento) => {
                 const ok = await onRegistrarPagamento(pagamento)
                 if (ok) setMostrarPagamento(false)

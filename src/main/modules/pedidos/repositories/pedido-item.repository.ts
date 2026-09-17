@@ -14,6 +14,7 @@ import {
   type LinhaPedidoItemSql,
 } from '../types/pedido.types'
 import { calcularTotaisItemCentavos } from '../types/pedido-calculos.types'
+import type { SnapshotFiscalItem } from '@shared/utils/snapshot-fiscal-item'
 
 export class PedidoItemRepository {
   constructor(private readonly obterConexao = obterConexaoBancoLocal) {}
@@ -87,6 +88,7 @@ export class PedidoItemRepository {
     precoUnitarioCentavos: number
     descontoCentavos: number
     observacao: string | null
+    fiscal?: SnapshotFiscalItem | null
   }): PedidoItem {
     const conexao = this.obterConexao()
     const agora = agoraEmIsoUtc()
@@ -112,6 +114,12 @@ export class PedidoItemRepository {
       atualizadoEm: agora,
       canceladoEm: null,
       motivoCancelamento: null,
+      fiscalNcm: dados.fiscal?.fiscalNcm ?? null,
+      fiscalCfop: dados.fiscal?.fiscalCfop ?? null,
+      fiscalIcmsOrigem: dados.fiscal?.fiscalIcmsOrigem ?? null,
+      fiscalIcmsCsosn: dados.fiscal?.fiscalIcmsCsosn ?? null,
+      fiscalPisCst: dados.fiscal?.fiscalPisCst ?? null,
+      fiscalCofinsCst: dados.fiscal?.fiscalCofinsCst ?? null,
       pizza: null,
     }
 
@@ -119,8 +127,10 @@ export class PedidoItemRepository {
       `INSERT INTO pedido_item (
          id, pedido_id, produto_id, tipo, produto_nome, quantidade,
          preco_unitario_centavos, subtotal_centavos, desconto_centavos,
-         total_centavos, observacao, criado_em, atualizado_em, cancelado_em
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         total_centavos, observacao, criado_em, atualizado_em, cancelado_em,
+         fiscal_ncm, fiscal_cfop, fiscal_icms_origem, fiscal_icms_csosn,
+         fiscal_pis_cst, fiscal_cofins_cst
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         item.id,
         item.pedidoId,
@@ -136,6 +146,12 @@ export class PedidoItemRepository {
         item.criadoEm,
         item.atualizadoEm,
         item.canceladoEm,
+        item.fiscalNcm,
+        item.fiscalCfop,
+        item.fiscalIcmsOrigem,
+        item.fiscalIcmsCsosn,
+        item.fiscalPisCst,
+        item.fiscalCofinsCst,
       ],
     )
 

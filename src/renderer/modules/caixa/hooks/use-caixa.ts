@@ -9,12 +9,8 @@ import type {
   SessaoCaixa,
 } from '@shared/types/sessao-caixa'
 import { STATUS_SESSAO_CAIXA } from '@shared/types/sessao-caixa'
+import type { OperadorConfig } from '@shared/types/operador'
 import { extrairMensagemErroIpc } from '@shared/utils/erro-ipc'
-
-const OPERADOR_PADRAO = {
-  operadorId: 'local',
-  operadorNome: 'Operador Local',
-} as const
 
 export type PaginaCaixa = 'movimentos' | 'fechamento' | 'pos-fechamento'
 
@@ -43,7 +39,7 @@ function extrairMensagemErro(causa: unknown): string {
   return extrairMensagemErroIpc(causa)
 }
 
-export function useCaixa(): UseCaixaResultado {
+export function useCaixa(operadorAtivo: OperadorConfig | null): UseCaixaResultado {
   const [sessaoAberta, setSessaoAberta] = useState<SessaoCaixa | null>(null)
   const [ultimaSessao, setUltimaSessao] = useState<SessaoCaixa | null>(null)
   const [resumo, setResumo] = useState<ResumoCaixaAtual | null>(null)
@@ -93,9 +89,15 @@ export function useCaixa(): UseCaixaResultado {
       setErro(null)
       setSucesso(null)
 
+      if (!operadorAtivo) {
+        setErro('Operador nao identificado. Informe o PIN para continuar.')
+        return false
+      }
+
       try {
         await window.pdv.caixa.abrirSessaoCaixa({
-          ...OPERADOR_PADRAO,
+          operadorId: operadorAtivo.operadorId,
+          operadorNome: operadorAtivo.operadorNome,
           saldoInicialCentavos,
         })
         setPaginaAtiva('movimentos')
@@ -106,7 +108,7 @@ export function useCaixa(): UseCaixaResultado {
         return false
       }
     },
-    [carregarDados],
+    [carregarDados, operadorAtivo],
   )
 
   const registrarMovimento = useCallback(

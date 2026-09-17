@@ -732,4 +732,142 @@ ALTER TABLE talao_baixa ADD COLUMN valor_recebido_centavos INTEGER;
 ALTER TABLE talao_baixa ADD COLUMN troco_centavos INTEGER NOT NULL DEFAULT 0;
 `.trim(),
   },
+  {
+    versao: 21,
+    nome: '0021-produto-fiscal-simples-nacional',
+    sql: `
+ALTER TABLE produto ADD COLUMN fiscal_ncm TEXT;
+ALTER TABLE produto ADD COLUMN fiscal_cest TEXT;
+ALTER TABLE produto ADD COLUMN fiscal_cfop TEXT NOT NULL DEFAULT '5102';
+ALTER TABLE produto ADD COLUMN fiscal_icms_origem INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE produto ADD COLUMN fiscal_icms_csosn TEXT NOT NULL DEFAULT '102';
+ALTER TABLE produto ADD COLUMN fiscal_pis_cst TEXT NOT NULL DEFAULT '07';
+ALTER TABLE produto ADD COLUMN fiscal_cofins_cst TEXT NOT NULL DEFAULT '07';
+ALTER TABLE produto ADD COLUMN fiscal_aliquota_nacional REAL;
+`.trim(),
+  },
+  {
+    versao: 22,
+    nome: '0022-catalogo-categoria-fts',
+    sql: `
+CREATE VIRTUAL TABLE IF NOT EXISTS catalogo_categoria_fts USING fts5(
+  nome,
+  id UNINDEXED,
+  tipo UNINDEXED,
+  ativo UNINDEXED,
+  tokenize = 'unicode61 remove_diacritics 2'
+);
+
+INSERT INTO catalogo_categoria_fts (id, tipo, ativo, nome)
+SELECT id, 'produto', ativo, nome FROM categoria_produto;
+
+INSERT INTO catalogo_categoria_fts (id, tipo, ativo, nome)
+SELECT id, 'pizza', ativa, nome FROM pizza_categoria;
+
+CREATE TRIGGER IF NOT EXISTS trg_categoria_produto_fts_ai
+AFTER INSERT ON categoria_produto BEGIN
+  INSERT INTO catalogo_categoria_fts (id, tipo, ativo, nome)
+  VALUES (NEW.id, 'produto', NEW.ativo, NEW.nome);
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_categoria_produto_fts_ad
+AFTER DELETE ON categoria_produto BEGIN
+  DELETE FROM catalogo_categoria_fts WHERE id = OLD.id AND tipo = 'produto';
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_categoria_produto_fts_au
+AFTER UPDATE ON categoria_produto BEGIN
+  DELETE FROM catalogo_categoria_fts WHERE id = OLD.id AND tipo = 'produto';
+  INSERT INTO catalogo_categoria_fts (id, tipo, ativo, nome)
+  VALUES (NEW.id, 'produto', NEW.ativo, NEW.nome);
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_pizza_categoria_fts_ai
+AFTER INSERT ON pizza_categoria BEGIN
+  INSERT INTO catalogo_categoria_fts (id, tipo, ativo, nome)
+  VALUES (NEW.id, 'pizza', NEW.ativa, NEW.nome);
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_pizza_categoria_fts_ad
+AFTER DELETE ON pizza_categoria BEGIN
+  DELETE FROM catalogo_categoria_fts WHERE id = OLD.id AND tipo = 'pizza';
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_pizza_categoria_fts_au
+AFTER UPDATE ON pizza_categoria BEGIN
+  DELETE FROM catalogo_categoria_fts WHERE id = OLD.id AND tipo = 'pizza';
+  INSERT INTO catalogo_categoria_fts (id, tipo, ativo, nome)
+  VALUES (NEW.id, 'pizza', NEW.ativa, NEW.nome);
+END;
+`.trim(),
+  },
+  {
+    versao: 23,
+    nome: '0023-pedido-fiscal-nfce',
+    sql: `
+ALTER TABLE pedido ADD COLUMN fiscal_solicitado INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE pedido ADD COLUMN fiscal_cpf_destinatario TEXT;
+
+ALTER TABLE pedido_item ADD COLUMN fiscal_ncm TEXT;
+ALTER TABLE pedido_item ADD COLUMN fiscal_cfop TEXT;
+ALTER TABLE pedido_item ADD COLUMN fiscal_icms_origem INTEGER;
+ALTER TABLE pedido_item ADD COLUMN fiscal_icms_csosn TEXT;
+ALTER TABLE pedido_item ADD COLUMN fiscal_pis_cst TEXT;
+ALTER TABLE pedido_item ADD COLUMN fiscal_cofins_cst TEXT;
+
+CREATE TABLE IF NOT EXISTS documento_fiscal (
+  id TEXT PRIMARY KEY NOT NULL,
+  pedido_id TEXT NOT NULL UNIQUE,
+  tipo TEXT NOT NULL,
+  status TEXT NOT NULL,
+  numero INTEGER,
+  serie INTEGER,
+  chave_acesso TEXT,
+  protocolo_autorizacao TEXT,
+  qr_code TEXT,
+  xml_url TEXT,
+  danfe_url TEXT,
+  valor_total TEXT NOT NULL,
+  codigo_rejeicao TEXT,
+  mensagem_rejeicao TEXT,
+  impresso_em TEXT,
+  autorizado_em TEXT,
+  cancelado_em TEXT,
+  atualizado_em TEXT NOT NULL,
+  criado_em TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_documento_fiscal_status
+  ON documento_fiscal (status);
+`.trim(),
+  },
+  {
+    versao: 24,
+    nome: '0024-config-impressora-setor-categoria',
+    sql: `
+ALTER TABLE categoria_produto ADD COLUMN setor_impressao TEXT;
+
+CREATE TABLE IF NOT EXISTS config_impressora (
+  id TEXT PRIMARY KEY NOT NULL,
+  setor TEXT NOT NULL UNIQUE,
+  nome_impressora TEXT NOT NULL,
+  porta_com TEXT
+);
+`.trim(),
+  },
+  {
+    versao: 25,
+    nome: '0025-operador-usuario-perfis',
+    sql: `
+CREATE TABLE IF NOT EXISTS operador_usuario (
+  id TEXT PRIMARY KEY NOT NULL,
+  nome TEXT NOT NULL UNIQUE,
+  pin_hash TEXT NOT NULL,
+  perfil TEXT NOT NULL CHECK (perfil IN ('ADMIN', 'OPERADOR')),
+  ativo INTEGER NOT NULL DEFAULT 1,
+  criado_em TEXT NOT NULL,
+  atualizado_em TEXT NOT NULL
+);
+`.trim(),
+  },
 ]

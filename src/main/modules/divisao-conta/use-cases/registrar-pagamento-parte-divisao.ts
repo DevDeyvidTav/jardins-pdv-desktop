@@ -24,6 +24,8 @@ import {
 import { obterConexaoBancoLocal } from '../../../database/inicializar-banco'
 import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
 import { registrarEventoPedidoSync } from '../../sincronizacao/services/registrar-evento-pedido'
+import { avaliarEmissaoNfce } from '../../pedidos/services/avaliar-emissao-nfce'
+import { normalizarCpf } from '@shared/utils/cpf'
 import {
   criarSessaoCaixaRepository,
   type SessaoCaixaRepository,
@@ -320,7 +322,36 @@ export function criarRegistrarPagamentoParteDivisao(
         })
       }
 
+      const fiscalSolicitado = entrada.fiscalSolicitado ?? pedido.fiscalSolicitado
+      const fiscalCpfDestinatario =
+        entrada.fiscalCpfDestinatario === undefined
+          ? pedido.fiscalCpfDestinatario
+          : entrada.fiscalCpfDestinatario
+      if (entrada.fiscalSolicitado !== undefined) {
+        repositorioPedido.atualizarSolicitacaoFiscal({
+          pedidoId: pedido.id,
+          fiscalSolicitado,
+          fiscalCpfDestinatario: normalizarCpf(fiscalCpfDestinatario) || null,
+        })
+      }
+
       if (valorRestanteCentavos === 0) {
+        const avaliacao = avaliarEmissaoNfce({
+          pedido: { ...pedido, totalCentavos: totalPedidoCentavos },
+          itens: repositorioItem.listarPorPedido(pedido.id, true),
+          fiscalSolicitado,
+          fiscalCpfDestinatario,
+          valorPagoAposPagamento: valorPagoCentavos,
+          valorCortesiaAposPagamento: valorCortesiaCentavos,
+          exigirValorPago: true,
+        })
+        if (!avaliacao.ok) {
+          throw new ErroDivisaoConta(
+            CODIGOS_ERRO_DIVISAO_CONTA.ENTRADA_INVALIDA,
+            avaliacao.motivo,
+          )
+        }
+
         if (!todasQuitadas) {
           throw new ErroDivisaoConta(
             CODIGOS_ERRO_DIVISAO_CONTA.FINALIZACAO_BLOQUEADA_POR_PARTES_PENDENTES,

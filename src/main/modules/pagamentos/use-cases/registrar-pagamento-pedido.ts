@@ -39,6 +39,8 @@ import {
 import { registrarErro } from '../../../logging/logger'
 import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
 import { registrarEventoPedidoSync } from '../../sincronizacao/services/registrar-evento-pedido'
+import { avaliarEmissaoNfce } from '../../pedidos/services/avaliar-emissao-nfce'
+import { cpfEhValido, normalizarCpf } from '@shared/utils/cpf'
 
 export function criarRegistrarPagamentoPedido(
   repositorioPedido: PedidoRepository = criarPedidoRepository(),
@@ -175,7 +177,41 @@ export function criarRegistrarPagamentoPedido(
           valorRestanteCentavos,
         })
 
+        const fiscalSolicitado =
+          entrada.fiscalSolicitado ?? pedido.fiscalSolicitado
+        const fiscalCpfDestinatario =
+          entrada.fiscalCpfDestinatario === undefined
+            ? pedido.fiscalCpfDestinatario
+            : entrada.fiscalCpfDestinatario
+        if (entrada.fiscalSolicitado !== undefined) {
+          const cpfNormalizado = normalizarCpf(fiscalCpfDestinatario)
+          if (cpfNormalizado.length > 0 && !cpfEhValido(cpfNormalizado)) {
+            throw new ErroPedidos(
+              CODIGOS_ERRO_PEDIDOS.ENTRADA_INVALIDA,
+              'CPF da nota invalido.',
+            )
+          }
+          repositorioPedido.atualizarSolicitacaoFiscal({
+            pedidoId: pedido.id,
+            fiscalSolicitado,
+            fiscalCpfDestinatario: cpfNormalizado.length === 11 ? cpfNormalizado : null,
+          })
+        }
+
         if (valorRestanteCentavos === 0) {
+          const avaliacao = avaliarEmissaoNfce({
+            pedido: { ...pedido, totalCentavos: totalPedidoCentavos },
+            itens: itensAtivos,
+            fiscalSolicitado,
+            fiscalCpfDestinatario,
+            valorPagoAposPagamento: valorPagoCentavos,
+            valorCortesiaAposPagamento: valorCortesiaCentavos,
+            exigirValorPago: true,
+          })
+          if (!avaliacao.ok) {
+            throw new ErroPedidos(CODIGOS_ERRO_PEDIDOS.ENTRADA_INVALIDA, avaliacao.motivo)
+          }
+
           repositorioPedido.finalizar(pedido.id)
 
           if (pedido.tipo === TIPO_PEDIDO.MESA && pedido.mesaId) {

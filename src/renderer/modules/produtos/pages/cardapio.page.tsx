@@ -8,11 +8,18 @@ import '../../pizzas/pages/pizzas.css'
 interface CardapioPageProps {
   produtos: UseProdutosResultado
   pizzas: UsePizzasResultado
+  permitirFiscal?: boolean
+  permitirCatalogoPizza?: boolean
 }
 
 type AbaCardapio = 'produtos' | 'pizzas'
 
-export function CardapioPage({ produtos, pizzas }: CardapioPageProps) {
+export function CardapioPage({
+  produtos,
+  pizzas,
+  permitirFiscal = false,
+  permitirCatalogoPizza = false,
+}: CardapioPageProps) {
   const [abaAtiva, setAbaAtiva] = useState<AbaCardapio>('produtos')
 
   return (
@@ -43,9 +50,9 @@ export function CardapioPage({ produtos, pizzas }: CardapioPageProps) {
 
       <div className="cardapio__conteudo">
         {abaAtiva === 'produtos' ? (
-          <ProdutosPage produtos={produtos} />
+          <ProdutosPage produtos={produtos} permitirFiscal={permitirFiscal} />
         ) : (
-          <PizzasCatalogo pizzas={pizzas} />
+          <PizzasCatalogo pizzas={pizzas} permitirEdicao={permitirCatalogoPizza} />
         )}
       </div>
     </main>

@@ -12,11 +12,12 @@ import './produtos.css'
 
 interface ProdutosPageProps {
   produtos: UseProdutosResultado
+  permitirFiscal?: boolean
 }
 
 type VisaoProdutos = 'ativos' | 'todos'
 
-export function ProdutosPage({ produtos }: ProdutosPageProps) {
+export function ProdutosPage({ produtos, permitirFiscal = false }: ProdutosPageProps) {
   const [exibirFormCategoria, setExibirFormCategoria] = useState(false)
   const [exibirFormProduto, setExibirFormProduto] = useState(false)
   const [categoriaEmEdicao, setCategoriaEmEdicao] = useState<CategoriaProduto | null>(null)
@@ -218,31 +219,24 @@ export function ProdutosPage({ produtos }: ProdutosPageProps) {
           </div>
 
           {exibirFormProduto || produtoEmEdicao ? (
-            <div className="produtos-operacao__form-painel">
+            <div
+              className="produtos-operacao__form-painel"
+              data-testid="painel-formulario-produto"
+            >
               <FormularioProduto
                 categorias={produtos.categorias}
                 categoriaPadraoId={produtos.categoriaFiltroId || undefined}
                 produtoInicial={produtoEmEdicao}
                 carregando={produtos.carregando}
-                onSalvar={async (categoriaId, nome, precoCentavos, descricao) => {
+                permitirFiscal={permitirFiscal}
+                onSalvar={async (dados) => {
                   if (produtoEmEdicao) {
-                    const ok = await produtos.atualizarProduto(
-                      produtoEmEdicao.id,
-                      categoriaId,
-                      nome,
-                      precoCentavos,
-                      descricao,
-                    )
+                    const ok = await produtos.atualizarProduto(produtoEmEdicao.id, dados)
                     if (ok) fecharFormProduto()
                     return ok
                   }
 
-                  const ok = await produtos.criarProduto(
-                    categoriaId,
-                    nome,
-                    precoCentavos,
-                    descricao,
-                  )
+                  const ok = await produtos.criarProduto(dados)
                   if (ok) fecharFormProduto()
                   return ok
                 }}
@@ -252,20 +246,22 @@ export function ProdutosPage({ produtos }: ProdutosPageProps) {
             </div>
           ) : null}
 
-          <div className="produtos-operacao__lista-scroll">
-            <ListaProdutos
-              produtos={produtosExibidos}
-              compacto
-              exibirInativos={visaoProdutos === 'todos'}
-              onEditar={(produto) => {
-                setExibirFormProduto(false)
-                setProdutoEmEdicao(produto)
-              }}
-              onInativar={produtos.inativarProduto}
-              onReativar={produtos.reativarProduto}
-              onExcluir={setProdutoParaExcluir}
-            />
-          </div>
+          {exibirFormProduto || produtoEmEdicao ? null : (
+            <div className="produtos-operacao__lista-scroll">
+              <ListaProdutos
+                produtos={produtosExibidos}
+                compacto
+                exibirInativos={visaoProdutos === 'todos'}
+                onEditar={(produto) => {
+                  setExibirFormProduto(false)
+                  setProdutoEmEdicao(produto)
+                }}
+                onInativar={produtos.inativarProduto}
+                onReativar={produtos.reativarProduto}
+                onExcluir={setProdutoParaExcluir}
+              />
+            </div>
+          )}
         </section>
       </div>
 

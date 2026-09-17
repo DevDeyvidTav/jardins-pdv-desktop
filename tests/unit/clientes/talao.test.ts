@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { FORMA_PAGAMENTO } from '../../../src/shared/types/pagamento-pedido'
+import { COMPETENCIA_TODAS_MESES } from '../../../src/shared/types/talao'
+import { obterConexaoBancoLocal } from '../../../src/main/database/inicializar-banco'
 import { CODIGOS_ERRO_CLIENTES, ErroClientes } from '../../../src/main/modules/clientes/errors/erros-clientes'
 import { criarClienteRepository } from '../../../src/main/modules/clientes/repositories/cliente.repository'
 import { criarCriarCliente } from '../../../src/main/modules/clientes/use-cases/criar-cliente'
@@ -191,6 +193,61 @@ describe('talão', () => {
       expect(erro).toBeInstanceOf(ErroClientes)
       expect((erro as ErroClientes).codigo).toBe(CODIGOS_ERRO_CLIENTES.CAIXA_NAO_ABERTO)
     }
+  })
+
+  it('consolida lancamentos e baixas de todos os meses', async () => {
+    const { ambiente, cliente, pedido, vincular, obterConta, registrarBaixa } =
+      await prepararComCliente()
+    vincular({ pedidoId: pedido.id, clienteId: cliente.id })
+    ambiente.registrarPagamentoPedido({
+      pedidoId: pedido.id,
+      formaPagamento: FORMA_PAGAMENTO.TALAO,
+      valorCentavos: 1200,
+    })
+
+    // Move o lancamento para o mes anterior (UTC, como o substr(criado_em, 1, 7))
+    const agora = new Date()
+    const dataMesAnterior = new Date(
+      Date.UTC(agora.getUTCFullYear(), agora.getUTCMonth() - 1, 15, 12, 0, 0),
+    )
+    const competenciaAnterior = `${dataMesAnterior.getUTCFullYear()}-${String(
+      dataMesAnterior.getUTCMonth() + 1,
+    ).padStart(2, '0')}`
+    obterConexaoBancoLocal().instancia.run(
+      'UPDATE pagamento_pedido SET criado_em = ? WHERE pedido_id = ?',
+      [dataMesAnterior.toISOString(), pedido.id],
+    )
+
+    // Mes atual nao tem movimento
+    expect(obterConta({ clienteId: cliente.id }).totalLancadoCentavos).toBe(0)
+    // Mes anterior concentra o lancamento
+    const contaAnterior = obterConta({ clienteId: cliente.id, competencia: competenciaAnterior })
+    expect(contaAnterior.totalLancadoCentavos).toBe(1200)
+    expect(contaAnterior.saldoCentavos).toBe(1200)
+
+    // Visao consolidada
+    const consolidada = obterConta({
+      clienteId: cliente.id,
+      competencia: COMPETENCIA_TODAS_MESES,
+    })
+    expect(consolidada.totalLancadoCentavos).toBe(1200)
+    expect(consolidada.saldoCentavos).toBe(1200)
+    expect(consolidada.lancamentos).toHaveLength(1)
+
+    // Baixa amarrada ao mes anterior tambem aparece na consolidada
+    registrarBaixa({
+      clienteId: cliente.id,
+      formaPagamento: FORMA_PAGAMENTO.DINHEIRO,
+      valorCentavos: 500,
+      competencia: competenciaAnterior,
+    })
+    const consolidadaAposBaixa = obterConta({
+      clienteId: cliente.id,
+      competencia: COMPETENCIA_TODAS_MESES,
+    })
+    expect(consolidadaAposBaixa.totalBaixadoCentavos).toBe(500)
+    expect(consolidadaAposBaixa.saldoCentavos).toBe(700)
+    expect(consolidadaAposBaixa.baixas).toHaveLength(1)
   })
 
   it('separa vendas Pix maquineta e Pix CNPJ no caixa', async () => {

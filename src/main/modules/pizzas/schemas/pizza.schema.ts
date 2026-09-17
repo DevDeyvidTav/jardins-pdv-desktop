@@ -103,14 +103,14 @@ export const listarCategoriasDoSaborSchema = z.object({
 })
 
 export const montarPreviewPizzaSchema = z.object({
-  categoriaId: z.string().trim().min(1, 'Categoria e obrigatoria.'),
+  categoriaId: z.string().trim().min(1, 'Categoria e obrigatoria.').optional(),
   tamanhoId: z.string().trim().min(1, 'Tamanho e obrigatorio.'),
   saborIds: z.array(z.string().trim().min(1)),
 })
 
 export const adicionarPizzaAoPedidoSchema = z.object({
   pedidoId: z.string().trim().min(1, 'Pedido e obrigatorio.'),
-  categoriaId: z.string().trim().min(1, 'Categoria e obrigatoria.'),
+  categoriaId: z.string().trim().min(1, 'Categoria e obrigatoria.').optional(),
   tamanhoId: z.string().trim().min(1, 'Tamanho e obrigatorio.'),
   saborIds: z.array(z.string().trim().min(1)),
   observacao: z.string().trim().optional(),

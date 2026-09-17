@@ -81,6 +81,7 @@ export class CategoriaProdutoRepository {
       id: randomUUID(),
       nome: dados.nome,
       descricao: dados.descricao,
+      setorImpressao: null,
       ativo: true,
       criadoEm: agora,
       atualizadoEm: agora,
@@ -88,12 +89,13 @@ export class CategoriaProdutoRepository {
 
     conexao.instancia.run(
       `INSERT INTO categoria_produto (
-         id, nome, descricao, ativo, criado_em, atualizado_em
-       ) VALUES (?, ?, ?, ?, ?, ?)`,
+         id, nome, descricao, setor_impressao, ativo, criado_em, atualizado_em
+       ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         categoria.id,
         categoria.nome,
         categoria.descricao,
+        null,
         1,
         categoria.criadoEm,
         categoria.atualizadoEm,
@@ -183,6 +185,35 @@ export class CategoriaProdutoRepository {
     return {
       ...existente,
       ativo: true,
+      atualizadoEm: agora,
+    }
+  }
+
+  atualizarSetorImpressao(
+    categoriaId: string,
+    setorImpressao: CategoriaProduto['setorImpressao'],
+  ): CategoriaProduto {
+    const conexao = this.obterConexao()
+    const existente = this.buscarPorId(categoriaId)
+
+    if (!existente) {
+      throw new Error('Categoria nao encontrada.')
+    }
+
+    const agora = agoraEmIsoUtc()
+
+    conexao.instancia.run(
+      `UPDATE categoria_produto
+       SET setor_impressao = ?, atualizado_em = ?
+       WHERE id = ?`,
+      [setorImpressao, agora, categoriaId],
+    )
+
+    persistirConexaoBanco(conexao)
+
+    return {
+      ...existente,
+      setorImpressao,
       atualizadoEm: agora,
     }
   }

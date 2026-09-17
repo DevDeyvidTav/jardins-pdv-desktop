@@ -19,15 +19,14 @@ async function abrirAplicativo(diretorioDados: string) {
 }
 
 async function garantirCaixaAberto(janela: Page) {
-  const paginaAbertura = janela.getByTestId('pagina-abertura-caixa')
+  await expect(janela.getByTestId('app-carregando')).toBeHidden({ timeout: 15_000 })
 
-  if (await paginaAbertura.isVisible().catch(() => false)) {
+  if (await janela.getByTestId('pagina-abertura-caixa').isVisible().catch(() => false)) {
     await janela.getByTestId('campo-saldo-inicial').fill('300,00')
     await janela.getByTestId('botao-abrir-caixa').click()
-    await expect(janela.getByTestId('pagina-caixa-atual')).toBeVisible({
-      timeout: 10_000,
-    })
   }
+
+  await expect(janela.getByTestId('pagina-caixa-atual')).toBeVisible({ timeout: 10_000 })
 }
 
 async function registrarMovimento(

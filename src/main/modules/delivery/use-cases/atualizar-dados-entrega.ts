@@ -9,6 +9,8 @@ import {
   criarPedidoRepository,
   type PedidoRepository,
 } from '../../pedidos/repositories/pedido.repository'
+import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
+import { registrarEventoPedidoSync } from '../../sincronizacao/services/registrar-evento-pedido'
 
 export function criarAtualizarDadosEntrega(
   repositorioEntrega: PedidoEntregaRepository = criarPedidoEntregaRepository(),
@@ -39,12 +41,14 @@ export function criarAtualizarDadosEntrega(
       )
     }
 
-    return repositorioEntrega.atualizarDados(entrada.pedidoId, {
+    const entregaAtualizada = repositorioEntrega.atualizarDados(entrada.pedidoId, {
       clienteNome: entrada.clienteNome,
       telefone: entrada.telefone,
       endereco: entrada.endereco,
       observacao: entrada.observacao,
     })
+    registrarEventoPedidoSync(entrada.pedidoId, OPERACAO_SYNC.UPDATE)
+    return entregaAtualizada
   }
 }
 

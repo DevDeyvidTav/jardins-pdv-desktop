@@ -1,7 +1,10 @@
+import type { SetorImpressao } from './config-impressora'
+
 export interface CategoriaProduto {
   id: string
   nome: string
   descricao: string | null
+  setorImpressao: SetorImpressao | null
   ativo: boolean
   criadoEm: string
   atualizadoEm: string

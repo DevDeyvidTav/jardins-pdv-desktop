@@ -18,6 +18,32 @@ describe('produto.schema', () => {
     expect(resultado.precoCentavos).toBe(600)
   })
 
+  it('aceita dados fiscais opcionais com defaults do Simples Nacional', () => {
+    const resultado = criarProdutoSchema.parse({
+      categoriaId: 'cat-1',
+      nome: 'Suco de laranja',
+      precoCentavos: 900,
+      fiscalCfop: '5102',
+      fiscalIcmsCsosn: '102',
+      fiscalPisCst: '07',
+      fiscalCofinsCst: '07',
+    })
+
+    expect(resultado.fiscalCfop).toBe('5102')
+    expect(resultado.fiscalIcmsCsosn).toBe('102')
+  })
+
+  it('rejeita NCM com tamanho invalido', () => {
+    expect(() =>
+      criarProdutoSchema.parse({
+        categoriaId: 'cat-1',
+        nome: 'Suco de laranja',
+        precoCentavos: 900,
+        fiscalNcm: '123',
+      }),
+    ).toThrow()
+  })
+
   it('impede produto com nome vazio', () => {
     expect(() =>
       criarProdutoSchema.parse({

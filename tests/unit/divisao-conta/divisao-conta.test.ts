@@ -6,6 +6,12 @@ import {
 } from '../../../src/shared/types/divisao-conta'
 import { FORMA_PAGAMENTO } from '../../../src/shared/types/pagamento-pedido'
 import { STATUS_PEDIDO } from '../../../src/shared/types/pedido'
+import {
+  ENTIDADE_SYNC,
+  OPERACAO_SYNC,
+  STATUS_SYNC_OUTBOX,
+} from '../../../src/shared/types/sincronizacao'
+import { criarSyncOutboxRepository } from '../../../src/main/modules/sincronizacao/repositories/sync-outbox.repository'
 import { CODIGOS_ERRO_DIVISAO_CONTA, ErroDivisaoConta } from '../../../src/main/modules/divisao-conta/errors/erros-divisao-conta'
 import { CODIGOS_ERRO_PEDIDOS, ErroPedidos } from '../../../src/main/modules/pedidos/errors/erros-pedidos'
 import { criarCriarDivisaoConta } from '../../../src/main/modules/divisao-conta/use-cases/criar-divisao-conta'
@@ -693,5 +699,56 @@ describe('divisao de conta', () => {
     expect(historico.some((h) => h.tipo === TIPO_MOVIMENTACAO_DIVISAO.DIVISAO_CANCELADA)).toBe(
       true,
     )
+  })
+
+  it('criar divisao enfileira evento PEDIDO UPDATE na outbox', async () => {
+    const ambiente = await setup(2)
+    const metade = ambiente.total / 2
+    ambiente.criarDivisao({
+      pedidoId: ambiente.pedido.id,
+      partes: [
+        { identificacao: 'A', valorDefinidoCentavos: metade },
+        { identificacao: 'B', valorDefinidoCentavos: metade },
+      ],
+    })
+
+    const pendentes = criarSyncOutboxRepository().listarPendentes(20)
+    const evento = pendentes.find(
+      (item) =>
+        item.entidade === ENTIDADE_SYNC.PEDIDO &&
+        item.entidadeId === ambiente.pedido.id &&
+        item.operacao === OPERACAO_SYNC.UPDATE,
+    )
+
+    expect(evento).toBeDefined()
+    expect(evento?.status).toBe(STATUS_SYNC_OUTBOX.PENDENTE)
+  })
+
+  it('cancelar divisao enfileira evento PEDIDO UPDATE na outbox', async () => {
+    const ambiente = await setup(2)
+    const metade = ambiente.total / 2
+    ambiente.criarDivisao({
+      pedidoId: ambiente.pedido.id,
+      partes: [
+        { identificacao: 'A', valorDefinidoCentavos: metade },
+        { identificacao: 'B', valorDefinidoCentavos: metade },
+      ],
+    })
+
+    ambiente.cancelar({
+      pedidoId: ambiente.pedido.id,
+      motivo: 'desistiu',
+    })
+
+    const pendentes = criarSyncOutboxRepository().listarPendentes(20)
+    const updates = pendentes.filter(
+      (item) =>
+        item.entidade === ENTIDADE_SYNC.PEDIDO &&
+        item.entidadeId === ambiente.pedido.id &&
+        item.operacao === OPERACAO_SYNC.UPDATE,
+    )
+
+    expect(updates.length).toBeGreaterThanOrEqual(2)
+    expect(updates.every((item) => item.status === STATUS_SYNC_OUTBOX.PENDENTE)).toBe(true)
   })
 })

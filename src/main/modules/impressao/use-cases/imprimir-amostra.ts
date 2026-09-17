@@ -8,6 +8,11 @@ import { CODIGOS_ERRO_IMPRESSAO, ErroImpressao } from '../errors/erros-impressao
 import { codificarCupomEscPos } from '../infraestrutura/encoder-escpos'
 import { enviarBufferImpressora } from '../infraestrutura/enviar-impressora'
 import {
+  resolverDestinoConta,
+  resolverDestinoImpressoraPorSetor,
+} from '../infraestrutura/resolver-destino-impressora'
+import type { SetorImpressao } from '@shared/types/config-impressora'
+import {
   criarDocumentoComandaAmostra,
   criarDocumentoContaAmostra,
 } from '../templates/dados-amostra'
@@ -29,8 +34,24 @@ export function criarImprimirAmostra(
     let impresso = false
     let aviso: string | null = null
 
+    const destino =
+      entrada.tipo === TIPO_DOCUMENTO_IMPRESSAO.CONTA
+        ? resolverDestinoConta()
+        : resolverDestinoImpressoraPorSetor(entrada.setor as SetorImpressao)
+
+    if (destino.tipo === 'NAO_CONFIGURADO') {
+      return {
+        tipo: entrada.tipo,
+        setor: entrada.setor ?? null,
+        linhas,
+        texto,
+        impresso: false,
+        aviso: 'Setor sem impressora configurada em Configuracoes → Impressoras.',
+      }
+    }
+
     try {
-      enviarBuffer(codificarCupomEscPos(linhas))
+      enviarBuffer(codificarCupomEscPos(linhas), destino)
       impresso = true
       registrarLog('info', 'impressao_amostra_enviada', {
         operacao: 'impressao.imprimirAmostra',

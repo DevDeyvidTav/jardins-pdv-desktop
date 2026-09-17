@@ -86,6 +86,8 @@ export interface RegistrarPagamentoParteDivisaoEntrada {
   valorCentavos: number
   valorRecebidoCentavos?: number
   motivoCortesia?: string
+  fiscalSolicitado?: boolean
+  fiscalCpfDestinatario?: string | null
 }
 
 export interface CancelarDivisaoContaEntrada {

@@ -261,6 +261,8 @@ export class PedidoRepository {
       finalizadoEm: null,
       canceladoEm: null,
       motivoCancelamento: null,
+      fiscalSolicitado: false,
+      fiscalCpfDestinatario: null,
     }
 
     conexao.instancia.run(
@@ -440,6 +442,42 @@ export class PedidoRepository {
       ...existente,
       status: STATUS_PEDIDO.FINALIZADO,
       finalizadoEm: agora,
+      atualizadoEm: agora,
+    }
+  }
+
+  atualizarSolicitacaoFiscal(dados: {
+    pedidoId: string
+    fiscalSolicitado: boolean
+    fiscalCpfDestinatario: string | null
+  }): Pedido {
+    const existente = this.buscarPorId(dados.pedidoId)
+
+    if (!existente) {
+      throw new Error('Pedido nao encontrado.')
+    }
+
+    const conexao = this.obterConexao()
+    const agora = agoraEmIsoUtc()
+
+    conexao.instancia.run(
+      `UPDATE pedido
+       SET fiscal_solicitado = ?, fiscal_cpf_destinatario = ?, atualizado_em = ?
+       WHERE id = ?`,
+      [
+        dados.fiscalSolicitado ? 1 : 0,
+        dados.fiscalCpfDestinatario,
+        agora,
+        dados.pedidoId,
+      ],
+    )
+
+    persistirConexaoBanco(conexao)
+
+    return {
+      ...existente,
+      fiscalSolicitado: dados.fiscalSolicitado,
+      fiscalCpfDestinatario: dados.fiscalCpfDestinatario,
       atualizadoEm: agora,
     }
   }

@@ -33,6 +33,8 @@ export interface LinhaPedidoSql {
   finalizado_em: string | null
   cancelado_em: string | null
   motivo_cancelamento: string | null
+  fiscal_solicitado: number | null
+  fiscal_cpf_destinatario: string | null
 }
 
 export interface LinhaPedidoItemSql {
@@ -51,6 +53,12 @@ export interface LinhaPedidoItemSql {
   atualizado_em: string
   cancelado_em: string | null
   motivo_cancelamento: string | null
+  fiscal_ncm: string | null
+  fiscal_cfop: string | null
+  fiscal_icms_origem: number | null
+  fiscal_icms_csosn: string | null
+  fiscal_pis_cst: string | null
+  fiscal_cofins_cst: string | null
 }
 
 const COLUNAS_PEDIDO = `
@@ -61,14 +69,18 @@ const COLUNAS_PEDIDO = `
   desconto_itens_centavos, desconto_pedido_centavos,
   COALESCE(taxa_entrega_centavos, 0) AS taxa_entrega_centavos,
   valor_pago_centavos, valor_cortesia_centavos, valor_restante_centavos,
-  criado_em, atualizado_em, finalizado_em, cancelado_em, motivo_cancelamento
+  criado_em, atualizado_em, finalizado_em, cancelado_em, motivo_cancelamento,
+  COALESCE(fiscal_solicitado, 0) AS fiscal_solicitado,
+  fiscal_cpf_destinatario
 `.trim()
 
 const COLUNAS_PEDIDO_ITEM = `
   id, pedido_id, produto_id, tipo, produto_nome, quantidade,
   preco_unitario_centavos, subtotal_centavos, desconto_centavos,
   total_centavos, observacao, criado_em, atualizado_em, cancelado_em,
-  motivo_cancelamento
+  motivo_cancelamento,
+  fiscal_ncm, fiscal_cfop, fiscal_icms_origem, fiscal_icms_csosn,
+  fiscal_pis_cst, fiscal_cofins_cst
 `.trim()
 
 export function obterColunasPedido(): string {
@@ -107,6 +119,8 @@ export function mapearLinhaPedido(
     finalizadoEm: linha.finalizado_em,
     canceladoEm: linha.cancelado_em,
     motivoCancelamento: linha.motivo_cancelamento ?? null,
+    fiscalSolicitado: Number(linha.fiscal_solicitado) === 1,
+    fiscalCpfDestinatario: linha.fiscal_cpf_destinatario ?? null,
   }
 }
 
@@ -131,6 +145,15 @@ export function mapearLinhaPedidoItem(
     atualizadoEm: linha.atualizado_em,
     canceladoEm: linha.cancelado_em,
     motivoCancelamento: linha.motivo_cancelamento ?? null,
+    fiscalNcm: linha.fiscal_ncm ?? null,
+    fiscalCfop: linha.fiscal_cfop ?? null,
+    fiscalIcmsOrigem:
+      linha.fiscal_icms_origem === null || linha.fiscal_icms_origem === undefined
+        ? null
+        : Number(linha.fiscal_icms_origem),
+    fiscalIcmsCsosn: linha.fiscal_icms_csosn ?? null,
+    fiscalPisCst: linha.fiscal_pis_cst ?? null,
+    fiscalCofinsCst: linha.fiscal_cofins_cst ?? null,
     pizza: null,
   }
 }

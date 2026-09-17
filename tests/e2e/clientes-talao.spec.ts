@@ -90,6 +90,8 @@ test.describe('clientes, talão e delivery opcional', () => {
       await expect(janela.getByTestId('pagina-pedido-aberto')).toBeVisible({ timeout: 10_000 })
 
       await janela.getByTestId('botao-adicionar-item-painel').click()
+      await janela.getByTestId('campo-categoria-produto-pedido').click()
+      await janela.getByTestId('opcao-categoria-pedido').first().click()
       await janela.getByTestId('campo-produto-pedido').click()
       await janela.getByTestId('opcao-produto-pedido').first().click()
       await janela.getByTestId('campo-quantidade-item').fill('1')
@@ -127,6 +129,26 @@ test.describe('clientes, talão e delivery opcional', () => {
       })
       await expect(janela.getByTestId('talao-saldo')).toHaveText(/R\$\s*3,00/)
       await expect(janela.getByTestId('talao-total-baixado')).toHaveText(/R\$\s*3,00/)
+
+      // Mes sem movimento fica zerado
+      await janela.getByTestId('campo-competencia-talao').fill('2020-01')
+      await expect(janela.getByTestId('talao-saldo')).toHaveText(/R\$\s*0,00/, {
+        timeout: 10_000,
+      })
+
+      // Visao consolidada de todos os meses mostra o saldo e esconde a baixa
+      await janela.getByTestId('campo-todos-meses-talao').check()
+      await expect(janela.getByTestId('talao-saldo')).toHaveText(/R\$\s*3,00/, {
+        timeout: 10_000,
+      })
+      await expect(janela.getByTestId('talao-total-lancado')).toHaveText(/R\$\s*6,00/)
+      await expect(janela.getByTestId('formulario-baixa-talao')).toBeHidden()
+      await expect(janela.getByTestId('aviso-baixa-todos-meses')).toBeVisible()
+      await expect(janela.getByTestId('campo-competencia-talao')).toBeDisabled()
+
+      // Volta para a visao mensal
+      await janela.getByTestId('campo-todos-meses-talao').uncheck()
+      await expect(janela.getByTestId('formulario-baixa-talao')).toBeVisible()
 
       await janela.getByTestId('nav-caixa').click()
       await expect(janela.getByTestId('pagina-caixa-atual')).toBeVisible({ timeout: 10_000 })

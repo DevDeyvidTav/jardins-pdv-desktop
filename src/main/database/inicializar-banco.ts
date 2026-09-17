@@ -14,6 +14,10 @@ import {
 } from './conexao-sqlite'
 import { rotacionarLogsAntigos, registrarErro, registrarInfo } from '../logging/logger'
 import { obterBackupMaisRecente } from './backup-banco'
+import {
+  garantirOperadorPadrao,
+  garantirPinsOperadoresLegado,
+} from '../modules/configuracoes/use-cases/operador'
 
 let conexaoAtual: ConexaoSqlite | null = null
 
@@ -46,6 +50,12 @@ export async function inicializarBancoLocal(
     rotacionarLogsAntigos()
     conexaoAtual = await abrirConexaoSqlite(caminho)
     executarMigracoes(conexaoAtual)
+    garantirOperadorPadrao(conexaoAtual)
+    garantirPinsOperadoresLegado(conexaoAtual)
+    // Import tardio: os repositorios do seed importam este modulo de volta, e o
+    // import estatico deixava a classe do repositorio em TDZ no boot.
+    const { aplicarCardapioJardins } = await import('./seeds/aplicar-cardapio-jardins')
+    aplicarCardapioJardins(conexaoAtual)
     prepararBootBanco(conexaoAtual)
     registrarInfo('Banco local inicializado', {
       operacao: 'banco.inicializar',

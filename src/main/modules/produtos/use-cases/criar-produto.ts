@@ -9,12 +9,14 @@ import type { ProdutoRepository } from '../repositories/produto.repository'
 import { criarProdutoRepository } from '../repositories/produto.repository'
 import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
 import { registrarProdutoSync } from '../../sincronizacao/services/registrar-cadastro-sync'
+import { aplicarRestricaoFiscalCriar } from '../util/restaurar-fiscal-produto'
 
 export function criarCriarProduto(
   repositorioProduto: ProdutoRepository = criarProdutoRepository(),
   repositorioCategoria: CategoriaProdutoRepository = criarCategoriaProdutoRepository(),
 ) {
   return function criarProduto(entrada: CriarProdutoEntrada): Produto {
+    entrada = aplicarRestricaoFiscalCriar(entrada)
     const nome = entrada.nome.trim()
 
     if (nome === '') {
@@ -52,6 +54,14 @@ export function criarCriarProduto(
       nome,
       descricao: entrada.descricao?.trim() || null,
       precoCentavos: entrada.precoCentavos,
+      fiscalNcm: entrada.fiscalNcm,
+      fiscalCest: entrada.fiscalCest,
+      fiscalCfop: entrada.fiscalCfop,
+      fiscalIcmsOrigem: entrada.fiscalIcmsOrigem,
+      fiscalIcmsCsosn: entrada.fiscalIcmsCsosn,
+      fiscalPisCst: entrada.fiscalPisCst,
+      fiscalCofinsCst: entrada.fiscalCofinsCst,
+      fiscalAliquotaNacional: entrada.fiscalAliquotaNacional,
     })
     registrarProdutoSync(produto, OPERACAO_SYNC.CREATE)
     return produto

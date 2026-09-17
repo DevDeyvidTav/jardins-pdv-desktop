@@ -30,6 +30,8 @@ const resumo = {
     finalizadoEm: null,
     canceladoEm: null,
     motivoCancelamento: null,
+    fiscalSolicitado: false,
+    fiscalCpfDestinatario: null,
   },
   itens: [
     {
@@ -48,6 +50,12 @@ const resumo = {
       atualizadoEm: agora,
       canceladoEm: null,
       motivoCancelamento: null,
+      fiscalNcm: null,
+      fiscalCfop: null,
+      fiscalIcmsOrigem: null,
+      fiscalIcmsCsosn: null,
+      fiscalPisCst: null,
+      fiscalCofinsCst: null,
     },
   ],
   entrega: null,

@@ -1,8 +1,10 @@
+import type { SetorImpressao } from '@shared/types/config-impressao'
 import {
   SETOR_COMANDA,
   type DocumentoComandaImpressao,
   type DocumentoContaImpressao,
   type ItemDocumentoImpressao,
+  type SetorComanda,
 } from '@shared/types/impressao'
 import type { Mesa } from '@shared/types/mesa'
 import {
@@ -16,6 +18,15 @@ import { TIPO_PEDIDO_ITEM } from '@shared/types/pizza'
 import { valorEntraNaContaImpressao } from './formatar-cupom'
 
 export type ConsultarNomeCategoriaProduto = (produtoId: string) => string | null
+export type ConsultarSetorCategoriaProduto = (produtoId: string) => SetorImpressao | null
+
+function setorImpressaoParaComanda(setor: SetorImpressao): SetorComanda {
+  if (setor === 'BALCAO') {
+    return SETOR_COMANDA.COZINHA
+  }
+
+  return setor
+}
 
 export function categoriaEhBebida(nome: string | null | undefined): boolean {
   if (!nome?.trim()) {
@@ -34,9 +45,15 @@ export function categoriaEhBebida(nome: string | null | undefined): boolean {
 export function itemPedidoNaoEntraNaComanda(
   item: PedidoItem,
   consultarNomeCategoria: ConsultarNomeCategoriaProduto,
+  consultarSetorCategoria?: ConsultarSetorCategoriaProduto,
 ): boolean {
   if (item.tipo === TIPO_PEDIDO_ITEM.PIZZA || !item.produtoId) {
     return false
+  }
+
+  const setor = consultarSetorCategoria?.(item.produtoId)
+  if (setor === 'BALCAO') {
+    return true
   }
 
   return categoriaEhBebida(consultarNomeCategoria(item.produtoId))
@@ -48,10 +65,20 @@ export function itemEntraNaContaImpressao(item: ItemDocumentoImpressao): boolean
 
 export function mapearItensPedidoParaImpressao(
   resumo: ResumoPedido,
+  consultarSetorCategoria?: ConsultarSetorCategoriaProduto,
 ): ItemDocumentoImpressao[] {
   return resumo.itens.map((item) => {
     const pizza = item.pizza
     const ehPizza = item.tipo === TIPO_PEDIDO_ITEM.PIZZA && pizza
+    const setorCategoria =
+      !ehPizza && item.produtoId && consultarSetorCategoria
+        ? consultarSetorCategoria(item.produtoId)
+        : null
+
+    let setor: SetorComanda = ehPizza ? SETOR_COMANDA.PIZZA : SETOR_COMANDA.COZINHA
+    if (setorCategoria) {
+      setor = setorImpressaoParaComanda(setorCategoria)
+    }
 
     return {
       quantidade: item.quantidade,
@@ -62,7 +89,7 @@ export function mapearItensPedidoParaImpressao(
       observacao: item.observacao ?? pizza?.observacao ?? null,
       precoUnitarioCentavos: item.precoUnitarioCentavos,
       totalCentavos: item.totalCentavos,
-      setor: ehPizza ? SETOR_COMANDA.PIZZA : SETOR_COMANDA.COZINHA,
+      setor,
       cancelado: !itemPedidoEstaAtivo(item),
     }
   })
@@ -72,6 +99,7 @@ export function mapearPedidoParaConta(
   resumo: ResumoPedido,
   mesa: Mesa | null,
   pagamentos: PagamentoPedido[],
+  consultarSetorCategoria?: ConsultarSetorCategoriaProduto,
 ): DocumentoContaImpressao {
   const pedido = resumo.pedido
 
@@ -81,7 +109,9 @@ export function mapearPedidoParaConta(
     mesaNumero: mesa?.numero ?? null,
     referencia: pedido.referencia,
     emitidoEm: pedido.atualizadoEm,
-    itens: mapearItensPedidoParaImpressao(resumo).filter(itemEntraNaContaImpressao),
+    itens: mapearItensPedidoParaImpressao(resumo, consultarSetorCategoria).filter(
+      itemEntraNaContaImpressao,
+    ),
     subtotalCentavos: pedido.subtotalCentavos,
     descontoItensCentavos: pedido.descontoItensCentavos,
     descontoPedidoCentavos: pedido.descontoPedidoCentavos,
@@ -104,16 +134,22 @@ export function mapearPedidoParaConta(
 export function mapearPedidoParaComanda(
   resumo: ResumoPedido,
   mesa: Mesa | null,
+  consultarSetorCategoria?: ConsultarSetorCategoriaProduto,
+  setorFiltro?: SetorComanda,
 ): DocumentoComandaImpressao {
   const pedido = resumo.pedido
-  const itens = mapearItensPedidoParaImpressao(resumo)
+  const itens = mapearItensPedidoParaImpressao(resumo, consultarSetorCategoria).filter(
+    (item) => !setorFiltro || item.setor === setorFiltro,
+  )
   const itensAtivos = itens.filter((item) => !item.cancelado)
   const soPizza =
     itensAtivos.length > 0 &&
     itensAtivos.every((item) => item.setor === SETOR_COMANDA.PIZZA)
+  const setorDocumento =
+    setorFiltro ?? (soPizza ? SETOR_COMANDA.PIZZA : SETOR_COMANDA.COZINHA)
 
   return {
-    setor: soPizza ? SETOR_COMANDA.PIZZA : SETOR_COMANDA.COZINHA,
+    setor: setorDocumento,
     tipoPedido: pedido.tipo,
     mesaNumero: mesa?.numero ?? null,
     referencia: pedido.referencia,

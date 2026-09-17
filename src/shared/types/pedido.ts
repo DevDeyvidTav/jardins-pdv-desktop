@@ -47,6 +47,8 @@ export interface Pedido {
   finalizadoEm: string | null
   canceladoEm: string | null
   motivoCancelamento: string | null
+  fiscalSolicitado: boolean
+  fiscalCpfDestinatario: string | null
 }
 
 export interface PedidoItem {
@@ -67,6 +69,12 @@ export interface PedidoItem {
   /** Preenchido quando o item e cancelado (soft delete). */
   canceladoEm: string | null
   motivoCancelamento: string | null
+  fiscalNcm: string | null
+  fiscalCfop: string | null
+  fiscalIcmsOrigem: number | null
+  fiscalIcmsCsosn: string | null
+  fiscalPisCst: string | null
+  fiscalCofinsCst: string | null
   /** Composicao da pizza quando tipo = PIZZA. */
   pizza?: import('./pizza').PizzaPedidoItemResumo | null
 }

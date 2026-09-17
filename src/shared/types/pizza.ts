@@ -45,6 +45,11 @@ export interface PizzaSabor {
   atualizadoEm: string
 }
 
+export interface PizzaSaborComCategoria extends PizzaSabor {
+  categoriaId: string
+  categoriaNome: string
+}
+
 export interface PizzaSaborPreco {
   id: string
   pizzaSaborId: string
@@ -114,7 +119,7 @@ export interface DefinirPrecoSaborPorTamanhoEntrada {
 }
 
 export interface MontarPreviewPizzaEntrada {
-  categoriaId: string
+  categoriaId?: string
   tamanhoId: string
   saborIds: string[]
 }
@@ -141,7 +146,7 @@ export interface PreviewPizza {
 
 export interface AdicionarPizzaAoPedidoEntrada {
   pedidoId: string
-  categoriaId: string
+  categoriaId?: string
   tamanhoId: string
   saborIds: string[]
   observacao?: string
@@ -187,4 +192,53 @@ export function calcularPrecoPizzaCentavos(
 
   const soma = valoresCentavos.reduce((acc, valor) => acc + valor, 0)
   return Math.round(soma / valoresCentavos.length)
+}
+
+export interface SaborComCategoriasParaPrecificacao {
+  valorCentavos: number
+  categoriaIds: string[]
+}
+
+/** Define regra e categoria de referencia para composicao (inclui mistura de categorias). */
+export function resolverRegraPrecificacaoComposicaoPizza(
+  sabores: SaborComCategoriasParaPrecificacao[],
+  buscarCategoria: (categoriaId: string) => PizzaCategoria | null,
+): { regra: RegraPrecificacaoPizza; categoriaReferencia: PizzaCategoria } {
+  const categoriasPorSabor = sabores.map((sabor) => {
+    const categoriaId = sabor.categoriaIds[0]
+    if (!categoriaId) {
+      throw new Error('Sabor sem categoria vinculada.')
+    }
+
+    const categoria = buscarCategoria(categoriaId)
+    if (!categoria) {
+      throw new Error('Categoria de pizza nao encontrada.')
+    }
+    if (!categoria.ativa) {
+      throw new Error('Categoria de pizza inativa.')
+    }
+
+    return categoria
+  })
+
+  const categoriasUnicas = new Set(categoriasPorSabor.map((categoria) => categoria.id))
+
+  if (categoriasUnicas.size === 1) {
+    const categoriaReferencia = categoriasPorSabor[0]!
+    return {
+      regra: categoriaReferencia.regraPrecificacao,
+      categoriaReferencia,
+    }
+  }
+
+  const indiceMaisCaro = sabores.reduce(
+    (indiceAtual, sabor, indice) =>
+      sabor.valorCentavos >= sabores[indiceAtual]!.valorCentavos ? indice : indiceAtual,
+    0,
+  )
+
+  return {
+    regra: REGRA_PRECIFICACAO_PIZZA.MAIOR_SABOR,
+    categoriaReferencia: categoriasPorSabor[indiceMaisCaro]!,
+  }
 }

@@ -47,7 +47,8 @@ function mapearBaixa(linha: LinhaBaixaSql): TalaoBaixa {
 export class TalaoRepository {
   constructor(private readonly obterConexao = obterConexaoBancoLocal) {}
 
-  listarLancamentos(clienteId: string, competencia: string): LancamentoTalao[] {
+  /** Competencia null consolida todos os meses. */
+  listarLancamentos(clienteId: string, competencia: string | null): LancamentoTalao[] {
     const consulta = this.obterConexao().instancia.prepare(
       `SELECT
          pg.id AS pagamento_id,
@@ -62,10 +63,14 @@ export class TalaoRepository {
          AND pg.forma_pagamento = ?
          AND pg.status = 'CONFIRMADO'
          AND pg.cancelado_em IS NULL
-         AND substr(pg.criado_em, 1, 7) = ?
+         ${competencia ? 'AND substr(pg.criado_em, 1, 7) = ?' : ''}
        ORDER BY pg.criado_em ASC`,
     )
-    consulta.bind([clienteId, FORMA_PAGAMENTO.TALAO, competencia])
+    consulta.bind(
+      competencia
+        ? [clienteId, FORMA_PAGAMENTO.TALAO, competencia]
+        : [clienteId, FORMA_PAGAMENTO.TALAO],
+    )
 
     const itens: LancamentoTalao[] = []
     while (consulta.step()) {
@@ -91,7 +96,8 @@ export class TalaoRepository {
     return itens
   }
 
-  somarLancamentos(clienteId: string, competencia: string): number {
+  /** Competencia null consolida todos os meses. */
+  somarLancamentos(clienteId: string, competencia: string | null): number {
     const consulta = this.obterConexao().instancia.prepare(
       `SELECT COALESCE(SUM(pg.valor_centavos), 0) AS total
        FROM pagamento_pedido pg
@@ -100,25 +106,30 @@ export class TalaoRepository {
          AND pg.forma_pagamento = ?
          AND pg.status = 'CONFIRMADO'
          AND pg.cancelado_em IS NULL
-         AND substr(pg.criado_em, 1, 7) = ?`,
+         ${competencia ? 'AND substr(pg.criado_em, 1, 7) = ?' : ''}`,
     )
-    consulta.bind([clienteId, FORMA_PAGAMENTO.TALAO, competencia])
+    consulta.bind(
+      competencia
+        ? [clienteId, FORMA_PAGAMENTO.TALAO, competencia]
+        : [clienteId, FORMA_PAGAMENTO.TALAO],
+    )
     consulta.step()
     const total = Number((consulta.getAsObject() as { total: number }).total ?? 0)
     consulta.free()
     return total
   }
 
-  listarBaixas(clienteId: string, competencia: string): TalaoBaixa[] {
+  /** Competencia null consolida todos os meses. */
+  listarBaixas(clienteId: string, competencia: string | null): TalaoBaixa[] {
     const consulta = this.obterConexao().instancia.prepare(
       `SELECT id, cliente_id, sessao_caixa_id, forma_pagamento, valor_centavos,
               valor_recebido_centavos, troco_centavos,
               competencia, observacao, criado_em, atualizado_em
        FROM talao_baixa
-       WHERE cliente_id = ? AND competencia = ?
+       WHERE cliente_id = ? ${competencia ? 'AND competencia = ?' : ''}
        ORDER BY criado_em ASC`,
     )
-    consulta.bind([clienteId, competencia])
+    consulta.bind(competencia ? [clienteId, competencia] : [clienteId])
     const itens: TalaoBaixa[] = []
     while (consulta.step()) {
       itens.push(mapearBaixa(consulta.getAsObject() as LinhaBaixaSql))
@@ -127,13 +138,14 @@ export class TalaoRepository {
     return itens
   }
 
-  somarBaixas(clienteId: string, competencia: string): number {
+  /** Competencia null consolida todos os meses. */
+  somarBaixas(clienteId: string, competencia: string | null): number {
     const consulta = this.obterConexao().instancia.prepare(
       `SELECT COALESCE(SUM(valor_centavos), 0) AS total
        FROM talao_baixa
-       WHERE cliente_id = ? AND competencia = ?`,
+       WHERE cliente_id = ? ${competencia ? 'AND competencia = ?' : ''}`,
     )
-    consulta.bind([clienteId, competencia])
+    consulta.bind(competencia ? [clienteId, competencia] : [clienteId])
     consulta.step()
     const total = Number((consulta.getAsObject() as { total: number }).total ?? 0)
     consulta.free()

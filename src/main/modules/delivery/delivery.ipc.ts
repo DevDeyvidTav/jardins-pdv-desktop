@@ -2,6 +2,7 @@ import { ipcMain } from 'electron'
 import { ZodError } from 'zod'
 import { CANAIS_IPC } from '@shared/types/canais-ipc'
 import { ErroDelivery, CODIGOS_ERRO_DELIVERY } from './errors/erros-delivery'
+import { ErroConfiguracoes } from '../configuracoes/errors/erros-configuracoes'
 import {
   criarPedidoDeliverySchema,
   obterEntregaPorPedidoSchema,
@@ -23,6 +24,10 @@ import {
 } from './use-cases/taxa-entrega-padrao'
 
 function tratarErroDelivery(erro: unknown): never {
+  if (erro instanceof ErroConfiguracoes) {
+    throw erro
+  }
+
   if (erro instanceof ErroDelivery) {
     throw erro
   }

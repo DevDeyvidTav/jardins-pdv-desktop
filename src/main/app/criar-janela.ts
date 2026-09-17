@@ -1,6 +1,7 @@
 import { BrowserWindow } from 'electron'
 import { join } from 'node:path'
 import { existsSync } from 'node:fs'
+import { configurarServicoAtualizacao } from './servico-atualizacao'
 
 const CONFIGURACAO_SEGURANCA = {
   contextIsolation: true,
@@ -31,6 +32,7 @@ export function criarJanelaPrincipal(): BrowserWindow {
 
   janela.on('ready-to-show', () => {
     janela.show()
+    configurarServicoAtualizacao(janela)
   })
 
   if (process.env.ELECTRON_RENDERER_URL) {

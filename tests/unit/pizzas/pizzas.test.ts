@@ -165,6 +165,14 @@ describe('pizzas', () => {
     expect(categoriaAtualizada.nome).toBe('Doces Premium')
     expect(categoriaAtualizada.descricao).toBe('Linha doce')
 
+    const categoriaComRegra = ambiente.atualizarCategoria({
+      categoriaId: categoria.id,
+      regraPrecificacao: REGRA_PRECIFICACAO_PIZZA.MAIOR_SABOR,
+    })
+    expect(categoriaComRegra.regraPrecificacao).toBe(
+      REGRA_PRECIFICACAO_PIZZA.MAIOR_SABOR,
+    )
+
     const tamanho = ambiente.criarTamanho({
       nome: 'Familia',
       sigla: 'F',
@@ -220,14 +228,9 @@ describe('pizzas', () => {
     expect(saboresDaCategoria.some((s) => s.id === saborExtra.id)).toBe(true)
   })
 
-  it('bloqueia sabor fora da categoria', async () => {
+  it('bloqueia sabor sem categoria vinculada', async () => {
     const ambiente = await setup()
-    const outraCategoria = ambiente.criarCategoria({ nome: 'Especiais' })
     const saborOrfao = ambiente.criarSabor({ nome: 'Orfao' })
-    ambiente.vincularSaborCategoria({
-      categoriaId: outraCategoria.id,
-      saborId: saborOrfao.id,
-    })
     ambiente.definirPreco({
       saborId: saborOrfao.id,
       tamanhoId: ambiente.tamanhoP.id,
@@ -237,12 +240,39 @@ describe('pizzas', () => {
     esperarErroPizzas(
       () =>
         ambiente.montarPreview({
-          categoriaId: ambiente.categoria.id,
           tamanhoId: ambiente.tamanhoP.id,
           saborIds: [saborOrfao.id],
         }),
       CODIGOS_ERRO_PIZZAS.PIZZA_SABOR_NAO_PERTENCE_A_CATEGORIA,
     )
+  })
+
+  it('permite misturar sabores de categorias diferentes com MAIOR_SABOR', async () => {
+    const ambiente = await setup({
+      regraPrecificacao: REGRA_PRECIFICACAO_PIZZA.MEDIA_SABORES,
+    })
+    const categoriaEspecial = ambiente.criarCategoria({
+      nome: 'Especial',
+      regraPrecificacao: REGRA_PRECIFICACAO_PIZZA.MAIOR_SABOR,
+    })
+    const saborEspecial = ambiente.criarSabor({ nome: 'Premium' })
+    ambiente.vincularSaborCategoria({
+      categoriaId: categoriaEspecial.id,
+      saborId: saborEspecial.id,
+    })
+    ambiente.definirPreco({
+      saborId: saborEspecial.id,
+      tamanhoId: ambiente.tamanhoM.id,
+      valorCentavos: 5000,
+    })
+
+    const preview = ambiente.montarPreview({
+      tamanhoId: ambiente.tamanhoM.id,
+      saborIds: [ambiente.sabores.mussarela.id, saborEspecial.id],
+    })
+
+    expect(preview.valorFinalCentavos).toBe(5000)
+    expect(preview.categoria.regraPrecificacao).toBe(REGRA_PRECIFICACAO_PIZZA.MAIOR_SABOR)
   })
 
   it('mantem precos diferentes por tamanho', async () => {

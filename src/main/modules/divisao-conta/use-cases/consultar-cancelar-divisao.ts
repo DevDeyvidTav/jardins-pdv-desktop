@@ -37,6 +37,8 @@ import {
   type PedidoDivisaoParteRepository,
 } from '../repositories/divisao-conta.repository'
 import { criarMontarResumoDivisaoConta } from '../services/resumo-divisao-conta'
+import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
+import { registrarEventoPedidoSync } from '../../sincronizacao/services/registrar-evento-pedido'
 
 export function criarObterResumoDivisaoConta(
   repositorioPedido: PedidoRepository = criarPedidoRepository(),
@@ -147,6 +149,7 @@ export function criarCancelarDivisaoConta(
     })
 
     persistirConexaoBanco(conexao)
+    registrarEventoPedidoSync(entrada.pedidoId, OPERACAO_SYNC.UPDATE, conexao)
     return resumo
   }
 }

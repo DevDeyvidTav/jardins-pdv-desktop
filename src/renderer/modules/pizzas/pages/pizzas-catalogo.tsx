@@ -12,6 +12,7 @@ import './pizzas.css'
 
 interface PizzasCatalogoProps {
   pizzas: UsePizzasResultado
+  permitirEdicao?: boolean
 }
 
 function rotuloRegra(regra: string): string {
@@ -20,7 +21,7 @@ function rotuloRegra(regra: string): string {
     : 'Media dos sabores'
 }
 
-export function PizzasCatalogo({ pizzas }: PizzasCatalogoProps) {
+export function PizzasCatalogo({ pizzas, permitirEdicao = false }: PizzasCatalogoProps) {
   const [exibirFormCategoria, setExibirFormCategoria] = useState(false)
   const [exibirFormTamanho, setExibirFormTamanho] = useState(false)
   const [exibirFormSabor, setExibirFormSabor] = useState(false)
@@ -53,16 +54,18 @@ export function PizzasCatalogo({ pizzas }: PizzasCatalogoProps) {
                 {pizzas.categorias.filter((c) => c.ativa).length} ativa(s)
               </p>
             </div>
-            <button
-              type="button"
-              className="produtos__botao-secundario"
-              onClick={() => setExibirFormCategoria((atual) => !atual)}
-            >
-              {exibirFormCategoria ? 'Fechar' : 'Nova'}
-            </button>
+            {permitirEdicao ? (
+              <button
+                type="button"
+                className="produtos__botao-secundario"
+                onClick={() => setExibirFormCategoria((atual) => !atual)}
+              >
+                {exibirFormCategoria ? 'Fechar' : 'Nova'}
+              </button>
+            ) : null}
           </header>
 
-          {exibirFormCategoria ? (
+          {permitirEdicao && exibirFormCategoria ? (
             <div className="produtos-operacao__form-painel">
               <FormularioPizzaCategoria
                 carregando={pizzas.carregando}
@@ -97,7 +100,32 @@ export function PizzasCatalogo({ pizzas }: PizzasCatalogoProps) {
                 >
                   <div className="lista-categorias__selecao">
                     <strong>{categoria.nome}</strong>
-                    <span>{rotuloRegra(categoria.regraPrecificacao)}</span>
+                    {permitirEdicao ? (
+                      <label className="pizzas-catalogo__regra-inline">
+                        Regra de calculo
+                        <select
+                          data-testid="campo-regra-pizza-categoria-lista"
+                          value={categoria.regraPrecificacao}
+                          onChange={(evento) => {
+                            const regra = evento.target.value as typeof categoria.regraPrecificacao
+                            if (regra !== categoria.regraPrecificacao) {
+                              void pizzas.atualizarCategoria(categoria.id, {
+                                regraPrecificacao: regra,
+                              })
+                            }
+                          }}
+                        >
+                          <option value={REGRA_PRECIFICACAO_PIZZA.MAIOR_SABOR}>
+                            Maior sabor
+                          </option>
+                          <option value={REGRA_PRECIFICACAO_PIZZA.MEDIA_SABORES}>
+                            Media dos sabores
+                          </option>
+                        </select>
+                      </label>
+                    ) : (
+                      <span>{rotuloRegra(categoria.regraPrecificacao)}</span>
+                    )}
                   </div>
                   <span
                     className={
@@ -108,29 +136,31 @@ export function PizzasCatalogo({ pizzas }: PizzasCatalogoProps) {
                   >
                     {categoria.ativa ? 'Ativa' : 'Inativa'}
                   </span>
-                  <div className="lista-categorias__acoes">
-                    {categoria.ativa ? (
-                      <button
-                        type="button"
-                        className="lista-categorias__acao"
-                        onClick={() =>
-                          void pizzas.atualizarCategoria(categoria.id, { ativa: false })
-                        }
-                      >
-                        Inativar
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        className="lista-categorias__acao"
-                        onClick={() =>
-                          void pizzas.atualizarCategoria(categoria.id, { ativa: true })
-                        }
-                      >
-                        Reativar
-                      </button>
-                    )}
-                  </div>
+                  {permitirEdicao ? (
+                    <div className="lista-categorias__acoes">
+                      {categoria.ativa ? (
+                        <button
+                          type="button"
+                          className="lista-categorias__acao"
+                          onClick={() =>
+                            void pizzas.atualizarCategoria(categoria.id, { ativa: false })
+                          }
+                        >
+                          Inativar
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="lista-categorias__acao"
+                          onClick={() =>
+                            void pizzas.atualizarCategoria(categoria.id, { ativa: true })
+                          }
+                        >
+                          Reativar
+                        </button>
+                      )}
+                    </div>
+                  ) : null}
                 </li>
               ))
             )}
@@ -145,16 +175,18 @@ export function PizzasCatalogo({ pizzas }: PizzasCatalogoProps) {
                 {pizzas.tamanhos.filter((t) => t.ativa).length} ativo(s)
               </p>
             </div>
-            <button
-              type="button"
-              className="produtos__botao-secundario"
-              onClick={() => setExibirFormTamanho((atual) => !atual)}
-            >
-              {exibirFormTamanho ? 'Fechar' : 'Novo'}
-            </button>
+            {permitirEdicao ? (
+              <button
+                type="button"
+                className="produtos__botao-secundario"
+                onClick={() => setExibirFormTamanho((atual) => !atual)}
+              >
+                {exibirFormTamanho ? 'Fechar' : 'Novo'}
+              </button>
+            ) : null}
           </header>
 
-          {exibirFormTamanho ? (
+          {permitirEdicao && exibirFormTamanho ? (
             <div className="produtos-operacao__form-painel">
               <FormularioPizzaTamanho
                 carregando={pizzas.carregando}
@@ -195,7 +227,9 @@ export function PizzasCatalogo({ pizzas }: PizzasCatalogoProps) {
                         data-testid="campo-maximo-sabores-tamanho"
                         defaultValue={tamanho.maximoSabores}
                         key={`${tamanho.id}-${tamanho.maximoSabores}`}
+                        readOnly={!permitirEdicao}
                         onBlur={(evento) => {
+                          if (!permitirEdicao) return
                           const valor = Number(evento.target.value)
                           if (
                             Number.isInteger(valor) &&
@@ -219,29 +253,31 @@ export function PizzasCatalogo({ pizzas }: PizzasCatalogoProps) {
                   >
                     {tamanho.ativa ? 'Ativo' : 'Inativo'}
                   </span>
-                  <div className="lista-categorias__acoes">
-                    {tamanho.ativa ? (
-                      <button
-                        type="button"
-                        className="lista-categorias__acao"
-                        onClick={() =>
-                          void pizzas.atualizarTamanho(tamanho.id, { ativa: false })
-                        }
-                      >
-                        Inativar
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        className="lista-categorias__acao"
-                        onClick={() =>
-                          void pizzas.atualizarTamanho(tamanho.id, { ativa: true })
-                        }
-                      >
-                        Reativar
-                      </button>
-                    )}
-                  </div>
+                  {permitirEdicao ? (
+                    <div className="lista-categorias__acoes">
+                      {tamanho.ativa ? (
+                        <button
+                          type="button"
+                          className="lista-categorias__acao"
+                          onClick={() =>
+                            void pizzas.atualizarTamanho(tamanho.id, { ativa: false })
+                          }
+                        >
+                          Inativar
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="lista-categorias__acao"
+                          onClick={() =>
+                            void pizzas.atualizarTamanho(tamanho.id, { ativa: true })
+                          }
+                        >
+                          Reativar
+                        </button>
+                      )}
+                    </div>
+                  ) : null}
                 </li>
               ))
             )}
@@ -256,24 +292,26 @@ export function PizzasCatalogo({ pizzas }: PizzasCatalogoProps) {
                 {pizzas.sabores.filter((s) => s.ativa).length} ativo(s)
               </p>
             </div>
-            <button
-              type="button"
-              className="produtos__botao-secundario"
-              onClick={() => {
-                if (exibirFormSabor || saborEmEdicao) {
-                  setExibirFormSabor(false)
+            {permitirEdicao ? (
+              <button
+                type="button"
+                className="produtos__botao-secundario"
+                onClick={() => {
+                  if (exibirFormSabor || saborEmEdicao) {
+                    setExibirFormSabor(false)
+                    setSaborEmEdicao(null)
+                    return
+                  }
                   setSaborEmEdicao(null)
-                  return
-                }
-                setSaborEmEdicao(null)
-                setExibirFormSabor(true)
-              }}
-            >
-              {exibirFormSabor || saborEmEdicao ? 'Fechar' : 'Novo'}
-            </button>
+                  setExibirFormSabor(true)
+                }}
+              >
+                {exibirFormSabor || saborEmEdicao ? 'Fechar' : 'Novo'}
+              </button>
+            ) : null}
           </header>
 
-          {exibirFormSabor || saborEmEdicao ? (
+          {permitirEdicao && (exibirFormSabor || saborEmEdicao) ? (
             <div className="produtos-operacao__form-painel">
               <FormularioPizzaSabor
                 pizzas={pizzas}
@@ -316,35 +354,37 @@ export function PizzasCatalogo({ pizzas }: PizzasCatalogoProps) {
                   >
                     {sabor.ativa ? 'Ativo' : 'Inativo'}
                   </span>
-                  <div className="lista-categorias__acoes">
-                    <button
-                      type="button"
-                      className="lista-categorias__acao"
-                      onClick={() => {
-                        setExibirFormSabor(false)
-                        setSaborEmEdicao(sabor)
-                      }}
-                    >
-                      Precos / vinculos
-                    </button>
-                    {sabor.ativa ? (
+                  {permitirEdicao ? (
+                    <div className="lista-categorias__acoes">
                       <button
                         type="button"
                         className="lista-categorias__acao"
-                        onClick={() => void pizzas.atualizarSabor(sabor.id, { ativa: false })}
+                        onClick={() => {
+                          setExibirFormSabor(false)
+                          setSaborEmEdicao(sabor)
+                        }}
                       >
-                        Inativar
+                        Precos / vinculos
                       </button>
-                    ) : (
-                      <button
-                        type="button"
-                        className="lista-categorias__acao"
-                        onClick={() => void pizzas.atualizarSabor(sabor.id, { ativa: true })}
-                      >
-                        Reativar
-                      </button>
-                    )}
-                  </div>
+                      {sabor.ativa ? (
+                        <button
+                          type="button"
+                          className="lista-categorias__acao"
+                          onClick={() => void pizzas.atualizarSabor(sabor.id, { ativa: false })}
+                        >
+                          Inativar
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="lista-categorias__acao"
+                          onClick={() => void pizzas.atualizarSabor(sabor.id, { ativa: true })}
+                        >
+                          Reativar
+                        </button>
+                      )}
+                    </div>
+                  ) : null}
                 </li>
               ))
             )}

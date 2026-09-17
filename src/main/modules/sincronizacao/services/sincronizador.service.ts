@@ -14,6 +14,7 @@ import { criarSyncOutboxRepository } from '../repositories/sync-outbox.repositor
 import { enviarEventosSyncApi } from './cliente-sync-api'
 import { enfileirarCadastrosIniciais } from './enfileirar-cadastros-sync'
 import { enfileirarHistoricoInicial } from './enfileirar-historico-sync'
+import { sincronizarInboxFiscal } from '../../fiscal/services/sincronizar-inbox-fiscal'
 
 const BACKOFF_BASE_MS = 5_000
 const BACKOFF_MAX_MS = 5 * 60_000
@@ -65,14 +66,17 @@ export async function executarCicloSincronizacao(): Promise<void> {
 
   const repositorio = criarSyncOutboxRepository()
   const pendentes = repositorio.listarPendentes(config.loteMaximo)
-  if (pendentes.length === 0) {
-    return
-  }
 
   estadoInterno.emExecucao = true
   estadoInterno.ultimaTentativaEm = agoraEmIsoUtc()
 
   try {
+    if (pendentes.length === 0) {
+      await sincronizarInboxFiscal()
+      estadoInterno.ultimoSucessoEm = agoraEmIsoUtc()
+      return
+    }
+
     const resposta = await enviarEventosSyncApi(config, pendentes)
 
     if (resposta.confirmados.length > 0) {
@@ -101,6 +105,7 @@ export async function executarCicloSincronizacao(): Promise<void> {
     }
 
     persistirConexaoBanco(obterConexaoBancoLocal())
+    await sincronizarInboxFiscal()
   } catch (erro) {
     const mensagem = erro instanceof Error ? erro.message : String(erro)
     estadoInterno.ultimoErro = mensagem
