@@ -12,3 +12,4 @@ playwright/.cache/
 *.sqlite-shm
 *.tsbuildinfo
 .env
+resources/sync.env

@@ -31,6 +31,22 @@ jobs:
       - name: Recompilar modulo nativo
         run: npm run rebuild:native
 
+      - name: Embutir URL e dispositivo da API de producao
+        shell: bash
+        env:
+          PDV_SYNC_API_URL: ${{ secrets.PDV_SYNC_API_URL }}
+          PDV_DISPOSITIVO_ID: ${{ secrets.PDV_DISPOSITIVO_ID }}
+          PDV_DISPOSITIVO_SEGREDO: ${{ secrets.PDV_DISPOSITIVO_SEGREDO }}
+        run: |
+          if [ -z "$PDV_SYNC_API_URL" ] || [ -z "$PDV_DISPOSITIVO_ID" ] || [ -z "$PDV_DISPOSITIVO_SEGREDO" ]; then
+            echo "Secrets PDV_SYNC_API_URL / PDV_DISPOSITIVO_ID / PDV_DISPOSITIVO_SEGREDO ausentes"
+            exit 1
+          fi
+          mkdir -p resources
+          printf 'PDV_SYNC_API_URL=%s\nPDV_DISPOSITIVO_ID=%s\nPDV_DISPOSITIVO_SEGREDO=%s\n' \
+            "$PDV_SYNC_API_URL" "$PDV_DISPOSITIVO_ID" "$PDV_DISPOSITIVO_SEGREDO" \
+            > resources/sync.env
+
       - name: Gerar instalador e publicar release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
