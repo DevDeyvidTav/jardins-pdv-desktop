@@ -26,7 +26,28 @@ import {
   serializarProduto,
 } from './registrar-cadastro-sync'
 
-const CHAVE_BOOTSTRAP = 'sync_cadastros_enfileirados'
+export const CHAVE_BOOTSTRAP_CADASTROS = 'sync_cadastros_enfileirados'
+export const CHAVE_DESTINO_API = 'sync_destino_api'
+
+function normalizarDestinoApi(apiUrl: string): string {
+  return apiUrl.trim().replace(/\/$/, '').toLowerCase()
+}
+
+export function destinoApiMudou(
+  conexao: ConexaoSqlite,
+  apiUrl: string | null,
+): boolean {
+  if (!apiUrl?.trim()) {
+    return false
+  }
+
+  const anterior = consultarValorMetadata(conexao, CHAVE_DESTINO_API)
+  return anterior !== normalizarDestinoApi(apiUrl)
+}
+
+export function marcarDestinoApi(conexao: ConexaoSqlite, apiUrl: string): void {
+  definirValorMetadata(conexao, CHAVE_DESTINO_API, normalizarDestinoApi(apiUrl))
+}
 
 function listarLinhas(
   conexao: ConexaoSqlite,
@@ -43,17 +64,24 @@ function listarLinhas(
 
 export function enfileirarCadastrosIniciais(
   conexao: ConexaoSqlite = obterConexaoBancoLocal(),
+  opcoes: { forcar?: boolean; atualizarTimestamps?: boolean } = {},
 ): void {
-  if (consultarValorMetadata(conexao, CHAVE_BOOTSTRAP)) {
+  if (!opcoes.forcar && consultarValorMetadata(conexao, CHAVE_BOOTSTRAP_CADASTROS)) {
     return
   }
+
+  const agora = agoraEmIsoUtc()
+  const comTimestamp = (
+    payload: Record<string, unknown>,
+  ): Record<string, unknown> =>
+    opcoes.atualizarTimestamps ? { ...payload, atualizadoEm: agora } : payload
 
   for (const categoria of criarCategoriaProdutoRepository(conexao).listar()) {
     registrarCadastroSync(
       ENTIDADE_SYNC.CATEGORIA_PRODUTO,
       categoria.id,
       OPERACAO_SYNC.UPDATE,
-      serializarCategoriaProduto(categoria),
+      comTimestamp(serializarCategoriaProduto(categoria)),
       conexao,
     )
   }
@@ -63,7 +91,7 @@ export function enfileirarCadastrosIniciais(
       ENTIDADE_SYNC.PRODUTO,
       produto.id,
       OPERACAO_SYNC.UPDATE,
-      serializarProduto(produto),
+      comTimestamp(serializarProduto(produto)),
       conexao,
     )
   }
@@ -73,7 +101,7 @@ export function enfileirarCadastrosIniciais(
       ENTIDADE_SYNC.MESA,
       mesa.id,
       OPERACAO_SYNC.UPDATE,
-      serializarMesa(mesa),
+      comTimestamp(serializarMesa(mesa)),
       conexao,
     )
   }
@@ -83,7 +111,7 @@ export function enfileirarCadastrosIniciais(
       ENTIDADE_SYNC.CLIENTE,
       cliente.id,
       OPERACAO_SYNC.UPDATE,
-      serializarCliente(cliente),
+      comTimestamp(serializarCliente(cliente)),
       conexao,
     )
   }
@@ -93,7 +121,7 @@ export function enfileirarCadastrosIniciais(
       ENTIDADE_SYNC.PIZZA_CATEGORIA,
       categoria.id,
       OPERACAO_SYNC.UPDATE,
-      serializarPizzaCategoria(categoria),
+      comTimestamp(serializarPizzaCategoria(categoria)),
       conexao,
     )
   }
@@ -103,7 +131,7 @@ export function enfileirarCadastrosIniciais(
       ENTIDADE_SYNC.PIZZA_TAMANHO,
       tamanho.id,
       OPERACAO_SYNC.UPDATE,
-      serializarPizzaTamanho(tamanho),
+      comTimestamp(serializarPizzaTamanho(tamanho)),
       conexao,
     )
   }
@@ -115,7 +143,7 @@ export function enfileirarCadastrosIniciais(
       ENTIDADE_SYNC.PIZZA_SABOR,
       sabor.id,
       OPERACAO_SYNC.UPDATE,
-      serializarPizzaSabor(sabor),
+      comTimestamp(serializarPizzaSabor(sabor)),
       conexao,
     )
     for (const preco of repositorioPreco.listarPorSabor(sabor.id)) {
@@ -123,7 +151,7 @@ export function enfileirarCadastrosIniciais(
         ENTIDADE_SYNC.PIZZA_SABOR_PRECO,
         preco.id,
         OPERACAO_SYNC.UPDATE,
-        serializarPizzaSaborPreco(preco),
+        comTimestamp(serializarPizzaSaborPreco(preco)),
         conexao,
       )
     }
@@ -140,15 +168,15 @@ export function enfileirarCadastrosIniciais(
       ENTIDADE_SYNC.PIZZA_CATEGORIA_SABOR,
       `${categoriaId}:${saborId}`,
       OPERACAO_SYNC.UPDATE,
-      {
+      comTimestamp({
         pizzaCategoriaId: categoriaId,
         pizzaSaborId: saborId,
         ativo: Number(vinculo.ativo) === 1,
         criadoEm: vinculo.criado_em,
-      },
+      }),
       conexao,
     )
   }
 
-  definirValorMetadata(conexao, CHAVE_BOOTSTRAP, agoraEmIsoUtc())
+  definirValorMetadata(conexao, CHAVE_BOOTSTRAP_CADASTROS, agora)
 }

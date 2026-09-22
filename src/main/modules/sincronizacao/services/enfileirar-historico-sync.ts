@@ -22,8 +22,9 @@ const CHAVE_HISTORICO = 'sync_historico_enfileirado'
 
 export function enfileirarHistoricoInicial(
   conexao: ConexaoSqlite = obterConexaoBancoLocal(),
+  opcoes: { forcar?: boolean } = {},
 ): void {
-  if (consultarValorMetadata(conexao, CHAVE_HISTORICO)) {
+  if (!opcoes.forcar && consultarValorMetadata(conexao, CHAVE_HISTORICO)) {
     return
   }
 

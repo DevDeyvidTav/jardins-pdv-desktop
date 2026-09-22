@@ -215,6 +215,7 @@ const apiPdv: PdvApi = {
   },
   sync: {
     obterEstado: () => ipcRenderer.invoke(CANAIS_IPC.SYNC_OBTER_ESTADO),
+    reenviarCadastros: () => ipcRenderer.invoke(CANAIS_IPC.SYNC_REENVIAR_CADASTROS),
     onCatalogoAtualizado: (callback) => {
       const listener = () => {
         callback()

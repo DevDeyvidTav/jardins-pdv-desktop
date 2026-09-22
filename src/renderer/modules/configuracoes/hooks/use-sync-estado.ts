@@ -9,6 +9,7 @@ export interface UseSyncEstadoResultado {
   carregando: boolean
   erro: string | null
   recarregar: () => Promise<void>
+  reenviarCadastros: () => Promise<void>
 }
 
 export function useSyncEstado(ativo = true): UseSyncEstadoResultado {
@@ -45,5 +46,22 @@ export function useSyncEstado(ativo = true): UseSyncEstadoResultado {
     return () => window.clearInterval(intervalo)
   }, [ativo, recarregar])
 
-  return { estado, carregando, erro, recarregar }
+  const reenviarCadastros = useCallback(async () => {
+    if (!ativo) {
+      return
+    }
+
+    setCarregando(true)
+    try {
+      const resultado = await window.pdv.sync.reenviarCadastros()
+      setEstado(resultado)
+      setErro(null)
+    } catch (causa) {
+      setErro(extrairMensagemErroIpc(causa))
+    } finally {
+      setCarregando(false)
+    }
+  }, [ativo])
+
+  return { estado, carregando, erro, recarregar, reenviarCadastros }
 }

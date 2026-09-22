@@ -346,6 +346,7 @@ export interface PdvApi {
   }
   sync: {
     obterEstado: () => Promise<EstadoSincronizacao>
+    reenviarCadastros: () => Promise<EstadoSincronizacao>
     onCatalogoAtualizado: (callback: () => void) => () => void
   }
   config: {

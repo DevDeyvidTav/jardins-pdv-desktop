@@ -12,7 +12,11 @@ import { obterConexaoBancoLocal } from '../../../database/inicializar-banco'
 import { registrarErro, registrarInfo } from '../../../logging/logger'
 import { criarSyncOutboxRepository } from '../repositories/sync-outbox.repository'
 import { enviarEventosSyncApi } from './cliente-sync-api'
-import { enfileirarCadastrosIniciais } from './enfileirar-cadastros-sync'
+import {
+  destinoApiMudou,
+  enfileirarCadastrosIniciais,
+  marcarDestinoApi,
+} from './enfileirar-cadastros-sync'
 import { enfileirarHistoricoInicial } from './enfileirar-historico-sync'
 import { notificarCatalogoAtualizado } from './notificar-catalogo-atualizado'
 import { puxarMudancasCatalogo } from './puxar-mudancas-catalogo'
@@ -151,13 +155,30 @@ export function iniciarSincronizador(): void {
     apiUrl: config.apiUrl,
   })
 
-  enfileirarCadastrosIniciais()
-  enfileirarHistoricoInicial()
+  const conexao = obterConexaoBancoLocal()
+  const reenviarParaNovoDestino = destinoApiMudou(conexao, config.apiUrl)
+  enfileirarCadastrosIniciais(conexao, {
+    forcar: reenviarParaNovoDestino,
+    atualizarTimestamps: reenviarParaNovoDestino,
+  })
+  enfileirarHistoricoInicial(conexao, { forcar: reenviarParaNovoDestino })
+  if (config.apiUrl) {
+    marcarDestinoApi(conexao, config.apiUrl)
+  }
+  persistirConexaoBanco(conexao)
 
   void executarCicloSincronizacao()
   intervaloId = setInterval(() => {
     void executarCicloSincronizacao()
   }, config.intervaloMs)
+}
+
+export function reenviarCadastrosParaNuvem(): EstadoSincronizacao {
+  const conexao = obterConexaoBancoLocal()
+  enfileirarCadastrosIniciais(conexao, { forcar: true, atualizarTimestamps: true })
+  persistirConexaoBanco(conexao)
+  void executarCicloSincronizacao()
+  return obterEstadoSincronizacao()
 }
 
 export function pararSincronizador(): void {

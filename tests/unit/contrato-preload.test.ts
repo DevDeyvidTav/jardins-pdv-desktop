@@ -77,6 +77,7 @@ describe('contrato da API exposta pelo preload', () => {
     expect(CANAIS_IPC.IMPRESSAO_IMPRIMIR_CONTA).toBe('impressao:imprimir-conta')
     expect(CANAIS_IPC.IMPRESSAO_IMPRIMIR_COMANDA).toBe('impressao:imprimir-comanda')
     expect(CANAIS_IPC.SYNC_OBTER_ESTADO).toBe('sync:obter-estado')
+    expect(CANAIS_IPC.SYNC_REENVIAR_CADASTROS).toBe('sync:reenviar-cadastros')
     expect(CANAIS_IPC.SYNC_CATALOGO_ATUALIZADO).toBe('sync:catalogo-atualizado')
     expect(CANAIS_IPC.CONFIG_LISTAR_IMPRESSORAS).toBe('config:listar-impressoras')
     expect(CANAIS_IPC.CONFIG_SALVAR_IMPRESSORAS).toBe('config:salvar-impressoras')
@@ -686,6 +687,14 @@ describe('contrato da API exposta pelo preload', () => {
           ultimoSucessoEm: null,
           ultimoErro: null,
         }),
+        reenviarCadastros: async () => ({
+          pendente: 0,
+          sincronizado: 0,
+          apiConfigurada: false,
+          ultimaTentativaEm: null,
+          ultimoSucessoEm: null,
+          ultimoErro: null,
+        }),
         onCatalogoAtualizado: () => () => {},
       },
       config: {
@@ -767,6 +776,7 @@ describe('contrato da API exposta pelo preload', () => {
     expect(typeof api.impressao.imprimirConta).toBe('function')
     expect(typeof api.impressao.imprimirComanda).toBe('function')
     expect(typeof api.sync.obterEstado).toBe('function')
+    expect(typeof api.sync.reenviarCadastros).toBe('function')
     expect(typeof api.config.listarImpressoras).toBe('function')
     expect(typeof api.config.listarImpressorasSistema).toBe('function')
     expect(typeof api.config.recuperarImpressoras).toBe('function')

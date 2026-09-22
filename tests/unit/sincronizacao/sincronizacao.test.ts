@@ -150,6 +150,45 @@ describe('sincronizacao', () => {
     expect(pendentes.some((evento) => evento.entidade === ENTIDADE_SYNC.MESA)).toBe(true)
   })
 
+  it('reenfileira cadastros quando o destino da API muda', async () => {
+    const ambiente = await prepararAmbientePedidos()
+    encerrarBanco = ambiente.encerrar
+    const { obterConexaoBancoLocal } = await import(
+      '../../../src/main/database/inicializar-banco'
+    )
+    const conexao = obterConexaoBancoLocal()
+    const { criarSyncOutboxRepository: criarRepo } = await import(
+      '../../../src/main/modules/sincronizacao/repositories/sync-outbox.repository'
+    )
+    const {
+      destinoApiMudou,
+      enfileirarCadastrosIniciais,
+      marcarDestinoApi,
+    } = await import(
+      '../../../src/main/modules/sincronizacao/services/enfileirar-cadastros-sync'
+    )
+
+    enfileirarCadastrosIniciais(conexao)
+    const depoisDoPrimeiro = criarRepo().listarPendentes(500)
+    const cadastrosPrimeiro = depoisDoPrimeiro.filter(
+      (evento) =>
+        evento.entidade === ENTIDADE_SYNC.CATEGORIA_PRODUTO ||
+        evento.entidade === ENTIDADE_SYNC.PRODUTO ||
+        evento.entidade === ENTIDADE_SYNC.MESA,
+    )
+    expect(cadastrosPrimeiro.length).toBeGreaterThan(0)
+
+    enfileirarCadastrosIniciais(conexao)
+    expect(criarRepo().listarPendentes(500)).toHaveLength(depoisDoPrimeiro.length)
+
+    marcarDestinoApi(conexao, 'http://localhost:3000')
+    expect(destinoApiMudou(conexao, 'https://api-jardins.devdeyvid.com.br')).toBe(true)
+
+    enfileirarCadastrosIniciais(conexao, { forcar: true, atualizarTimestamps: true })
+    const depoisDoNovoDestino = criarRepo().listarPendentes(800)
+    expect(depoisDoNovoDestino.length).toBeGreaterThan(depoisDoPrimeiro.length)
+  })
+
   it('backfill enfileira historico de pedidos e sessoes uma unica vez', async () => {
     const ambiente = await prepararAmbientePedidos()
     encerrarBanco = ambiente.encerrar

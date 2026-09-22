@@ -60,9 +60,18 @@ export function PainelSyncStatus({
 
       {sync.erro ? <p className="config-erro">{sync.erro}</p> : null}
 
-      <button type="button" onClick={() => void sync.recarregar()}>
-        Atualizar status
-      </button>
+      <div className="config-atualizacao__acoes">
+        <button type="button" onClick={() => void sync.recarregar()}>
+          Atualizar status
+        </button>
+        <button
+          type="button"
+          disabled={!apiConfigurada || sync.carregando}
+          onClick={() => void sync.reenviarCadastros()}
+        >
+          Reenviar cardápio e mesas
+        </button>
+      </div>
     </section>
   )
 }
