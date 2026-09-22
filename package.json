@@ -93,6 +93,8 @@
     },
     "publish": {
       "provider": "github",
+      "owner": "DevDeyvidTav",
+      "repo": "jardins-pdv-desktop",
       "releaseType": "release"
     }
   }

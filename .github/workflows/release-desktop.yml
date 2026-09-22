@@ -1,0 +1,45 @@
+name: Release Desktop
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Testes e typecheck
+        run: |
+          npm run typecheck
+          npx vitest run
+
+      - name: Recompilar modulo nativo
+        run: npm run rebuild:native
+
+      - name: Gerar instalador e publicar release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run dist:win:publish
+
+      - name: Anexar artefatos ao job
+        uses: actions/upload-artifact@v4
+        with:
+          name: jardins-pdv-windows
+          path: dist/*.exe
+          if-no-files-found: error
