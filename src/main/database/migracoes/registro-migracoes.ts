@@ -864,10 +864,36 @@ CREATE TABLE IF NOT EXISTS operador_usuario (
   nome TEXT NOT NULL UNIQUE,
   pin_hash TEXT NOT NULL,
   perfil TEXT NOT NULL CHECK (perfil IN ('ADMIN', 'OPERADOR')),
-  ativo INTEGER NOT NULL DEFAULT 1,
-  criado_em TEXT NOT NULL,
-  atualizado_em TEXT NOT NULL
+      ativo INTEGER NOT NULL DEFAULT 1,
+      criado_em TEXT NOT NULL,
+      atualizado_em TEXT NOT NULL
+    );
+`.trim(),
+  },
+  {
+    versao: 26,
+    nome: '0026-auditoria-evento',
+    sql: `
+CREATE TABLE IF NOT EXISTS auditoria_evento (
+  id TEXT PRIMARY KEY NOT NULL,
+  origem TEXT NOT NULL,
+  acao TEXT NOT NULL,
+  ator_tipo TEXT NOT NULL,
+  ator_id TEXT,
+  ator_nome TEXT NOT NULL,
+  perfil TEXT,
+  entidade TEXT,
+  entidade_id TEXT,
+  resumo TEXT NOT NULL,
+  detalhes_json TEXT,
+  criado_em TEXT NOT NULL
 );
+
+CREATE INDEX IF NOT EXISTS idx_auditoria_evento_criado
+  ON auditoria_evento (criado_em DESC);
+
+CREATE INDEX IF NOT EXISTS idx_auditoria_evento_acao
+  ON auditoria_evento (acao, criado_em DESC);
 `.trim(),
   },
 ]

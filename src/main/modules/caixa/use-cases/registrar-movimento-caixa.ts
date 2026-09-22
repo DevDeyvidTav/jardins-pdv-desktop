@@ -18,6 +18,7 @@ import { executarEmTransacaoImediata } from '../../../database/conexao-sqlite'
 import { obterConexaoBancoLocal } from '../../../database/inicializar-banco'
 import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
 import { registrarEventoMovimentoCaixaSync } from '../../sincronizacao/services/registrar-evento-caixa'
+import { registrarAcaoAuditoria } from '../../sincronizacao/services/registrar-acao-auditoria'
 
 export function criarRegistrarMovimentoCaixa(
   repositorioSessao: SessaoCaixaRepository = criarSessaoCaixaRepository(),
@@ -62,6 +63,20 @@ export function criarRegistrarMovimentoCaixa(
       })
 
       registrarEventoMovimentoCaixaSync(conexao, movimento, OPERACAO_SYNC.CREATE)
+      registrarAcaoAuditoria(
+        {
+          acao: 'CAIXA_MOVIMENTO',
+          resumo: `${movimento.tipo === 'RETIRADA' ? 'Retirada' : 'Suprimento'} de caixa`,
+          entidade: 'MOVIMENTO_CAIXA',
+          entidadeId: movimento.id,
+          detalhes: {
+            tipo: movimento.tipo,
+            valorCentavos: movimento.valorCentavos,
+            descricao: movimento.descricao,
+          },
+        },
+        conexao,
+      )
       return movimento
     })
   }

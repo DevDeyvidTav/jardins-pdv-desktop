@@ -24,6 +24,7 @@ import { executarEmTransacaoImediata } from '../../../database/conexao-sqlite'
 import { obterConexaoBancoLocal } from '../../../database/inicializar-banco'
 import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
 import { registrarEventoSessaoCaixaSync } from '../../sincronizacao/services/registrar-evento-caixa'
+import { registrarAcaoAuditoria } from '../../sincronizacao/services/registrar-acao-auditoria'
 
 export function criarFecharSessaoCaixa(
   repositorioSessao: SessaoCaixaRepository = criarSessaoCaixaRepository(),
@@ -82,6 +83,23 @@ export function criarFecharSessaoCaixa(
         })
 
         registrarEventoSessaoCaixaSync(conexao, sessaoFechada, OPERACAO_SYNC.UPDATE)
+        registrarAcaoAuditoria(
+          {
+            acao: 'CAIXA_FECHAR',
+            resumo: `${sessaoFechada.operadorNome} fechou o caixa`,
+            entidade: 'SESSAO_CAIXA',
+            entidadeId: sessaoFechada.id,
+            ator: {
+              operadorId: sessaoFechada.operadorId,
+              operadorNome: sessaoFechada.operadorNome,
+            },
+            detalhes: {
+              saldoFinalInformadoCentavos: sessaoFechada.saldoFinalInformadoCentavos,
+              diferencaCentavos: sessaoFechada.diferencaCentavos,
+            },
+          },
+          conexao,
+        )
         return sessaoFechada
       } catch {
         throw new ErroCaixa(

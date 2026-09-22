@@ -9,6 +9,7 @@ import { executarEmTransacaoImediata } from '../../../database/conexao-sqlite'
 import { obterConexaoBancoLocal } from '../../../database/inicializar-banco'
 import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
 import { registrarEventoSessaoCaixaSync } from '../../sincronizacao/services/registrar-evento-caixa'
+import { registrarAcaoAuditoria } from '../../sincronizacao/services/registrar-acao-auditoria'
 
 export function criarAbrirSessaoCaixa(
   repositorio: SessaoCaixaRepository = criarSessaoCaixaRepository(),
@@ -42,6 +43,20 @@ export function criarAbrirSessaoCaixa(
       })
 
       registrarEventoSessaoCaixaSync(conexao, sessao, OPERACAO_SYNC.CREATE)
+      registrarAcaoAuditoria(
+        {
+          acao: 'CAIXA_ABRIR',
+          resumo: `${sessao.operadorNome} abriu o caixa`,
+          entidade: 'SESSAO_CAIXA',
+          entidadeId: sessao.id,
+          ator: {
+            operadorId: sessao.operadorId,
+            operadorNome: sessao.operadorNome,
+          },
+          detalhes: { saldoInicialCentavos: sessao.saldoInicialCentavos },
+        },
+        conexao,
+      )
       return sessao
     })
   }

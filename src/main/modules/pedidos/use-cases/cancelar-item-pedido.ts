@@ -20,6 +20,7 @@ import { executarEmTransacaoImediata } from '../../../database/conexao-sqlite'
 import { obterConexaoBancoLocal } from '../../../database/inicializar-banco'
 import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
 import { registrarEventoPedidoSync } from '../../sincronizacao/services/registrar-evento-pedido'
+import { registrarAcaoAuditoria } from '../../sincronizacao/services/registrar-acao-auditoria'
 
 export function criarCancelarItemPedido(
   repositorioPedido: PedidoRepository = criarPedidoRepository(),
@@ -65,6 +66,19 @@ export function criarCancelarItemPedido(
       recalcularTotaisPedido(entrada.pedidoId, repositorioPedido, repositorioItem)
 
       registrarEventoPedidoSync(entrada.pedidoId, OPERACAO_SYNC.UPDATE, conexao)
+      registrarAcaoAuditoria(
+        {
+          acao: 'ITEM_CANCELAR',
+          resumo: 'Removeu item do pedido',
+          entidade: 'PEDIDO_ITEM',
+          entidadeId: entrada.itemId,
+          detalhes: {
+            pedidoId: entrada.pedidoId,
+            motivo: entrada.motivoCancelamento,
+          },
+        },
+        conexao,
+      )
       return obterResumoPedido({ pedidoId: entrada.pedidoId })
     })
   }

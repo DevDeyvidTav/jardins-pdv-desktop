@@ -25,6 +25,7 @@ import {
 import { obterConexaoBancoLocal } from '../../../database/inicializar-banco'
 import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
 import { registrarEventoPedidoSync } from '../../sincronizacao/services/registrar-evento-pedido'
+import { registrarAcaoAuditoria } from '../../sincronizacao/services/registrar-acao-auditoria'
 import { obterTaxaEntregaPadraoCentavos } from './taxa-entrega-padrao'
 
 function normalizarOpcional(valor?: string | null): string | null {
@@ -116,6 +117,16 @@ export function criarCriarPedidoDelivery(
 
       const entrega = repositorioEntrega.buscarPorPedidoId(pedido.id)!
       registrarEventoPedidoSync(pedido.id, OPERACAO_SYNC.CREATE, conexao)
+      registrarAcaoAuditoria(
+        {
+          acao: 'PEDIDO_CRIAR',
+          resumo: `Abriu pedido delivery para ${nome}`,
+          entidade: 'PEDIDO',
+          entidadeId: pedido.id,
+          detalhes: { tipo: 'DELIVERY', clienteNome: nome },
+        },
+        conexao,
+      )
       return { pedido, itens: [], entrega, divisao: null }
     })
 

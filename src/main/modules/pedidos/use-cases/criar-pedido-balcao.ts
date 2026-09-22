@@ -7,6 +7,7 @@ import type { PedidoRepository } from '../repositories/pedido.repository'
 import { criarPedidoRepository } from '../repositories/pedido.repository'
 import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
 import { registrarEventoPedidoSync } from '../../sincronizacao/services/registrar-evento-pedido'
+import { registrarAcaoAuditoria } from '../../sincronizacao/services/registrar-acao-auditoria'
 import { executarEmTransacaoImediata } from '../../../database/conexao-sqlite'
 import { obterConexaoBancoLocal } from '../../../database/inicializar-banco'
 
@@ -39,6 +40,16 @@ export function criarCriarPedidoBalcao(
       })
 
       registrarEventoPedidoSync(pedidoCriado.id, OPERACAO_SYNC.CREATE, conexao)
+      registrarAcaoAuditoria(
+        {
+          acao: 'PEDIDO_CRIAR',
+          resumo: 'Abriu pedido de balcão',
+          entidade: 'PEDIDO',
+          entidadeId: pedidoCriado.id,
+          detalhes: { tipo: 'BALCAO' },
+        },
+        conexao,
+      )
       return pedidoCriado
     })
   }

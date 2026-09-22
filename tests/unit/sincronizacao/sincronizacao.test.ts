@@ -150,6 +150,37 @@ describe('sincronizacao', () => {
     expect(pendentes.some((evento) => evento.entidade === ENTIDADE_SYNC.MESA)).toBe(true)
   })
 
+  it('registra acao de auditoria na outbox quando forcado', async () => {
+    const ambiente = await prepararAmbientePedidos()
+    encerrarBanco = ambiente.encerrar
+    const { obterConexaoBancoLocal } = await import(
+      '../../../src/main/database/inicializar-banco'
+    )
+    const { registrarAcaoAuditoria } = await import(
+      '../../../src/main/modules/sincronizacao/services/registrar-acao-auditoria'
+    )
+
+    registrarAcaoAuditoria(
+      {
+        acao: 'LOGIN',
+        resumo: 'Passira entrou no PDV',
+        entidade: 'OPERADOR',
+        entidadeId: 'op-1',
+        ator: { operadorId: 'op-1', operadorNome: 'Passira', perfil: 'OPERADOR' },
+      },
+      obterConexaoBancoLocal(),
+      { forcar: true },
+    )
+
+    const evento = criarSyncOutboxRepository()
+      .listarPendentes(200)
+      .find((item) => item.entidade === ENTIDADE_SYNC.AUDITORIA)
+
+    expect(evento).toBeDefined()
+    expect(evento?.payload.acao).toBe('LOGIN')
+    expect(evento?.payload.atorNome).toBe('Passira')
+  })
+
   it('reenfileira cadastros quando o destino da API muda', async () => {
     const ambiente = await prepararAmbientePedidos()
     encerrarBanco = ambiente.encerrar

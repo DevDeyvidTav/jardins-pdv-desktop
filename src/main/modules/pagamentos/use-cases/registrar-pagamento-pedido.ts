@@ -39,6 +39,7 @@ import {
 import { registrarErro } from '../../../logging/logger'
 import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
 import { registrarEventoPedidoSync } from '../../sincronizacao/services/registrar-evento-pedido'
+import { registrarAcaoAuditoria } from '../../sincronizacao/services/registrar-acao-auditoria'
 import { avaliarEmissaoNfce } from '../../pedidos/services/avaliar-emissao-nfce'
 import { cpfEhValido, normalizarCpf } from '@shared/utils/cpf'
 
@@ -245,6 +246,19 @@ export function criarRegistrarPagamentoPedido(
         }
 
         registrarEventoPedidoSync(pedido.id, OPERACAO_SYNC.UPDATE, conexao)
+        registrarAcaoAuditoria(
+          {
+            acao: 'PAGAMENTO',
+            resumo: `Registrou pagamento no pedido ${pedido.referencia ?? pedido.id}`,
+            entidade: 'PEDIDO',
+            entidadeId: pedido.id,
+            detalhes: {
+              formaPagamento: entrada.formaPagamento,
+              valorCentavos: entrada.valorCentavos,
+            },
+          },
+          conexao,
+        )
         return {
           pedidoId: pedido.id,
           totalPedidoCentavos,

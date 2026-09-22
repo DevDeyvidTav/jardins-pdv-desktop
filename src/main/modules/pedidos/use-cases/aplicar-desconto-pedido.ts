@@ -34,6 +34,7 @@ import { calcularTotaisPedidoComTaxa } from '../types/pedido-calculos.types'
 import { garantirPedidoAberto, obterResumoPedido } from './consultas-pedido'
 import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
 import { registrarEventoPedidoSync } from '../../sincronizacao/services/registrar-evento-pedido'
+import { registrarAcaoAuditoria } from '../../sincronizacao/services/registrar-acao-auditoria'
 
 export function criarAplicarDescontoPedido(
   repositorioPedido: PedidoRepository = criarPedidoRepository(),
@@ -162,6 +163,19 @@ export function criarAplicarDescontoPedido(
       }
 
       registrarEventoPedidoSync(pedido.id, OPERACAO_SYNC.UPDATE, conexao)
+      registrarAcaoAuditoria(
+        {
+          acao: 'DESCONTO',
+          resumo: `Aplicou desconto no pedido ${pedido.referencia ?? pedido.id}`,
+          entidade: 'PEDIDO',
+          entidadeId: pedido.id,
+          detalhes: {
+            descontoCentavos: entrada.descontoCentavos,
+            motivo: entrada.motivoDesconto,
+          },
+        },
+        conexao,
+      )
       return obterResumoPedido({ pedidoId: pedido.id })
     })
 

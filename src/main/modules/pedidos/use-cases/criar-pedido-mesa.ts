@@ -21,6 +21,7 @@ import type { PedidoRepository } from '../repositories/pedido.repository'
 import { criarPedidoRepository } from '../repositories/pedido.repository'
 import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
 import { registrarEventoPedidoSync } from '../../sincronizacao/services/registrar-evento-pedido'
+import { registrarAcaoAuditoria } from '../../sincronizacao/services/registrar-acao-auditoria'
 
 export function criarCriarPedidoMesa(
   repositorioPedido: PedidoRepository = criarPedidoRepository(),
@@ -99,6 +100,16 @@ export function criarCriarPedidoMesa(
       })
 
       registrarEventoPedidoSync(pedidoCriado.id, OPERACAO_SYNC.CREATE, conexao)
+      registrarAcaoAuditoria(
+        {
+          acao: 'PEDIDO_CRIAR',
+          resumo: `Abriu pedido de mesa ${mesa.numero}`,
+          entidade: 'PEDIDO',
+          entidadeId: pedidoCriado.id,
+          detalhes: { tipo: 'MESA', mesaId: mesa.id, mesaNumero: mesa.numero },
+        },
+        conexao,
+      )
 
       return pedidoCriado
     })

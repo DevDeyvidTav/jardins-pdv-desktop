@@ -42,6 +42,7 @@ import {
 } from '../services/mesa-movimentacao.sql'
 import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
 import { registrarEventoPedidoSync } from '../../sincronizacao/services/registrar-evento-pedido'
+import { registrarAcaoAuditoria } from '../../sincronizacao/services/registrar-acao-auditoria'
 
 function garantirCaixaAberto(repositorioSessao: SessaoCaixaRepository): void {
   const sessao = repositorioSessao.buscarSessaoAberta()
@@ -220,6 +221,20 @@ export function criarTransferirPedidoMesa(
       })
 
       registrarEventoPedidoSync(pedido.id, OPERACAO_SYNC.UPDATE, conexao)
+      registrarAcaoAuditoria(
+        {
+          acao: 'MESA_TRANSFERIR',
+          resumo: `Transferiu pedido da mesa ${mesaOrigem.numero} para ${mesaDestino.numero}`,
+          entidade: 'PEDIDO',
+          entidadeId: pedido.id,
+          detalhes: {
+            mesaOrigemId: mesaOrigem.id,
+            mesaDestinoId: mesaDestino.id,
+            motivo: entrada.motivo,
+          },
+        },
+        conexao,
+      )
       confirmarTransacao(conexao)
     } catch (erro) {
       reverterTransacao(conexao)

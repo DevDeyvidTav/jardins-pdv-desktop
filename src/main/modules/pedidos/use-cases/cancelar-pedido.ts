@@ -35,6 +35,7 @@ import {
 import { agoraEmIsoUtc } from '@shared/utils/data-hora'
 import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
 import { registrarEventoPedidoSync } from '../../sincronizacao/services/registrar-evento-pedido'
+import { registrarAcaoAuditoria } from '../../sincronizacao/services/registrar-acao-auditoria'
 
 export function criarCancelarPedido(
   repositorioPedido: PedidoRepository = criarPedidoRepository(),
@@ -139,6 +140,16 @@ export function criarCancelarPedido(
       }
 
       registrarEventoPedidoSync(entrada.pedidoId, OPERACAO_SYNC.CANCEL, conexao)
+      registrarAcaoAuditoria(
+        {
+          acao: 'PEDIDO_CANCELAR',
+          resumo: `Cancelou o pedido ${pedido.referencia ?? pedido.id}`,
+          entidade: 'PEDIDO',
+          entidadeId: pedido.id,
+          detalhes: { tipo: pedido.tipo, motivo: entrada.motivoCancelamento },
+        },
+        conexao,
+      )
       return cancelado
     })
 

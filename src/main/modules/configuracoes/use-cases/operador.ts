@@ -22,6 +22,7 @@ import {
   assertPermissaoOperador,
 } from '../services/contexto-sessao-operador'
 import { PERMISSAO_PDV } from '@shared/types/operador'
+import { registrarAcaoAuditoria } from '../../sincronizacao/services/registrar-acao-auditoria'
 import {
   hashPinOperador,
   pinEstaHasheado,
@@ -147,6 +148,13 @@ export function criarSalvarOperador(repositorio?: OperadorUsuarioRepository) {
     const atualizado = repo.atualizarPin(operadorId, hashPinOperador(entrada.pin.trim()))
     const config = paraOperadorConfig(atualizado)
     definirSessaoOperador(config)
+    registrarAcaoAuditoria({
+      acao: 'OPERADOR_SALVAR',
+      resumo: `Alterou o PIN de ${config.operadorNome}`,
+      entidade: 'OPERADOR',
+      entidadeId: config.operadorId,
+      ator: config,
+    })
     return config
   }
 }
@@ -195,6 +203,13 @@ export function criarAutenticarOperador(repositorio?: OperadorUsuarioRepository)
 
     const config = paraOperadorConfig(registro)
     definirSessaoOperador(config)
+    registrarAcaoAuditoria({
+      acao: 'LOGIN',
+      resumo: `${config.operadorNome} entrou no PDV`,
+      entidade: 'OPERADOR',
+      entidadeId: config.operadorId,
+      ator: config,
+    })
     return config
   }
 }
