@@ -47,13 +47,10 @@ export function criarRegistrarMovimentoCaixa(
 
       const descricaoNormalizada = entrada.descricao?.trim() ?? null
 
-      if (
-        (entrada.tipo === 'SANGRIA' || entrada.tipo === 'RETIRADA') &&
-        !descricaoNormalizada
-      ) {
+      if (entrada.tipo === 'RETIRADA' && !descricaoNormalizada) {
         throw new ErroCaixa(
           CODIGOS_ERRO_CAIXA.DESCRICAO_OBRIGATORIA,
-          'Descricao e obrigatoria para sangria e retirada.',
+          'Descricao e obrigatoria para retirada.',
         )
       }
 

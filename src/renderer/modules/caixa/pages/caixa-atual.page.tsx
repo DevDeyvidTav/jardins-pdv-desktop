@@ -123,7 +123,6 @@ export function CaixaAtualPage({ caixa }: CaixaAtualPageProps) {
               [
                 ['TODOS', 'Todos'],
                 ['SUPRIMENTO', 'Suprimentos'],
-                ['SANGRIA', 'Sangrias'],
                 ['RETIRADA', 'Retiradas'],
               ] as const
             ).map(([valor, rotulo]) => (

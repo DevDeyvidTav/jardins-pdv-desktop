@@ -4,7 +4,6 @@ export type {
 
 export interface TotaisMovimentosCaixa {
   totalSuprimentosCentavos: number
-  totalSangriasCentavos: number
   totalRetiradasCentavos: number
 }
 
@@ -15,7 +14,6 @@ export function calcularSaldoEsperadoCentavos(
   return (
     saldoInicialCentavos +
     totais.totalSuprimentosCentavos -
-    totais.totalSangriasCentavos -
     totais.totalRetiradasCentavos
   )
 }

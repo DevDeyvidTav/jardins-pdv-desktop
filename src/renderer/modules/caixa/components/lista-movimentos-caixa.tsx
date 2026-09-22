@@ -8,7 +8,6 @@ interface ListaMovimentosCaixaProps {
 
 const ROTULOS_TIPO: Record<MovimentoCaixa['tipo'], string> = {
   SUPRIMENTO: 'Suprimento',
-  SANGRIA: 'Sangria',
   RETIRADA: 'Retirada',
 }
 

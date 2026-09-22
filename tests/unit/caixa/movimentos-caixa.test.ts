@@ -34,21 +34,6 @@ describe('registrarMovimentoCaixa', () => {
     expect(movimento.valorCentavos).toBe(5000)
   })
 
-  it('registra sangria com valor valido', async () => {
-    const contexto = await prepararCaixaAbertoTeste()
-    encerrarBanco = contexto.encerrar
-
-    const registrarMovimentoCaixa = criarRegistrarMovimentoCaixa()
-
-    const movimento = registrarMovimentoCaixa({
-      tipo: TIPO_MOVIMENTO_CAIXA.SANGRIA,
-      valorCentavos: 2000,
-      descricao: 'Sangria para cofre',
-    })
-
-    expect(movimento.tipo).toBe(TIPO_MOVIMENTO_CAIXA.SANGRIA)
-  })
-
   it('registra retirada com valor valido', async () => {
     const contexto = await prepararCaixaAbertoTeste()
     encerrarBanco = contexto.encerrar
@@ -115,24 +100,6 @@ describe('registrarMovimentoCaixa', () => {
     ).toThrowError(ErroCaixa)
   })
 
-  it('impede sangria sem descricao', async () => {
-    const contexto = await prepararCaixaAbertoTeste()
-    encerrarBanco = contexto.encerrar
-
-    const registrarMovimentoCaixa = criarRegistrarMovimentoCaixa()
-
-    try {
-      registrarMovimentoCaixa({
-        tipo: TIPO_MOVIMENTO_CAIXA.SANGRIA,
-        valorCentavos: 1000,
-      })
-    } catch (erro) {
-      expect((erro as ErroCaixa).codigo).toBe(
-        CODIGOS_ERRO_CAIXA.DESCRICAO_OBRIGATORIA,
-      )
-    }
-  })
-
   it('impede retirada sem descricao', async () => {
     const contexto = await prepararCaixaAbertoTeste()
     encerrarBanco = contexto.encerrar
@@ -173,16 +140,16 @@ describe('listarMovimentosCaixa', () => {
     })
 
     registrarMovimentoCaixa({
-      tipo: TIPO_MOVIMENTO_CAIXA.SANGRIA,
+      tipo: TIPO_MOVIMENTO_CAIXA.RETIRADA,
       valorCentavos: 2000,
-      descricao: 'Sangria teste',
+      descricao: 'Retirada teste',
     })
 
     const movimentos = listarMovimentosCaixa()
 
     expect(movimentos).toHaveLength(2)
     expect(movimentos[0]?.tipo).toBe(TIPO_MOVIMENTO_CAIXA.SUPRIMENTO)
-    expect(movimentos[1]?.tipo).toBe(TIPO_MOVIMENTO_CAIXA.SANGRIA)
+    expect(movimentos[1]?.tipo).toBe(TIPO_MOVIMENTO_CAIXA.RETIRADA)
   })
 
   it('retorna lista vazia sem caixa aberto', async () => {
@@ -216,9 +183,9 @@ describe('obterResumoCaixaAtual', () => {
     })
 
     registrarMovimentoCaixa({
-      tipo: TIPO_MOVIMENTO_CAIXA.SANGRIA,
+      tipo: TIPO_MOVIMENTO_CAIXA.RETIRADA,
       valorCentavos: 2000,
-      descricao: 'Sangria',
+      descricao: 'Retirada cofre',
     })
 
     registrarMovimentoCaixa({
@@ -232,8 +199,7 @@ describe('obterResumoCaixaAtual', () => {
     expect(resumo).not.toBeNull()
     expect(resumo?.saldoInicialCentavos).toBe(30000)
     expect(resumo?.totalSuprimentosCentavos).toBe(5000)
-    expect(resumo?.totalSangriasCentavos).toBe(2000)
-    expect(resumo?.totalRetiradasCentavos).toBe(1000)
+    expect(resumo?.totalRetiradasCentavos).toBe(3000)
     expect(resumo?.saldoAtualEsperadoCentavos).toBe(32000)
     expect(resumo?.quantidadePedidosAbertos).toBe(0)
   })

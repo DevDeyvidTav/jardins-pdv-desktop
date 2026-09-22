@@ -16,7 +16,6 @@ interface FormularioMovimentoCaixaProps {
 
 const TIPOS_MOVIMENTO: { valor: TipoMovimentoCaixa; rotulo: string }[] = [
   { valor: TIPO_MOVIMENTO_CAIXA.SUPRIMENTO, rotulo: 'Suprimento' },
-  { valor: TIPO_MOVIMENTO_CAIXA.SANGRIA, rotulo: 'Sangria' },
   { valor: TIPO_MOVIMENTO_CAIXA.RETIRADA, rotulo: 'Retirada' },
 ]
 
@@ -48,12 +47,8 @@ export function FormularioMovimentoCaixa({
     }
 
     const descricaoNormalizada = descricao.trim()
-    const exigeDescricao =
-      tipo === TIPO_MOVIMENTO_CAIXA.SANGRIA ||
-      tipo === TIPO_MOVIMENTO_CAIXA.RETIRADA
-
-    if (exigeDescricao && !descricaoNormalizada) {
-      setErroValidacao('Descricao e obrigatoria para sangria e retirada.')
+    if (tipo === TIPO_MOVIMENTO_CAIXA.RETIRADA && !descricaoNormalizada) {
+      setErroValidacao('Descricao e obrigatoria para retirada.')
       return
     }
 

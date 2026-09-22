@@ -32,12 +32,6 @@ export function ResumoCaixa({ resumo, compacto = false }: ResumoCaixaProps) {
           </dd>
         </div>
         <div>
-          <dt>Sangrias</dt>
-          <dd data-testid="caixa-total-sangrias">
-            {formatarMoeda(resumo.totalSangriasCentavos)}
-          </dd>
-        </div>
-        <div>
           <dt>Retiradas</dt>
           <dd data-testid="caixa-total-retiradas">
             {formatarMoeda(resumo.totalRetiradasCentavos)}

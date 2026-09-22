@@ -312,7 +312,7 @@ export function PizzasCatalogo({ pizzas, permitirEdicao = false }: PizzasCatalog
           </header>
 
           {permitirEdicao && (exibirFormSabor || saborEmEdicao) ? (
-            <div className="produtos-operacao__form-painel">
+            <div className="produtos-operacao__form-painel" data-testid="painel-edicao-sabor">
               <FormularioPizzaSabor
                 pizzas={pizzas}
                 categorias={pizzas.categorias}

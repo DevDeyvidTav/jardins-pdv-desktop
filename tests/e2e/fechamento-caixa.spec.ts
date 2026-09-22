@@ -34,7 +34,7 @@ async function garantirCaixaAberto(janela: Page) {
 
 async function registrarMovimento(
   janela: Page,
-  tipo: 'SUPRIMENTO' | 'SANGRIA' | 'RETIRADA',
+  tipo: 'SUPRIMENTO' | 'RETIRADA',
   valor: string,
   descricao?: string,
 ) {
@@ -68,7 +68,7 @@ test.describe('fechamento de caixa local', () => {
 
       await garantirCaixaAberto(janela)
       await registrarMovimento(janela, 'SUPRIMENTO', '50,00')
-      await registrarMovimento(janela, 'SANGRIA', '20,00', 'Sangria teste')
+      await registrarMovimento(janela, 'RETIRADA', '20,00', 'Retirada teste')
 
       await janela.getByTestId('botao-ir-fechamento').click()
       await expect(janela.getByTestId('pagina-fechamento-caixa')).toBeVisible()

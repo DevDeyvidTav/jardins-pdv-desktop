@@ -1,6 +1,5 @@
 export const TIPO_MOVIMENTO_CAIXA = {
   SUPRIMENTO: 'SUPRIMENTO',
-  SANGRIA: 'SANGRIA',
   RETIRADA: 'RETIRADA',
 } as const
 
@@ -35,7 +34,6 @@ export interface ResumoCaixaAtual {
   sessao: import('./sessao-caixa').SessaoCaixa
   saldoInicialCentavos: number
   totalSuprimentosCentavos: number
-  totalSangriasCentavos: number
   totalRetiradasCentavos: number
   totalVendasDinheiroCentavos: number
   totalVendasCartaoCreditoCentavos: number

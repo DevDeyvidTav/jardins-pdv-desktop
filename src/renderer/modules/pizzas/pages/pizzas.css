@@ -25,11 +25,29 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
-  overflow: auto;
+  overflow: hidden;
   background: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   padding: 0.75rem;
+}
+
+.pizzas-catalogo__secao > header {
+  flex-shrink: 0;
+}
+
+.pizzas-catalogo__secao .produtos-operacao__form-painel {
+  flex: 0 0 auto;
+  max-height: 58%;
+  min-height: 8rem;
+  overflow-y: auto;
+}
+
+.pizzas-catalogo__secao .lista-categorias {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  margin-top: 0.5rem;
 }
 
 .pizzas-catalogo__secao h2 {
@@ -43,6 +61,10 @@
   border-radius: 6px;
   padding: 0.625rem 0.75rem;
   margin: 0.5rem 0;
+  display: block;
+}
+
+.pizzas-catalogo__fieldset-corpo {
   display: grid;
   gap: 0.4rem;
 }

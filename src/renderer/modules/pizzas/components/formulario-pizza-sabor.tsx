@@ -215,60 +215,64 @@ export function FormularioPizzaSabor({
 
       <fieldset className="pizzas-catalogo__fieldset" disabled={enviando || carregandoDetalhes}>
         <legend>Categorias vinculadas</legend>
-        {categoriasAtivas.length === 0 ? (
-          <p className="produtos-operacao__meta">Nenhuma categoria ativa.</p>
-        ) : (
-          categoriasAtivas.map((categoria) => (
-            <label key={categoria.id} className="pizzas-catalogo__checkbox">
-              <input
-                type="checkbox"
-                data-testid={`checkbox-vincular-categoria-${categoria.id}`}
-                checked={categoriasVinculadas.has(categoria.id)}
-                onChange={(evento) =>
-                  void handleToggleCategoria(categoria.id, evento.target.checked)
-                }
-              />
-              {categoria.nome}
-            </label>
-          ))
-        )}
+        <div className="pizzas-catalogo__fieldset-corpo">
+          {categoriasAtivas.length === 0 ? (
+            <p className="produtos-operacao__meta">Nenhuma categoria ativa.</p>
+          ) : (
+            categoriasAtivas.map((categoria) => (
+              <label key={categoria.id} className="pizzas-catalogo__checkbox">
+                <input
+                  type="checkbox"
+                  data-testid={`checkbox-vincular-categoria-${categoria.id}`}
+                  checked={categoriasVinculadas.has(categoria.id)}
+                  onChange={(evento) =>
+                    void handleToggleCategoria(categoria.id, evento.target.checked)
+                  }
+                />
+                {categoria.nome}
+              </label>
+            ))
+          )}
+        </div>
       </fieldset>
 
       <fieldset className="pizzas-catalogo__fieldset" disabled={enviando || carregandoDetalhes}>
         <legend>Precos por tamanho (R$)</legend>
-        {tamanhosAtivos.length === 0 ? (
-          <p className="produtos-operacao__meta">Nenhum tamanho ativo.</p>
-        ) : (
-          tamanhosAtivos.map((tamanho) => {
-            const preview = converterReaisParaCentavos(precosReais[tamanho.id] ?? '')
-            return (
-              <label
-                key={tamanho.id}
-                className="formulario-produto__campo"
-                htmlFor={`preco-sabor-${tamanho.sigla}`}
-              >
-                {tamanho.nome} ({tamanho.sigla})
-                <input
-                  id={`preco-sabor-${tamanho.sigla}`}
-                  data-testid={`campo-preco-sabor-tamanho-${tamanho.sigla}`}
-                  type="text"
-                  inputMode="decimal"
-                  placeholder="0,00"
-                  value={precosReais[tamanho.id] ?? ''}
-                  onChange={(evento) =>
-                    setPrecosReais((atual) => ({
-                      ...atual,
-                      [tamanho.id]: evento.target.value,
-                    }))
-                  }
-                />
-                {preview !== null ? (
-                  <span className="formulario-produto__preview">{formatarMoeda(preview)}</span>
-                ) : null}
-              </label>
-            )
-          })
-        )}
+        <div className="pizzas-catalogo__fieldset-corpo">
+          {tamanhosAtivos.length === 0 ? (
+            <p className="produtos-operacao__meta">Nenhum tamanho ativo.</p>
+          ) : (
+            tamanhosAtivos.map((tamanho) => {
+              const preview = converterReaisParaCentavos(precosReais[tamanho.id] ?? '')
+              return (
+                <label
+                  key={tamanho.id}
+                  className="formulario-produto__campo"
+                  htmlFor={`preco-sabor-${tamanho.sigla}`}
+                >
+                  {tamanho.nome} ({tamanho.sigla})
+                  <input
+                    id={`preco-sabor-${tamanho.sigla}`}
+                    data-testid={`campo-preco-sabor-tamanho-${tamanho.sigla}`}
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="0,00"
+                    value={precosReais[tamanho.id] ?? ''}
+                    onChange={(evento) =>
+                      setPrecosReais((atual) => ({
+                        ...atual,
+                        [tamanho.id]: evento.target.value,
+                      }))
+                    }
+                  />
+                  {preview !== null ? (
+                    <span className="formulario-produto__preview">{formatarMoeda(preview)}</span>
+                  ) : null}
+                </label>
+              )
+            })
+          )}
+        </div>
       </fieldset>
 
       {erroValidacao ? (

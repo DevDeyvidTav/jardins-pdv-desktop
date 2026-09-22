@@ -31,7 +31,7 @@ async function garantirCaixaAberto(janela: Page) {
 
 async function registrarMovimento(
   janela: Page,
-  tipo: 'SUPRIMENTO' | 'SANGRIA' | 'RETIRADA',
+  tipo: 'SUPRIMENTO' | 'RETIRADA',
   valor: string,
   descricao?: string,
 ) {
@@ -66,13 +66,11 @@ test.describe('movimentos de caixa local', () => {
       await garantirCaixaAberto(janela)
 
       await registrarMovimento(janela, 'SUPRIMENTO', '50,00')
-      await registrarMovimento(janela, 'SANGRIA', '20,00', 'Sangria teste')
-      await registrarMovimento(janela, 'RETIRADA', '10,00', 'Retirada teste')
+      await registrarMovimento(janela, 'RETIRADA', '30,00', 'Retirada teste')
 
-      await expect(janela.getByTestId('item-movimento-caixa')).toHaveCount(3)
+      await expect(janela.getByTestId('item-movimento-caixa')).toHaveCount(2)
       await expect(janela.getByTestId('caixa-total-suprimentos')).toHaveText(/R\$\s*50,00/)
-      await expect(janela.getByTestId('caixa-total-sangrias')).toHaveText(/R\$\s*20,00/)
-      await expect(janela.getByTestId('caixa-total-retiradas')).toHaveText(/R\$\s*10,00/)
+      await expect(janela.getByTestId('caixa-total-retiradas')).toHaveText(/R\$\s*30,00/)
       await expect(janela.getByTestId('caixa-saldo-atual')).toHaveText(/R\$\s*320,00/)
 
       await aplicativo.close()
@@ -83,7 +81,7 @@ test.describe('movimentos de caixa local', () => {
       await expect(janelaReaberta.getByTestId('pagina-caixa-atual')).toBeVisible({
         timeout: 15_000,
       })
-      await expect(janelaReaberta.getByTestId('item-movimento-caixa')).toHaveCount(3)
+      await expect(janelaReaberta.getByTestId('item-movimento-caixa')).toHaveCount(2)
       await expect(janelaReaberta.getByTestId('caixa-saldo-atual')).toHaveText(
         /R\$\s*320,00/,
       )

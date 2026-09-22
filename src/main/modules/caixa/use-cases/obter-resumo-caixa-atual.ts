@@ -73,7 +73,6 @@ export function criarObterResumoCaixaAtual(
       sessao: sessaoAberta,
       saldoInicialCentavos: sessaoAberta.saldoInicialCentavos,
       totalSuprimentosCentavos: totais.totalSuprimentosCentavos,
-      totalSangriasCentavos: totais.totalSangriasCentavos,
       totalRetiradasCentavos: totais.totalRetiradasCentavos,
       totalVendasDinheiroCentavos,
       totalVendasCartaoCreditoCentavos,

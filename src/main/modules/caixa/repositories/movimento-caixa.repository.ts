@@ -104,7 +104,6 @@ export class MovimentoCaixaRepository {
 
   calcularTotaisPorSessao(sessaoCaixaId: string): {
     totalSuprimentosCentavos: number
-    totalSangriasCentavos: number
     totalRetiradasCentavos: number
   } {
     const movimentos = this.listarPorSessao(sessaoCaixaId)
@@ -115,10 +114,6 @@ export class MovimentoCaixaRepository {
           totais.totalSuprimentosCentavos += movimento.valorCentavos
         }
 
-        if (movimento.tipo === TIPO_MOVIMENTO_CAIXA.SANGRIA) {
-          totais.totalSangriasCentavos += movimento.valorCentavos
-        }
-
         if (movimento.tipo === TIPO_MOVIMENTO_CAIXA.RETIRADA) {
           totais.totalRetiradasCentavos += movimento.valorCentavos
         }
@@ -127,7 +122,6 @@ export class MovimentoCaixaRepository {
       },
       {
         totalSuprimentosCentavos: 0,
-        totalSangriasCentavos: 0,
         totalRetiradasCentavos: 0,
       },
     )

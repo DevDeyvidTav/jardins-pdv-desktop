@@ -30,11 +30,12 @@ describe('schema de movimento de caixa', () => {
     ).toThrow()
   })
 
-  it('rejeita sangria sem descricao', () => {
+  it('rejeita tipo sangria', () => {
     expect(() =>
       registrarMovimentoCaixaSchema.parse({
-        tipo: TIPO_MOVIMENTO_CAIXA.SANGRIA,
+        tipo: 'SANGRIA',
         valorCentavos: 1000,
+        descricao: 'legado',
       }),
     ).toThrow()
   })

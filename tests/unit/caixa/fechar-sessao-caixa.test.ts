@@ -62,9 +62,9 @@ describe('fecharSessaoCaixa', () => {
 
     const registrarMovimentoCaixa = criarRegistrarMovimentoCaixa()
     registrarMovimentoCaixa({
-      tipo: TIPO_MOVIMENTO_CAIXA.SANGRIA,
+      tipo: TIPO_MOVIMENTO_CAIXA.RETIRADA,
       valorCentavos: 2000,
-      descricao: 'Sangria',
+      descricao: 'Retirada',
     })
 
     const fecharSessaoCaixa = criarFecharSessaoCaixa()

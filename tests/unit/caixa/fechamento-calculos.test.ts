@@ -8,8 +8,7 @@ describe('calculos de fechamento de caixa', () => {
   it('calcula saldo esperado corretamente', () => {
     const saldo = calcularSaldoEsperadoCentavos(30000, {
       totalSuprimentosCentavos: 5000,
-      totalSangriasCentavos: 2000,
-      totalRetiradasCentavos: 1000,
+      totalRetiradasCentavos: 3000,
     })
 
     expect(saldo).toBe(32000)
