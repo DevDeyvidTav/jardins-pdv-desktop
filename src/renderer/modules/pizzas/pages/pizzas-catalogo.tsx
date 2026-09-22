@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import {
   REGRA_PRECIFICACAO_PIZZA,
+  type PizzaCategoria,
   type PizzaSabor,
+  type PizzaTamanho,
 } from '@shared/types/pizza'
 import { FormularioPizzaCategoria } from '../components/formulario-pizza-categoria'
 import { FormularioPizzaTamanho } from '../components/formulario-pizza-tamanho'
@@ -21,11 +23,105 @@ function rotuloRegra(regra: string): string {
     : 'Media dos sabores'
 }
 
+function DialogoCadastro({
+  aberto,
+  titulo,
+  largo,
+  onFechar,
+  children,
+}: {
+  aberto: boolean
+  titulo: string
+  largo?: boolean
+  onFechar: () => void
+  children: ReactNode
+}) {
+  if (!aberto) return null
+  return (
+    <div className="modal-produtos" role="dialog">
+      <button
+        type="button"
+        className="modal-produtos__backdrop"
+        aria-label="Fechar"
+        onClick={onFechar}
+      />
+      <div
+        className={[
+          'modal-produtos__conteudo',
+          largo ? 'modal-produtos__conteudo--largo' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
+      >
+        <div className="modal-produtos__cabecalho">
+          <h2>{titulo}</h2>
+        </div>
+        {children}
+      </div>
+    </div>
+  )
+}
+
 export function PizzasCatalogo({ pizzas, permitirEdicao = false }: PizzasCatalogoProps) {
   const [exibirFormCategoria, setExibirFormCategoria] = useState(false)
   const [exibirFormTamanho, setExibirFormTamanho] = useState(false)
   const [exibirFormSabor, setExibirFormSabor] = useState(false)
+  const [categoriaEmEdicao, setCategoriaEmEdicao] = useState<PizzaCategoria | null>(null)
+  const [tamanhoEmEdicao, setTamanhoEmEdicao] = useState<PizzaTamanho | null>(null)
   const [saborEmEdicao, setSaborEmEdicao] = useState<PizzaSabor | null>(null)
+  const [buscaCategoria, setBuscaCategoria] = useState('')
+  const [buscaTamanho, setBuscaTamanho] = useState('')
+  const [buscaSabor, setBuscaSabor] = useState('')
+
+  const dialogoCategoriaAberto = permitirEdicao && (exibirFormCategoria || categoriaEmEdicao !== null)
+  const dialogoTamanhoAberto = permitirEdicao && (exibirFormTamanho || tamanhoEmEdicao !== null)
+  const dialogoSaborAberto = permitirEdicao && (exibirFormSabor || saborEmEdicao !== null)
+
+  function fecharFormCategoria() {
+    setExibirFormCategoria(false)
+    setCategoriaEmEdicao(null)
+  }
+
+  function fecharFormTamanho() {
+    setExibirFormTamanho(false)
+    setTamanhoEmEdicao(null)
+  }
+
+  function fecharFormSabor() {
+    setExibirFormSabor(false)
+    setSaborEmEdicao(null)
+  }
+
+  const categoriasVisiveis = useMemo(() => {
+    const termo = buscaCategoria.trim().toLowerCase()
+    return pizzas.categorias.filter(
+      (categoria) =>
+        !termo ||
+        categoria.nome.toLowerCase().includes(termo) ||
+        (categoria.descricao ?? '').toLowerCase().includes(termo),
+    )
+  }, [pizzas.categorias, buscaCategoria])
+
+  const tamanhosVisiveis = useMemo(() => {
+    const termo = buscaTamanho.trim().toLowerCase()
+    return pizzas.tamanhos.filter(
+      (tamanho) =>
+        !termo ||
+        tamanho.nome.toLowerCase().includes(termo) ||
+        tamanho.sigla.toLowerCase().includes(termo),
+    )
+  }, [pizzas.tamanhos, buscaTamanho])
+
+  const saboresVisiveis = useMemo(() => {
+    const termo = buscaSabor.trim().toLowerCase()
+    return pizzas.sabores.filter((sabor) => {
+      const bateTermo =
+        !termo ||
+        sabor.nome.toLowerCase().includes(termo) ||
+        (sabor.descricao ?? '').toLowerCase().includes(termo)
+      return bateTermo
+    })
+  }, [pizzas.sabores, buscaSabor])
 
   return (
     <div className="pizzas-catalogo" data-testid="pagina-pizzas">
@@ -58,36 +154,64 @@ export function PizzasCatalogo({ pizzas, permitirEdicao = false }: PizzasCatalog
               <button
                 type="button"
                 className="produtos__botao-secundario"
-                onClick={() => setExibirFormCategoria((atual) => !atual)}
+                onClick={() => {
+                  if (dialogoCategoriaAberto) {
+                    fecharFormCategoria()
+                    return
+                  }
+                  setCategoriaEmEdicao(null)
+                  setExibirFormCategoria(true)
+                }}
               >
-                {exibirFormCategoria ? 'Fechar' : 'Nova'}
+                {dialogoCategoriaAberto ? 'Fechar' : 'Nova'}
               </button>
             ) : null}
           </header>
 
-          {permitirEdicao && exibirFormCategoria ? (
-            <div className="produtos-operacao__form-painel">
-              <FormularioPizzaCategoria
-                carregando={pizzas.carregando}
-                onLimparFeedback={pizzas.limparFeedback}
-                onSalvar={async (nome, regraPrecificacao, descricao) => {
-                  const ok = await pizzas.criarCategoria({
+          <input
+            className="pizzas-catalogo__busca"
+            type="search"
+            placeholder="Filtrar categorias"
+            value={buscaCategoria}
+            onChange={(evento) => setBuscaCategoria(evento.target.value)}
+          />
+
+          <DialogoCadastro
+            aberto={dialogoCategoriaAberto}
+            titulo={categoriaEmEdicao ? 'Editar categoria' : 'Nova categoria'}
+            onFechar={fecharFormCategoria}
+          >
+            <FormularioPizzaCategoria
+              carregando={pizzas.carregando}
+              categoriaInicial={categoriaEmEdicao}
+              onLimparFeedback={pizzas.limparFeedback}
+              onCancelar={fecharFormCategoria}
+              onSalvar={async (nome, regraPrecificacao, descricao) => {
+                if (categoriaEmEdicao) {
+                  const ok = await pizzas.atualizarCategoria(categoriaEmEdicao.id, {
                     nome,
                     regraPrecificacao,
-                    descricao,
+                    descricao: descricao ?? null,
                   })
-                  if (ok) setExibirFormCategoria(false)
+                  if (ok) fecharFormCategoria()
                   return ok
-                }}
-              />
-            </div>
-          ) : null}
+                }
+                const ok = await pizzas.criarCategoria({
+                  nome,
+                  regraPrecificacao,
+                  descricao,
+                })
+                if (ok) fecharFormCategoria()
+                return ok
+              }}
+            />
+          </DialogoCadastro>
 
           <ul className="lista-categorias">
-            {pizzas.categorias.length === 0 ? (
+            {categoriasVisiveis.length === 0 ? (
               <li className="lista-categorias__vazio">Nenhuma categoria cadastrada.</li>
             ) : (
-              pizzas.categorias.map((categoria) => (
+              categoriasVisiveis.map((categoria) => (
                 <li
                   key={categoria.id}
                   className={[
@@ -100,32 +224,7 @@ export function PizzasCatalogo({ pizzas, permitirEdicao = false }: PizzasCatalog
                 >
                   <div className="lista-categorias__selecao">
                     <strong>{categoria.nome}</strong>
-                    {permitirEdicao ? (
-                      <label className="pizzas-catalogo__regra-inline">
-                        Regra de calculo
-                        <select
-                          data-testid="campo-regra-pizza-categoria-lista"
-                          value={categoria.regraPrecificacao}
-                          onChange={(evento) => {
-                            const regra = evento.target.value as typeof categoria.regraPrecificacao
-                            if (regra !== categoria.regraPrecificacao) {
-                              void pizzas.atualizarCategoria(categoria.id, {
-                                regraPrecificacao: regra,
-                              })
-                            }
-                          }}
-                        >
-                          <option value={REGRA_PRECIFICACAO_PIZZA.MAIOR_SABOR}>
-                            Maior sabor
-                          </option>
-                          <option value={REGRA_PRECIFICACAO_PIZZA.MEDIA_SABORES}>
-                            Media dos sabores
-                          </option>
-                        </select>
-                      </label>
-                    ) : (
-                      <span>{rotuloRegra(categoria.regraPrecificacao)}</span>
-                    )}
+                    <span>{rotuloRegra(categoria.regraPrecificacao)}</span>
                   </div>
                   <span
                     className={
@@ -138,6 +237,16 @@ export function PizzasCatalogo({ pizzas, permitirEdicao = false }: PizzasCatalog
                   </span>
                   {permitirEdicao ? (
                     <div className="lista-categorias__acoes">
+                      <button
+                        type="button"
+                        className="lista-categorias__acao"
+                        onClick={() => {
+                          setExibirFormCategoria(false)
+                          setCategoriaEmEdicao(categoria)
+                        }}
+                      >
+                        Editar
+                      </button>
                       {categoria.ativa ? (
                         <button
                           type="button"
@@ -179,32 +288,60 @@ export function PizzasCatalogo({ pizzas, permitirEdicao = false }: PizzasCatalog
               <button
                 type="button"
                 className="produtos__botao-secundario"
-                onClick={() => setExibirFormTamanho((atual) => !atual)}
+                onClick={() => {
+                  if (dialogoTamanhoAberto) {
+                    fecharFormTamanho()
+                    return
+                  }
+                  setTamanhoEmEdicao(null)
+                  setExibirFormTamanho(true)
+                }}
               >
-                {exibirFormTamanho ? 'Fechar' : 'Novo'}
+                {dialogoTamanhoAberto ? 'Fechar' : 'Novo'}
               </button>
             ) : null}
           </header>
 
-          {permitirEdicao && exibirFormTamanho ? (
-            <div className="produtos-operacao__form-painel">
-              <FormularioPizzaTamanho
-                carregando={pizzas.carregando}
-                onLimparFeedback={pizzas.limparFeedback}
-                onSalvar={async (nome, sigla, maximoSabores) => {
-                  const ok = await pizzas.criarTamanho({ nome, sigla, maximoSabores })
-                  if (ok) setExibirFormTamanho(false)
+          <input
+            className="pizzas-catalogo__busca"
+            type="search"
+            placeholder="Filtrar tamanhos"
+            value={buscaTamanho}
+            onChange={(evento) => setBuscaTamanho(evento.target.value)}
+          />
+
+          <DialogoCadastro
+            aberto={dialogoTamanhoAberto}
+            titulo={tamanhoEmEdicao ? 'Editar tamanho' : 'Novo tamanho'}
+            onFechar={fecharFormTamanho}
+          >
+            <FormularioPizzaTamanho
+              carregando={pizzas.carregando}
+              tamanhoInicial={tamanhoEmEdicao}
+              onLimparFeedback={pizzas.limparFeedback}
+              onCancelar={fecharFormTamanho}
+              onSalvar={async (nome, sigla, maximoSabores) => {
+                if (tamanhoEmEdicao) {
+                  const ok = await pizzas.atualizarTamanho(tamanhoEmEdicao.id, {
+                    nome,
+                    sigla,
+                    maximoSabores,
+                  })
+                  if (ok) fecharFormTamanho()
                   return ok
-                }}
-              />
-            </div>
-          ) : null}
+                }
+                const ok = await pizzas.criarTamanho({ nome, sigla, maximoSabores })
+                if (ok) fecharFormTamanho()
+                return ok
+              }}
+            />
+          </DialogoCadastro>
 
           <ul className="lista-categorias">
-            {pizzas.tamanhos.length === 0 ? (
+            {tamanhosVisiveis.length === 0 ? (
               <li className="lista-categorias__vazio">Nenhum tamanho cadastrado.</li>
             ) : (
-              pizzas.tamanhos.map((tamanho) => (
+              tamanhosVisiveis.map((tamanho) => (
                 <li
                   key={tamanho.id}
                   className={[
@@ -219,30 +356,7 @@ export function PizzasCatalogo({ pizzas, permitirEdicao = false }: PizzasCatalog
                     <strong>
                       {tamanho.nome} ({tamanho.sigla})
                     </strong>
-                    <label className="pizzas-catalogo__maximo-inline">
-                      Max. sabores
-                      <input
-                        type="number"
-                        min={1}
-                        data-testid="campo-maximo-sabores-tamanho"
-                        defaultValue={tamanho.maximoSabores}
-                        key={`${tamanho.id}-${tamanho.maximoSabores}`}
-                        readOnly={!permitirEdicao}
-                        onBlur={(evento) => {
-                          if (!permitirEdicao) return
-                          const valor = Number(evento.target.value)
-                          if (
-                            Number.isInteger(valor) &&
-                            valor >= 1 &&
-                            valor !== tamanho.maximoSabores
-                          ) {
-                            void pizzas.atualizarTamanho(tamanho.id, {
-                              maximoSabores: valor,
-                            })
-                          }
-                        }}
-                      />
-                    </label>
+                    <span>Max. {tamanho.maximoSabores} sabor(es)</span>
                   </div>
                   <span
                     className={
@@ -255,6 +369,16 @@ export function PizzasCatalogo({ pizzas, permitirEdicao = false }: PizzasCatalog
                   </span>
                   {permitirEdicao ? (
                     <div className="lista-categorias__acoes">
+                      <button
+                        type="button"
+                        className="lista-categorias__acao"
+                        onClick={() => {
+                          setExibirFormTamanho(false)
+                          setTamanhoEmEdicao(tamanho)
+                        }}
+                      >
+                        Editar
+                      </button>
                       {tamanho.ativa ? (
                         <button
                           type="button"
@@ -297,40 +421,47 @@ export function PizzasCatalogo({ pizzas, permitirEdicao = false }: PizzasCatalog
                 type="button"
                 className="produtos__botao-secundario"
                 onClick={() => {
-                  if (exibirFormSabor || saborEmEdicao) {
-                    setExibirFormSabor(false)
-                    setSaborEmEdicao(null)
+                  if (dialogoSaborAberto) {
+                    fecharFormSabor()
                     return
                   }
                   setSaborEmEdicao(null)
                   setExibirFormSabor(true)
                 }}
               >
-                {exibirFormSabor || saborEmEdicao ? 'Fechar' : 'Novo'}
+                {dialogoSaborAberto ? 'Fechar' : 'Novo'}
               </button>
             ) : null}
           </header>
 
-          {permitirEdicao && (exibirFormSabor || saborEmEdicao) ? (
-            <div className="produtos-operacao__form-painel" data-testid="painel-edicao-sabor">
-              <FormularioPizzaSabor
-                pizzas={pizzas}
-                categorias={pizzas.categorias}
-                tamanhos={pizzas.tamanhos}
-                saborEmEdicao={saborEmEdicao}
-                onFecharEdicao={() => {
-                  setSaborEmEdicao(null)
-                  setExibirFormSabor(false)
-                }}
-              />
-            </div>
-          ) : null}
+          <input
+            className="pizzas-catalogo__busca"
+            type="search"
+            placeholder="Filtrar sabores"
+            value={buscaSabor}
+            onChange={(evento) => setBuscaSabor(evento.target.value)}
+          />
+
+          <DialogoCadastro
+            aberto={dialogoSaborAberto}
+            titulo={saborEmEdicao ? 'Editar sabor' : 'Novo sabor'}
+            largo
+            onFechar={fecharFormSabor}
+          >
+            <FormularioPizzaSabor
+              pizzas={pizzas}
+              categorias={pizzas.categorias}
+              tamanhos={pizzas.tamanhos}
+              saborEmEdicao={saborEmEdicao}
+              onFecharEdicao={fecharFormSabor}
+            />
+          </DialogoCadastro>
 
           <ul className="lista-categorias">
-            {pizzas.sabores.length === 0 ? (
+            {saboresVisiveis.length === 0 ? (
               <li className="lista-categorias__vazio">Nenhum sabor cadastrado.</li>
             ) : (
-              pizzas.sabores.map((sabor) => (
+              saboresVisiveis.map((sabor) => (
                 <li
                   key={sabor.id}
                   className={[

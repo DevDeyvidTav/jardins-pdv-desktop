@@ -100,6 +100,7 @@ export function FormularioPizzaSabor({
       if (ok) {
         setNome('')
         setDescricao('')
+        onFecharEdicao()
       }
     } finally {
       setEnviando(false)

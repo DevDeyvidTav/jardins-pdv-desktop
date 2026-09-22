@@ -215,6 +215,15 @@ const apiPdv: PdvApi = {
   },
   sync: {
     obterEstado: () => ipcRenderer.invoke(CANAIS_IPC.SYNC_OBTER_ESTADO),
+    onCatalogoAtualizado: (callback) => {
+      const listener = () => {
+        callback()
+      }
+      ipcRenderer.on(CANAIS_IPC.SYNC_CATALOGO_ATUALIZADO, listener)
+      return () => {
+        ipcRenderer.removeListener(CANAIS_IPC.SYNC_CATALOGO_ATUALIZADO, listener)
+      }
+    },
   },
   config: {
     listarImpressoras: () => ipcRenderer.invoke(CANAIS_IPC.CONFIG_LISTAR_IMPRESSORAS),

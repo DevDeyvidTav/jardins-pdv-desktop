@@ -77,6 +77,7 @@ describe('contrato da API exposta pelo preload', () => {
     expect(CANAIS_IPC.IMPRESSAO_IMPRIMIR_CONTA).toBe('impressao:imprimir-conta')
     expect(CANAIS_IPC.IMPRESSAO_IMPRIMIR_COMANDA).toBe('impressao:imprimir-comanda')
     expect(CANAIS_IPC.SYNC_OBTER_ESTADO).toBe('sync:obter-estado')
+    expect(CANAIS_IPC.SYNC_CATALOGO_ATUALIZADO).toBe('sync:catalogo-atualizado')
     expect(CANAIS_IPC.CONFIG_LISTAR_IMPRESSORAS).toBe('config:listar-impressoras')
     expect(CANAIS_IPC.CONFIG_SALVAR_IMPRESSORAS).toBe('config:salvar-impressoras')
     expect(CANAIS_IPC.CONFIG_OBTER_OPERADOR).toBe('config:obter-operador')
@@ -677,6 +678,7 @@ describe('contrato da API exposta pelo preload', () => {
           ultimoSucessoEm: null,
           ultimoErro: null,
         }),
+        onCatalogoAtualizado: () => () => {},
       },
       config: {
         listarImpressoras: async () => [],

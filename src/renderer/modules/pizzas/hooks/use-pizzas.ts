@@ -102,6 +102,12 @@ export function usePizzas(): UsePizzasResultado {
     void carregarDados()
   }, [carregarDados])
 
+  useEffect(() => {
+    return window.pdv.sync.onCatalogoAtualizado(() => {
+      void carregarDados()
+    })
+  }, [carregarDados])
+
   const criarCategoria = useCallback(
     async (entrada: CriarPizzaCategoriaEntrada): Promise<boolean> => {
       setErro(null)

@@ -105,29 +105,40 @@ export function ProdutosPage({ produtos, permitirFiscal = false }: ProdutosPageP
           ) : null}
 
           {exibirFormCategoria || categoriaEmEdicao ? (
-            <div className="produtos-operacao__form-painel">
-              <FormularioCategoria
-                carregando={produtos.carregando}
-                erroExterno={null}
-                categoriaInicial={categoriaEmEdicao}
-                onSalvar={async (nome, descricao) => {
-                  if (categoriaEmEdicao) {
-                    const ok = await produtos.atualizarCategoria(
-                      categoriaEmEdicao.id,
-                      nome,
-                      descricao,
-                    )
+            <div className="modal-produtos" role="dialog">
+              <button
+                type="button"
+                className="modal-produtos__backdrop"
+                aria-label="Fechar"
+                onClick={fecharFormCategoria}
+              />
+              <div className="modal-produtos__conteudo">
+                <div className="modal-produtos__cabecalho">
+                  <h2>{categoriaEmEdicao ? 'Editar categoria' : 'Nova categoria'}</h2>
+                </div>
+                <FormularioCategoria
+                  carregando={produtos.carregando}
+                  erroExterno={null}
+                  categoriaInicial={categoriaEmEdicao}
+                  onSalvar={async (nome, descricao) => {
+                    if (categoriaEmEdicao) {
+                      const ok = await produtos.atualizarCategoria(
+                        categoriaEmEdicao.id,
+                        nome,
+                        descricao,
+                      )
+                      if (ok) fecharFormCategoria()
+                      return ok
+                    }
+
+                    const ok = await produtos.criarCategoria(nome, descricao)
                     if (ok) fecharFormCategoria()
                     return ok
-                  }
-
-                  const ok = await produtos.criarCategoria(nome, descricao)
-                  if (ok) fecharFormCategoria()
-                  return ok
-                }}
-                onLimparFeedback={produtos.limparFeedback}
-                onCancelar={fecharFormCategoria}
-              />
+                  }}
+                  onLimparFeedback={produtos.limparFeedback}
+                  onCancelar={fecharFormCategoria}
+                />
+              </div>
             </div>
           ) : null}
 

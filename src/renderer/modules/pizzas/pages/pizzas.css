@@ -56,6 +56,17 @@
   color: #111827;
 }
 
+.pizzas-catalogo__busca {
+  margin-top: 0.5rem;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  color: #111827;
+}
+
 .pizzas-catalogo__fieldset {
   border: 1px solid #e5e7eb;
   border-radius: 6px;

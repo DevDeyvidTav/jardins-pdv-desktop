@@ -346,6 +346,7 @@ export interface PdvApi {
   }
   sync: {
     obterEstado: () => Promise<EstadoSincronizacao>
+    onCatalogoAtualizado: (callback: () => void) => () => void
   }
   config: {
     listarImpressoras: () => Promise<ConfigImpressora[]>

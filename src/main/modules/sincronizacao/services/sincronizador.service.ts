@@ -14,6 +14,8 @@ import { criarSyncOutboxRepository } from '../repositories/sync-outbox.repositor
 import { enviarEventosSyncApi } from './cliente-sync-api'
 import { enfileirarCadastrosIniciais } from './enfileirar-cadastros-sync'
 import { enfileirarHistoricoInicial } from './enfileirar-historico-sync'
+import { notificarCatalogoAtualizado } from './notificar-catalogo-atualizado'
+import { puxarMudancasCatalogo } from './puxar-mudancas-catalogo'
 import { sincronizarInboxFiscal } from '../../fiscal/services/sincronizar-inbox-fiscal'
 
 const BACKOFF_BASE_MS = 5_000
@@ -71,55 +73,60 @@ export async function executarCicloSincronizacao(): Promise<void> {
   estadoInterno.ultimaTentativaEm = agoraEmIsoUtc()
 
   try {
-    if (pendentes.length === 0) {
-      await sincronizarInboxFiscal()
-      estadoInterno.ultimoSucessoEm = agoraEmIsoUtc()
-      return
+    if (pendentes.length > 0) {
+      try {
+        const resposta = await enviarEventosSyncApi(config, pendentes)
+
+        if (resposta.confirmados.length > 0) {
+          repositorio.marcarSincronizados(resposta.confirmados)
+          estadoInterno.ultimoErro = null
+          registrarInfo('Eventos sincronizados', {
+            operacao: 'sync.enviar',
+            quantidade: resposta.confirmados.length,
+          })
+        }
+
+        for (const falha of resposta.comErro) {
+          const evento = pendentes.find((item) => item.id === falha.eventoId)
+          const tentativas = evento?.tentativas ?? 0
+          repositorio.registrarFalha(
+            falha.eventoId,
+            falha.motivo,
+            calcularProximaTentativa(tentativas),
+          )
+          registrarErro('Evento sync rejeitado pela API', {
+            operacao: 'sync.evento',
+            eventoId: falha.eventoId,
+            motivo: falha.motivo,
+          })
+        }
+
+        persistirConexaoBanco(obterConexaoBancoLocal())
+      } catch (erro) {
+        const mensagem = erro instanceof Error ? erro.message : String(erro)
+        estadoInterno.ultimoErro = mensagem
+        for (const evento of pendentes) {
+          repositorio.registrarFalha(
+            evento.id,
+            mensagem,
+            calcularProximaTentativa(evento.tentativas),
+          )
+        }
+        persistirConexaoBanco(obterConexaoBancoLocal())
+        registrarErro('Falha ao sincronizar eventos', { operacao: 'sync.enviar' }, erro)
+      }
     }
 
-    const resposta = await enviarEventosSyncApi(config, pendentes)
-
-    if (resposta.confirmados.length > 0) {
-      repositorio.marcarSincronizados(resposta.confirmados)
-      estadoInterno.ultimoSucessoEm = agoraEmIsoUtc()
-      estadoInterno.ultimoErro = null
-      registrarInfo('Eventos sincronizados', {
-        operacao: 'sync.enviar',
-        quantidade: resposta.confirmados.length,
-      })
+    const catalogo = await puxarMudancasCatalogo(config)
+    if (catalogo.aplicados > 0) {
+      notificarCatalogoAtualizado()
     }
-
-    for (const falha of resposta.comErro) {
-      const evento = pendentes.find((item) => item.id === falha.eventoId)
-      const tentativas = evento?.tentativas ?? 0
-      repositorio.registrarFalha(
-        falha.eventoId,
-        falha.motivo,
-        calcularProximaTentativa(tentativas),
-      )
-      registrarErro('Evento sync rejeitado pela API', {
-        operacao: 'sync.evento',
-        eventoId: falha.eventoId,
-        motivo: falha.motivo,
-      })
-    }
-
-    persistirConexaoBanco(obterConexaoBancoLocal())
     await sincronizarInboxFiscal()
+    estadoInterno.ultimoSucessoEm = agoraEmIsoUtc()
   } catch (erro) {
     const mensagem = erro instanceof Error ? erro.message : String(erro)
     estadoInterno.ultimoErro = mensagem
-
-    for (const evento of pendentes) {
-      repositorio.registrarFalha(
-        evento.id,
-        mensagem,
-        calcularProximaTentativa(evento.tentativas),
-      )
-    }
-
-    persistirConexaoBanco(obterConexaoBancoLocal())
-    registrarErro('Falha ao sincronizar eventos', { operacao: 'sync.enviar' }, erro)
+    registrarErro('Falha ao puxar sync da nuvem', { operacao: 'sync.puxar' }, erro)
   } finally {
     estadoInterno.emExecucao = false
   }

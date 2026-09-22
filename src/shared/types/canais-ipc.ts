@@ -97,6 +97,7 @@ export const CANAIS_IPC = {
   IMPRESSAO_IMPRIMIR_CONTA: 'impressao:imprimir-conta',
   IMPRESSAO_IMPRIMIR_COMANDA: 'impressao:imprimir-comanda',
   SYNC_OBTER_ESTADO: 'sync:obter-estado',
+  SYNC_CATALOGO_ATUALIZADO: 'sync:catalogo-atualizado',
   CONFIG_LISTAR_IMPRESSORAS: 'config:listar-impressoras',
   CONFIG_LISTAR_IMPRESSORAS_SISTEMA: 'config:listar-impressoras-sistema',
   CONFIG_RECUPERAR_IMPRESSORAS: 'config:recuperar-impressoras',

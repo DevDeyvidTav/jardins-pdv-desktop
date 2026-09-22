@@ -200,6 +200,12 @@ export function usePedidos(): UsePedidosResultado {
   }, [carregarDados])
 
   useEffect(() => {
+    return window.pdv.sync.onCatalogoAtualizado(() => {
+      void carregarDados()
+    })
+  }, [carregarDados])
+
+  useEffect(() => {
     if (abaAtiva !== 'historico') return
     void carregarHistorico().catch((causa) => {
       setErro(extrairMensagemErro(causa))

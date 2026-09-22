@@ -1,21 +1,36 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
+import type { PizzaTamanho } from '@shared/types/pizza'
 
 interface FormularioPizzaTamanhoProps {
   carregando: boolean
+  tamanhoInicial?: PizzaTamanho | null
   onSalvar: (nome: string, sigla: string, maximoSabores: number) => Promise<boolean>
   onLimparFeedback: () => void
+  onCancelar?: () => void
 }
 
 export function FormularioPizzaTamanho({
   carregando,
+  tamanhoInicial = null,
   onSalvar,
   onLimparFeedback,
+  onCancelar,
 }: FormularioPizzaTamanhoProps) {
-  const [nome, setNome] = useState('')
-  const [sigla, setSigla] = useState('')
-  const [maximoSabores, setMaximoSabores] = useState('1')
+  const editando = tamanhoInicial !== null
+  const [nome, setNome] = useState(tamanhoInicial?.nome ?? '')
+  const [sigla, setSigla] = useState(tamanhoInicial?.sigla ?? '')
+  const [maximoSabores, setMaximoSabores] = useState(
+    tamanhoInicial ? String(tamanhoInicial.maximoSabores) : '1',
+  )
   const [erroValidacao, setErroValidacao] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
+
+  useEffect(() => {
+    setNome(tamanhoInicial?.nome ?? '')
+    setSigla(tamanhoInicial?.sigla ?? '')
+    setMaximoSabores(tamanhoInicial ? String(tamanhoInicial.maximoSabores) : '1')
+    setErroValidacao(null)
+  }, [tamanhoInicial])
 
   async function handleSubmit(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault()
@@ -41,7 +56,7 @@ export function FormularioPizzaTamanho({
     setEnviando(true)
     try {
       const ok = await onSalvar(nome.trim(), sigla.trim().toUpperCase(), maximo)
-      if (ok) {
+      if (ok && !editando) {
         setNome('')
         setSigla('')
         setMaximoSabores('1')
@@ -101,8 +116,18 @@ export function FormularioPizzaTamanho({
       ) : null}
 
       <div className="formulario-produto__acoes">
+        {onCancelar ? (
+          <button
+            type="button"
+            className="produtos__botao-secundario"
+            disabled={carregando || enviando}
+            onClick={onCancelar}
+          >
+            Cancelar
+          </button>
+        ) : null}
         <button type="submit" disabled={carregando || enviando}>
-          Criar tamanho
+          {editando ? 'Salvar tamanho' : 'Criar tamanho'}
         </button>
       </div>
     </form>

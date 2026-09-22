@@ -1,9 +1,54 @@
-import type { ConfiguracaoSincronizacao } from '../../config/sincronizacao'
+import type { ConfiguracaoSincronizacao } from '../../../config/sincronizacao'
 import type { EventoSyncOutbox } from '../repositories/sync-outbox.repository'
 
 export interface RespostaSyncApi {
   confirmados: string[]
   comErro: Array<{ eventoId: string; motivo: string }>
+}
+
+export type MudancaCatalogoApi = {
+  id: number
+  entidade: string
+  entidadeId: string
+  operacao: string
+  payload: Record<string, unknown>
+  atualizadoEm: string
+  origem: string
+}
+
+export type LoteMudancasCatalogoApi = {
+  cursor: number
+  mudancas: MudancaCatalogoApi[]
+}
+
+export async function buscarMudancasCatalogoApi(
+  config: ConfiguracaoSincronizacao,
+  depoisDe: number,
+): Promise<LoteMudancasCatalogoApi> {
+  if (!config.apiUrl || !config.dispositivoId || !config.dispositivoSegredo) {
+    throw new Error('Sincronizacao nao configurada.')
+  }
+
+  const base = config.apiUrl.replace(/\/$/, '')
+  const url = `${base}/sync/changes?depoisDe=${encodeURIComponent(String(depoisDe))}`
+  const authorization = `Device ${config.dispositivoId}:${config.dispositivoSegredo}`
+
+  const resposta = await fetch(url, {
+    method: 'GET',
+    headers: {
+      Authorization: authorization,
+      Accept: 'application/json',
+    },
+  })
+
+  if (!resposta.ok) {
+    const texto = await resposta.text().catch(() => '')
+    throw new Error(
+      `Sync changes HTTP ${resposta.status} em ${url}${texto ? `: ${texto.slice(0, 200)}` : ''}`,
+    )
+  }
+
+  return (await resposta.json()) as LoteMudancasCatalogoApi
 }
 
 export async function enviarEventosSyncApi(

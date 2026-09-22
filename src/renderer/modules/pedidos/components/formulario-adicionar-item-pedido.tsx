@@ -85,6 +85,7 @@ function ComboboxBuscaCategoria({
   const [listaAberta, setListaAberta] = useState(false)
   const [resultados, setResultados] = useState<CategoriaCatalogo[]>([])
   const [carregando, setCarregando] = useState(false)
+  const [geracaoCatalogo, setGeracaoCatalogo] = useState(0)
   const comboboxRef = useRef<HTMLDivElement>(null)
 
   const opcaoSelecionada = useMemo(() => {
@@ -126,7 +127,13 @@ function ComboboxBuscaCategoria({
       cancelado = true
       window.clearTimeout(timer)
     }
-  }, [termo])
+  }, [termo, geracaoCatalogo])
+
+  useEffect(() => {
+    return window.pdv.sync.onCatalogoAtualizado(() => {
+      setGeracaoCatalogo((atual) => atual + 1)
+    })
+  }, [])
 
   useEffect(() => {
     function fecharAoClicarFora(evento: MouseEvent) {
@@ -356,8 +363,12 @@ export function FormularioAdicionarItemPedido({
     }
 
     void carregarPizzas()
+    const cancelar = window.pdv.sync.onCatalogoAtualizado(() => {
+      void carregarPizzas()
+    })
     return () => {
       cancelado = true
+      cancelar()
     }
   }, [])
 

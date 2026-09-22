@@ -1,31 +1,44 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import {
   REGRA_PRECIFICACAO_PIZZA,
+  type PizzaCategoria,
   type RegraPrecificacaoPizza,
 } from '@shared/types/pizza'
 
 interface FormularioPizzaCategoriaProps {
   carregando: boolean
+  categoriaInicial?: PizzaCategoria | null
   onSalvar: (
     nome: string,
     regraPrecificacao: RegraPrecificacaoPizza,
     descricao?: string,
   ) => Promise<boolean>
   onLimparFeedback: () => void
+  onCancelar?: () => void
 }
 
 export function FormularioPizzaCategoria({
   carregando,
+  categoriaInicial = null,
   onSalvar,
   onLimparFeedback,
+  onCancelar,
 }: FormularioPizzaCategoriaProps) {
-  const [nome, setNome] = useState('')
-  const [descricao, setDescricao] = useState('')
+  const editando = categoriaInicial !== null
+  const [nome, setNome] = useState(categoriaInicial?.nome ?? '')
+  const [descricao, setDescricao] = useState(categoriaInicial?.descricao ?? '')
   const [regra, setRegra] = useState<RegraPrecificacaoPizza>(
-    REGRA_PRECIFICACAO_PIZZA.MAIOR_SABOR,
+    categoriaInicial?.regraPrecificacao ?? REGRA_PRECIFICACAO_PIZZA.MAIOR_SABOR,
   )
   const [erroValidacao, setErroValidacao] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
+
+  useEffect(() => {
+    setNome(categoriaInicial?.nome ?? '')
+    setDescricao(categoriaInicial?.descricao ?? '')
+    setRegra(categoriaInicial?.regraPrecificacao ?? REGRA_PRECIFICACAO_PIZZA.MAIOR_SABOR)
+    setErroValidacao(null)
+  }, [categoriaInicial])
 
   async function handleSubmit(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault()
@@ -40,7 +53,7 @@ export function FormularioPizzaCategoria({
     setEnviando(true)
     try {
       const ok = await onSalvar(nome, regra, descricao.trim() || undefined)
-      if (ok) {
+      if (ok && !editando) {
         setNome('')
         setDescricao('')
         setRegra(REGRA_PRECIFICACAO_PIZZA.MAIOR_SABOR)
@@ -101,12 +114,22 @@ export function FormularioPizzaCategoria({
       ) : null}
 
       <div className="formulario-produto__acoes">
+        {onCancelar ? (
+          <button
+            type="button"
+            className="produtos__botao-secundario"
+            disabled={carregando || enviando}
+            onClick={onCancelar}
+          >
+            Cancelar
+          </button>
+        ) : null}
         <button
           type="submit"
           data-testid="botao-criar-pizza-categoria"
           disabled={carregando || enviando}
         >
-          Criar categoria
+          {editando ? 'Salvar categoria' : 'Criar categoria'}
         </button>
       </div>
     </form>

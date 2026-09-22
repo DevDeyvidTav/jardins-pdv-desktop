@@ -95,6 +95,12 @@ export function useProdutos(): UseProdutosResultado {
     void carregarDados()
   }, [carregarDados])
 
+  useEffect(() => {
+    return window.pdv.sync.onCatalogoAtualizado(() => {
+      void carregarDados()
+    })
+  }, [carregarDados])
+
   const criarCategoria = useCallback(
     async (nome: string, descricao?: string): Promise<boolean> => {
       setErro(null)
