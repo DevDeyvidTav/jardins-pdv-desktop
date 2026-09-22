@@ -7,6 +7,8 @@ export default defineConfig({
     include: ['tests/unit/**/*.test.ts', 'tests/integration/**/*.test.ts'],
     testTimeout: 30_000,
     hookTimeout: 30_000,
+    teardownTimeout: 60_000,
+    fileParallelism: process.env.CI !== 'true',
     coverage: {
       provider: 'v8',
       include: [
