@@ -11,6 +11,8 @@ const CONFIGURACAO_SEGURANCA = {
 
 export function criarJanelaPrincipal(): BrowserWindow {
   const caminhosIcone = [
+    join(process.cwd(), 'resources', 'icon.ico'),
+    join(__dirname, '../../resources/icon.ico'),
     join(process.cwd(), 'resources', 'logo-jardins.jpg'),
     join(__dirname, '../../resources/logo-jardins.jpg'),
   ]

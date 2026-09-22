@@ -39,6 +39,6 @@ export const salvarOperadorSchema = z.object({
 })
 
 export const autenticarOperadorSchema = z.object({
-  operadorId: z.string().trim().min(1, 'Selecione um usuario.'),
+  operadorNome: z.string().trim().min(1, 'Informe o usuario.'),
   pin: pinOperadorSchema,
 })

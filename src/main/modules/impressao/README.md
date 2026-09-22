@@ -19,6 +19,12 @@ Ordem de tentativa:
 2. Se falhar: COM10 direto (sem controle RTS — evita "OK" sem papel)
 3. Se a porta COM nao abrir: retoma a impressora, remove jobs presos e tenta de novo
 
+### QR Code no DANFE NFC-e (obrigatorio)
+
+O [Manual CONFAZ do DANFE NFC-e](https://www.confaz.fazenda.gov.br/legislacao/arquivo-manuais/manual_de_especificacoes_tecnicas_do_danfe_nfc-e_qr_code-versao-5-0.pdf) exige QR de no minimo **25 mm x 25 mm** com a URL de consulta.
+
+A MP-4200 TH deste caixa **nao executa** o comando nativo `GS k Q` (a URL saia como texto no rodape). O PDV desenha o QR como **bitmap raster** (`GS v 0`), com no minimo ~26 mm, a partir da URL da Focus.
+
 **Importante:** versoes antigas do PDV pausavam a impressora via WMI antes de cada envio. Se o script falhava ou estourava timeout, o Windows ficava em **"Pausado"** — e nem a pagina de teste do Windows imprimia. O PDV atual **nunca pausa** a fila; retoma automaticamente antes de cada impressao.
 
 ### Reenvio nunca duplica cupom

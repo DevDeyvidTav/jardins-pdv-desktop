@@ -40,6 +40,6 @@ export interface SalvarOperadorEntrada {
 }
 
 export interface AutenticarOperadorEntrada {
-  operadorId: string
+  operadorNome: string
   pin: string
 }

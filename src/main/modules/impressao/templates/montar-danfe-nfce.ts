@@ -65,17 +65,13 @@ export function conteudoQrDanfe(documento: {
   chaveAcesso: string | null
   qrCode: string | null
 }): string | null {
-  const chave = documento.chaveAcesso?.replace(/\D/g, '') ?? ''
-  if (chave.length === 44) {
-    return chave
-  }
-
   const qr = documento.qrCode?.trim() ?? ''
-  if (qr && qr.length <= 180) {
+  if (qr) {
     return qr
   }
 
-  return chave || qr || null
+  const chave = documento.chaveAcesso?.replace(/\D/g, '') ?? ''
+  return chave || null
 }
 
 export function formatarValorDanfe(centavos: number): string {

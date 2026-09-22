@@ -3,21 +3,14 @@ import { SETOR_IMPRESSAO, type SetorImpressao } from '@shared/types/config-impre
 import { criarConfigImpressoraRepository } from '../../configuracoes/repositories/config-impressora.repository'
 
 import {
-
   consultarPortNameImpressoraWindows,
-
   normalizarPortaCom,
-
   obterNomeImpressoraLocal,
-
   obterPortaImpressoraLocal,
-
+  portaImpressoraEhVirtual,
   resolverDestinoImpressao,
-
   resolverPortaComImpressora,
-
   type DestinoImpressao,
-
 } from './enviar-impressora'
 
 
@@ -78,7 +71,23 @@ export function resolverDestinoImpressoraPorSetor(
 
 
 
-  // Bematech_USB e outras portas virtuais → spooler RAW (nao tentar COM salva errada)
+  // Bematech_USB e portas virtuais → COM direto (spooler trava com job Retained)
+
+  if (portName && portaImpressoraEhVirtual(portName)) {
+
+    return {
+
+      tipo: 'COM',
+
+      porta: resolverPortaComImpressora(nome, config.portaCom, env),
+
+      nomeImpressora: nome,
+
+    }
+
+  }
+
+
 
   if (portName) {
 

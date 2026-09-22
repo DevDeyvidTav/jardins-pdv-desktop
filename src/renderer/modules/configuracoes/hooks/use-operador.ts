@@ -1,10 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 
-import type {
-  OperadorConfig,
-  OperadorEntradaResumo,
-  PermissaoPdv,
-} from '@shared/types/operador'
+import type { OperadorConfig, PermissaoPdv } from '@shared/types/operador'
 
 import { operadorTemPermissao } from '@shared/utils/permissoes-operador'
 
@@ -12,11 +8,10 @@ import { extrairMensagemErroIpc } from '@shared/utils/erro-ipc'
 
 export interface UseOperadorResultado {
   operador: OperadorConfig | null
-  operadores: OperadorEntradaResumo[]
   autenticado: boolean
   carregando: boolean
   erro: string | null
-  autenticar: (operadorId: string, pin: string) => Promise<boolean>
+  autenticar: (operadorNome: string, pin: string) => Promise<boolean>
   salvarPin: (operadorId: string, pin: string) => Promise<boolean>
   temPermissao: (permissao: PermissaoPdv) => boolean
   recarregar: () => Promise<void>
@@ -25,32 +20,22 @@ export interface UseOperadorResultado {
 
 export function useOperador(): UseOperadorResultado {
   const [operador, setOperador] = useState<OperadorConfig | null>(null)
-  const [operadores, setOperadores] = useState<OperadorEntradaResumo[]>([])
   const [autenticado, setAutenticado] = useState(false)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
 
   const recarregar = useCallback(async () => {
-    setCarregando(true)
-    try {
-      setErro(null)
-      const lista = await window.pdv.config.listarOperadoresEntrada()
-      setOperadores(lista)
-    } catch (causa) {
-      setErro(extrairMensagemErroIpc(causa))
-    } finally {
-      setCarregando(false)
-    }
+    setCarregando(false)
   }, [])
 
   useEffect(() => {
     void recarregar()
   }, [recarregar])
 
-  const autenticar = useCallback(async (operadorId: string, pin: string): Promise<boolean> => {
+  const autenticar = useCallback(async (operadorNome: string, pin: string): Promise<boolean> => {
     setErro(null)
     try {
-      const resultado = await window.pdv.config.autenticarOperador({ operadorId, pin })
+      const resultado = await window.pdv.config.autenticarOperador({ operadorNome, pin })
       setOperador(resultado)
       setAutenticado(true)
       return true
@@ -87,7 +72,6 @@ export function useOperador(): UseOperadorResultado {
 
   return {
     operador,
-    operadores,
     autenticado,
     carregando,
     erro,

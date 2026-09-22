@@ -4,6 +4,7 @@ import {
   codificarCupomEscPos,
   codificarCupomEscPosComQr,
   codificarTextoTermica,
+  montarComandoQrRaster,
   montarFinalizacaoCupomEscPos,
 } from '../../../src/main/modules/impressao/infraestrutura/encoder-escpos'
 
@@ -29,15 +30,16 @@ describe('encoder ESC/POS', () => {
     )).toBe(true)
   })
 
-  it('omite o QR na MP-4200, que nao tem comando suportado', () => {
-    const cupom = codificarCupomEscPosComQr(
-      ['DANFE', '{QR}'],
-      '35200914200166000187550020462799281000000010',
-    )
-    expect(cupom.includes(Buffer.from([0x1b, 0x2a, 33]))).toBe(false)
-    expect(cupom.includes(Buffer.from([0x1d, 0x76, 0x30]))).toBe(false)
-    expect(cupom.includes(0xdb)).toBe(false)
+  it('insere o QR como imagem raster GS v 0 no DANFE', () => {
+    const url = 'https://sehomolog.sefaz.pe.gov.br/nfce/consulta?p=26160950681762000179650010000000011000000010'
+    const cupom = codificarCupomEscPosComQr(['DANFE', '{QR}'], url)
+    const comando = montarComandoQrRaster(url)
+
     expect(cupom.includes(Buffer.from('DANFE', 'latin1'))).toBe(true)
+    expect(cupom.includes(Buffer.from([0x1d, 0x76, 0x30, 0x00]))).toBe(true)
+    expect(cupom.includes(comando.subarray(3, 11))).toBe(true)
+    expect(cupom.includes(Buffer.from(url, 'utf8'))).toBe(false)
+    expect(comando.length).toBeGreaterThan(200)
   })
 
   it('converte acentos para CP850 em vez de latin1', () => {

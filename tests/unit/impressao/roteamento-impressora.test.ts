@@ -194,7 +194,7 @@ describe('resolver destino impressora', () => {
     banco.encerrar()
   })
 
-  it('usa spooler quando a impressora esta em porta virtual Bematech_USB', async () => {
+  it('usa COM quando a impressora esta em porta virtual Bematech_USB', async () => {
     const banco = await prepararBancoTeste()
     const repositorio = criarConfigImpressoraRepository(obterConexaoBancoLocal())
 
@@ -209,14 +209,24 @@ describe('resolver destino impressora', () => {
     vi.spyOn(enviarImpressora, 'consultarPortNameImpressoraWindows').mockReturnValue(
       'Bematech_USB',
     )
+    vi.spyOn(enviarImpressora, 'listarPortasComWindows').mockReturnValue(['COM10'])
 
     const destino = resolverDestinoImpressoraPorSetor(
       SETOR_IMPRESSAO.BALCAO,
       repositorio,
-      { ...process.env, NODE_ENV: 'production', PDV_IMPRESSORA_MOCK: '0' },
+      {
+        ...process.env,
+        NODE_ENV: 'production',
+        PDV_IMPRESSORA_MOCK: '0',
+        PDV_IMPRESSORA_PORTA: 'COM10',
+      },
     )
 
-    expect(destino).toEqual({ tipo: 'SPOOLER', nome: 'MP-4200 TH' })
+    expect(destino).toEqual({
+      tipo: 'COM',
+      porta: 'COM10',
+      nomeImpressora: 'MP-4200 TH',
+    })
 
     banco.encerrar()
   })
@@ -245,7 +255,8 @@ describe('resolver destino impressora', () => {
     const comanda = imprimir({ pedidoId: 'ped-1' }, TIPO_DOCUMENTO_IMPRESSAO.COMANDA)
 
     expect(enviar).not.toHaveBeenCalled()
-    expect(comanda.impresso).toBe(true)
+    expect(comanda.impresso).toBe(false)
+    expect(comanda.aviso).toContain('sem impressora configurada')
     expect(comanda.texto).toContain('JAPONESA')
     expect(comanda.texto).toContain('PIZZA')
 

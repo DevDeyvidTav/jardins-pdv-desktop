@@ -122,7 +122,7 @@ describe('operador', () => {
 
 
 
-  it('autentica cada usuario pelo ID e PIN e define perfil', async () => {
+  it('autentica cada usuario pelo nome e PIN e define perfil', async () => {
 
     process.env.NODE_ENV = 'development'
 
@@ -136,7 +136,7 @@ describe('operador', () => {
 
     const passira = autenticarOperador({
 
-      operadorId: OPERADORES_PADRAO[0].id,
+      operadorNome: OPERADORES_PADRAO[0].nome,
 
       pin: OPERADORES_PADRAO[0].pin,
 
@@ -150,7 +150,7 @@ describe('operador', () => {
 
     const nathalia = autenticarOperador({
 
-      operadorId: OPERADORES_PADRAO[2].id,
+      operadorNome: 'nathalia',
 
       pin: OPERADORES_PADRAO[2].pin,
 
@@ -166,7 +166,7 @@ describe('operador', () => {
 
       autenticarOperador({
 
-        operadorId: OPERADORES_PADRAO[0].id,
+        operadorNome: OPERADORES_PADRAO[0].nome,
 
         pin: '999999',
 
@@ -180,13 +180,27 @@ describe('operador', () => {
 
       autenticarOperador({
 
-        operadorId: OPERADORES_PADRAO[1].id,
+        operadorNome: OPERADORES_PADRAO[1].nome,
 
         pin: OPERADORES_PADRAO[0].pin,
 
       }),
 
     ).toThrow(/PIN invalido/)
+
+
+
+    expect(() =>
+
+      autenticarOperador({
+
+        operadorNome: 'Inexistente',
+
+        pin: OPERADORES_PADRAO[0].pin,
+
+      }),
+
+    ).toThrow(/Usuario nao encontrado/)
 
   })
 
@@ -208,13 +222,13 @@ describe('operador', () => {
 
     expect(() =>
       autenticarOperador({
-        operadorId: OPERADORES_PADRAO[0].id,
+        operadorNome: OPERADORES_PADRAO[0].nome,
         pin: '147',
       }),
     ).toThrow(/PIN invalido/)
 
     const passira = autenticarOperador({
-      operadorId: OPERADORES_PADRAO[0].id,
+      operadorNome: OPERADORES_PADRAO[0].nome,
       pin: OPERADORES_PADRAO[0].pin,
     })
 
@@ -237,7 +251,7 @@ describe('operador', () => {
 
       autenticarOperador({
 
-        operadorId: OPERADORES_PADRAO[0].id,
+        operadorNome: OPERADORES_PADRAO[0].nome,
 
         pin: OPERADORES_PADRAO[0].pin,
 
@@ -263,7 +277,7 @@ describe('operador', () => {
 
       autenticarOperador({
 
-        operadorId: OPERADORES_PADRAO[2].id,
+        operadorNome: OPERADORES_PADRAO[2].nome,
 
         pin: OPERADORES_PADRAO[2].pin,
 
@@ -285,7 +299,7 @@ describe('operador', () => {
 
     const passira = autenticarOperador({
 
-      operadorId: OPERADORES_PADRAO[0].id,
+      operadorNome: OPERADORES_PADRAO[0].nome,
 
       pin: '111111',
 

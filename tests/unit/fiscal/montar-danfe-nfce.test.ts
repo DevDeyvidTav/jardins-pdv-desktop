@@ -80,7 +80,7 @@ describe('montarDanfeNfce', () => {
         chaveAcesso: chave,
         qrCode: 'https://www.sefaz.rs.gov.br/NFCE/NFCE-COM.aspx?p=1',
       }),
-    ).toBe(chave)
+    ).toBe('https://www.sefaz.rs.gov.br/NFCE/NFCE-COM.aspx?p=1')
     expect(conteudoQrDanfe({ chaveAcesso: chave, qrCode: null })).toBe(chave)
   })
 })

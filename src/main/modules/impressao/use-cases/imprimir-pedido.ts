@@ -238,7 +238,11 @@ function enviarDocumento(
   setor: SetorComanda | null,
 ): Pick<ResultadoImpressao, 'impresso' | 'aviso'> {
   if (destino.tipo === 'NAO_CONFIGURADO') {
-    return { impresso: true, aviso: null }
+    const setorLabel = setor ?? 'BALCAO'
+    return {
+      impresso: false,
+      aviso: `Setor ${setorLabel} sem impressora configurada. Abra Configuracoes → Impressoras, escolha a impressora e clique em Salvar.`,
+    }
   }
 
   let impresso = false

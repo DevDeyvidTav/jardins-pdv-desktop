@@ -10,7 +10,7 @@ interface ModalOperadorProps {
 }
 
 export function ModalOperador({ operador, onAutenticado }: ModalOperadorProps) {
-  const [operadorId, setOperadorId] = useState('')
+  const [operadorNome, setOperadorNome] = useState('')
   const [pin, setPin] = useState('')
   const [enviando, setEnviando] = useState(false)
 
@@ -18,7 +18,7 @@ export function ModalOperador({ operador, onAutenticado }: ModalOperadorProps) {
     evento.preventDefault()
     setEnviando(true)
 
-    const sucesso = await operador.autenticar(operadorId, pin.trim())
+    const sucesso = await operador.autenticar(operadorNome.trim(), pin.trim())
     setEnviando(false)
 
     if (sucesso) {
@@ -34,25 +34,22 @@ export function ModalOperador({ operador, onAutenticado }: ModalOperadorProps) {
     <div className="modal-operador" data-testid="modal-operador">
       <div className="modal-operador__conteudo">
         <h2>Identificação</h2>
-        <p>Selecione seu usuario e informe o PIN de 3 digitos para entrar no PDV.</p>
+        <p>
+          Informe seu usuario e o PIN de {TAMANHO_PIN_OPERADOR} digitos para entrar no PDV.
+        </p>
 
         <form onSubmit={(evento) => void handleSubmit(evento)}>
           <label className="modal-operador__campo">
             Usuario
-            <select
-              value={operadorId}
-              onChange={(evento) => setOperadorId(evento.target.value)}
+            <input
+              type="text"
+              autoComplete="username"
+              value={operadorNome}
+              onChange={(evento) => setOperadorNome(evento.target.value)}
               required
               autoFocus
               data-testid="campo-usuario-operador"
-            >
-              <option value="">Selecione...</option>
-              {operador.operadores.map((item) => (
-                <option key={item.operadorId} value={item.operadorId}>
-                  {item.operadorNome}
-                </option>
-              ))}
-            </select>
+            />
           </label>
 
           <label className="modal-operador__campo">

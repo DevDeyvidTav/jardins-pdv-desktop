@@ -32,6 +32,7 @@ export interface OperadorUsuarioRepository {
     verificar: (pinHash: string) => boolean,
   ): OperadorUsuarioRegistro | null
   buscarPorId(id: string): OperadorUsuarioRegistro | null
+  buscarPorNome(nome: string): OperadorUsuarioRegistro | null
   inserir(entrada: {
     id: string
     nome: string
@@ -100,6 +101,24 @@ export function criarOperadorUsuarioRepository(conexao: ConexaoSqlite): Operador
          WHERE id = ?`,
       )
       consulta.bind([id])
+
+      if (!consulta.step()) {
+        consulta.free()
+        return null
+      }
+
+      const registro = mapearLinha(consulta.getAsObject() as LinhaOperadorSql)
+      consulta.free()
+      return registro
+    },
+
+    buscarPorNome(nome) {
+      const consulta = conexao.instancia.prepare(
+        `SELECT id, nome, pin_hash, perfil, ativo
+         FROM operador_usuario
+         WHERE ativo = 1 AND lower(nome) = lower(?)`,
+      )
+      consulta.bind([nome.trim()])
 
       if (!consulta.step()) {
         consulta.free()

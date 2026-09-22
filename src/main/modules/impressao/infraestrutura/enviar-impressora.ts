@@ -226,12 +226,24 @@ export function recuperarImpressoraWindows(
   return consultarStatus(nomeImpressora)
 }
 
+/** COM direto nao depende da fila do spooler; nao bloqueia em job Retained. */
+export function prepararImpressoraParaEnvioCom(
+  nomeImpressora: string,
+  retomar = retomarImpressoraWindows,
+): void {
+  try {
+    retomar(nomeImpressora)
+  } catch {
+    // retomar e seguir — envio serial e independente da fila virtual
+  }
+}
+
 function enviarViaComWindows(
   buffer: Buffer,
   porta: string,
   nomeImpressora: string,
 ): void {
-  prepararImpressoraParaEnvio(nomeImpressora)
+  prepararImpressoraParaEnvioCom(nomeImpressora)
 
   const portaAtual = resolverPortaComImpressora(nomeImpressora, porta)
   let ultimoErro: unknown
@@ -282,6 +294,54 @@ export function normalizarPortaCom(porta: string | null | undefined): string | n
   return /^COM\d+$/i.test(limpa) ? limpa.toUpperCase() : null
 }
 
+/** Portas virtuais do driver (Bematech_USB etc.) nao entregam bytes ESC/POS de forma confiavel. */
+export function portaImpressoraEhVirtual(portName: string | null | undefined): boolean {
+  if (!portName?.trim()) {
+    return false
+  }
+
+  return normalizarPortaCom(portName) === null
+}
+
+export function listarPortasComWindows(
+  executarConsulta = executarConsultaPowerShell,
+): string[] {
+  try {
+    const saida = executarConsulta(
+      `@([System.IO.Ports.SerialPort]::GetPortNames() | Sort-Object | ForEach-Object { $_.ToUpper() }) -join '|'`,
+    ).trim()
+
+    if (!saida) {
+      return []
+    }
+
+    return saida
+      .split('|')
+      .map((porta) => normalizarPortaCom(porta))
+      .filter((porta): porta is string => Boolean(porta))
+  } catch {
+    return []
+  }
+}
+
+function escolherPortaComDisponivel(
+  preferencias: Array<string | null | undefined>,
+  portasSistema: string[],
+): string | null {
+  for (const preferencia of preferencias) {
+    const porta = normalizarPortaCom(preferencia)
+    if (porta && portasSistema.includes(porta)) {
+      return porta
+    }
+  }
+
+  if (portasSistema.length === 1) {
+    return portasSistema[0] ?? null
+  }
+
+  return null
+}
+
 /** PortName bruto do Windows (COM10, Bematech_USB, etc.). */
 export function consultarPortNameImpressoraWindows(
   nomeImpressora: string,
@@ -313,12 +373,23 @@ export function resolverPortaComImpressora(
   portaConfigurada?: string | null,
   env: NodeJS.ProcessEnv = process.env,
   detectar = detectarPortaComAtual,
+  listarPortas = listarPortasComWindows,
 ): string {
-  return (
-    detectar(nomeImpressora) ??
-    normalizarPortaCom(portaConfigurada) ??
-    obterPortaImpressoraLocal(env)
+  const detectada = detectar(nomeImpressora)
+  if (detectada) {
+    return detectada
+  }
+
+  const portasSistema = listarPortas()
+  const escolhida = escolherPortaComDisponivel(
+    [portaConfigurada, obterPortaImpressoraLocal(env)],
+    portasSistema,
   )
+  if (escolhida) {
+    return escolhida
+  }
+
+  return normalizarPortaCom(portaConfigurada) ?? obterPortaImpressoraLocal(env)
 }
 
 function enviarViaSpoolerWindows(

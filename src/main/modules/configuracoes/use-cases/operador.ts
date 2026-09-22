@@ -167,13 +167,13 @@ export function criarAutenticarOperador(repositorio?: OperadorUsuarioRepository)
       )
     }
 
-    const operadorId = entrada.operadorId.trim()
-    const registro = repo.buscarPorId(operadorId)
+    const operadorNome = entrada.operadorNome.trim()
+    const registro = repo.buscarPorNome(operadorNome)
 
-    if (!registro?.ativo) {
+    if (!registro) {
       throw new ErroConfiguracoes(
         CODIGOS_ERRO_CONFIGURACOES.OPERADOR_NAO_CONFIGURADO,
-        'Operador nao encontrado.',
+        'Usuario nao encontrado.',
       )
     }
 

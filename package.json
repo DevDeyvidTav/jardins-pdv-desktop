@@ -17,8 +17,9 @@
     "seed:fiscal-produtos": "vitest run --config vitest.seed.config.ts tests/seed/preencher-fiscal-produtos.seed.ts",
     "gen:china-express": "python scripts/gerar-china-express-catalogo.py",
     "seed:china-express": "vitest run --config vitest.seed.config.ts tests/seed/china-express.seed.ts",
-    "dist:win": "npm run rebuild:native && electron-vite build && electron-builder --win --publish never",
-    "dist:win:publish": "npm run rebuild:native && electron-vite build && electron-builder --win --publish always",
+    "icons": "node scripts/gerar-icone-instalador.mjs",
+    "dist:win": "npm run icons && npm run rebuild:native && electron-vite build && electron-builder --win --publish never",
+    "dist:win:publish": "npm run icons && npm run rebuild:native && electron-vite build && electron-builder --win --publish always",
     "build:win": "npm run dist:win",
     "dist": "npm run dist:win"
   },
@@ -41,6 +42,8 @@
     "electron": "^34.2.0",
     "electron-builder": "^25.1.8",
     "electron-vite": "^3.0.0",
+    "jimp": "^1.6.1",
+    "to-ico": "^1.1.5",
     "typescript": "^5.8.2",
     "vite": "^6.2.1",
     "vitest": "^3.0.8"
@@ -64,13 +67,16 @@
       {
         "from": "resources",
         "to": "resources",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       }
     ],
     "win": {
       "target": [
         "nsis"
       ],
+      "icon": "resources/icon.ico",
       "artifactName": "Jardins-PDV-${version}-Setup.${ext}",
       "signAndEditExecutable": false
     },
@@ -80,7 +86,10 @@
       "allowElevation": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Jardins PDV"
+      "shortcutName": "Jardins PDV",
+      "installerIcon": "resources/icon.ico",
+      "uninstallerIcon": "resources/icon.ico",
+      "installerHeaderIcon": "resources/icon.ico"
     },
     "publish": {
       "provider": "github",
