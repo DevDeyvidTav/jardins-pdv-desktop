@@ -11,6 +11,7 @@ export const ACAO_AUDITORIA = {
   PAGAMENTO: 'PAGAMENTO',
   MESA_TRANSFERIR: 'MESA_TRANSFERIR',
   CATALOGO: 'CATALOGO',
+  PRECO: 'PRECO',
 } as const
 
 export type AcaoAuditoria = (typeof ACAO_AUDITORIA)[keyof typeof ACAO_AUDITORIA]

@@ -11,7 +11,10 @@ import { criarCategoriaProdutoRepository } from '../repositories/categoria-produ
 import type { ProdutoRepository } from '../repositories/produto.repository'
 import { criarProdutoRepository } from '../repositories/produto.repository'
 import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
+import { ACAO_AUDITORIA } from '@shared/types/auditoria'
+import { formatarCentavosParaReais } from '@shared/utils/moeda'
 import { registrarProdutoSync } from '../../sincronizacao/services/registrar-cadastro-sync'
+import { registrarAcaoAuditoria } from '../../sincronizacao/services/registrar-acao-auditoria'
 import { validarRestricaoFiscalAtualizar } from '../util/restaurar-fiscal-produto'
 
 export function criarAtualizarProduto(
@@ -61,6 +64,7 @@ export function criarAtualizarProduto(
       }
     }
 
+    const precoAntes = existente.precoCentavos
     const produto = repositorioProduto.atualizar({
       produtoId: entrada.produtoId,
       categoriaId: entrada.categoriaId,
@@ -76,6 +80,18 @@ export function criarAtualizarProduto(
       fiscalCofinsCst: entrada.fiscalCofinsCst,
       fiscalAliquotaNacional: entrada.fiscalAliquotaNacional,
     })
+    if (entrada.precoCentavos !== undefined && entrada.precoCentavos !== precoAntes) {
+      registrarAcaoAuditoria({
+        acao: ACAO_AUDITORIA.PRECO,
+        resumo: `Alterou o preço de ${produto.nome} de ${formatarCentavosParaReais(precoAntes)} para ${formatarCentavosParaReais(entrada.precoCentavos)}`,
+        entidade: 'PRODUTO',
+        entidadeId: produto.id,
+        detalhes: {
+          precoAnteriorCentavos: precoAntes,
+          precoNovoCentavos: entrada.precoCentavos,
+        },
+      })
+    }
     registrarProdutoSync(produto, OPERACAO_SYNC.UPDATE)
     return produto
   }

@@ -16,11 +16,14 @@ import { criarPizzaSaborPrecoRepository } from '../repositories/pizza-sabor-prec
 import type { PizzaTamanhoRepository } from '../repositories/pizza-tamanho.repository'
 import { criarPizzaTamanhoRepository } from '../repositories/pizza-tamanho.repository'
 import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
+import { ACAO_AUDITORIA } from '@shared/types/auditoria'
+import { formatarCentavosParaReais } from '@shared/utils/moeda'
 import {
   registrarPizzaSaborPrecoSync,
   registrarPizzaSaborSync,
   registrarPizzaVinculoSync,
 } from '../../sincronizacao/services/registrar-cadastro-sync'
+import { registrarAcaoAuditoria } from '../../sincronizacao/services/registrar-acao-auditoria'
 
 export function criarCriarPizzaSabor(
   repositorio: PizzaSaborRepository = criarPizzaSaborRepository(),
@@ -175,11 +178,33 @@ export function criarDefinirPrecoSaborPorTamanho(
       )
     }
 
+    const precoAntes = repositorioPreco.buscarPorSaborETamanho(
+      entrada.saborId,
+      entrada.tamanhoId,
+    )?.valorCentavos
     const preco = repositorioPreco.definir({
       saborId: entrada.saborId,
       tamanhoId: entrada.tamanhoId,
       valorCentavos: entrada.valorCentavos,
     })
+    if (precoAntes !== entrada.valorCentavos) {
+      const nome = `${sabor.nome} ${tamanho.nome}`
+      registrarAcaoAuditoria({
+        acao: ACAO_AUDITORIA.PRECO,
+        resumo:
+          precoAntes === undefined
+            ? `Definiu o preço de ${nome} em ${formatarCentavosParaReais(entrada.valorCentavos)}`
+            : `Alterou o preço de ${nome} de ${formatarCentavosParaReais(precoAntes)} para ${formatarCentavosParaReais(entrada.valorCentavos)}`,
+        entidade: 'PIZZA_SABOR_PRECO',
+        entidadeId: preco.id,
+        detalhes: {
+          saborId: entrada.saborId,
+          tamanhoId: entrada.tamanhoId,
+          precoAnteriorCentavos: precoAntes ?? null,
+          precoNovoCentavos: entrada.valorCentavos,
+        },
+      })
+    }
     registrarPizzaSaborPrecoSync(preco)
     return preco
   }
