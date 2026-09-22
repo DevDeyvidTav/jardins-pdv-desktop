@@ -1,4 +1,4 @@
-import type { SetorImpressao } from '@shared/types/config-impressao'
+import type { SetorImpressao } from '@shared/types/config-impressora'
 import {
   SETOR_COMANDA,
   type DocumentoComandaImpressao,

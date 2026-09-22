@@ -194,7 +194,7 @@ describe('destino da impressora', () => {
       resolverPortaComImpressora('MP-4200 TH', 'COM10', {}, () => 'COM13'),
     ).toBe('COM13')
     expect(
-      resolverPortaComImpressora('MP-4200 TH', 'COM10', {}, () => null),
+      resolverPortaComImpressora('MP-4200 TH', 'COM10', {}, () => null, () => []),
     ).toBe('COM10')
     expect(normalizarPortaCom('com11:')).toBe('COM11')
   })

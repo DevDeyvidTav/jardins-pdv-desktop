@@ -95,7 +95,7 @@ export class MovimentoCaixaRepository {
     const movimentos: MovimentoCaixa[] = []
     while (consulta.step()) {
       movimentos.push(
-        mapearLinhaMovimentoCaixa(consulta.getAsObject() as LinhaMovimentoCaixaSql),
+        mapearLinhaMovimentoCaixa(consulta.getAsObject() as unknown as LinhaMovimentoCaixaSql),
       )
     }
     consulta.free()

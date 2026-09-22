@@ -184,6 +184,7 @@ describe('contrato da API exposta pelo preload', () => {
           nome: 'Bebidas',
           descricao: null,
           ativo: true,
+          setorImpressao: null,
           criadoEm: new Date().toISOString(),
           atualizadoEm: new Date().toISOString(),
         }),
@@ -193,6 +194,7 @@ describe('contrato da API exposta pelo preload', () => {
           nome: 'Bebidas',
           descricao: null,
           ativo: true,
+          setorImpressao: null,
           criadoEm: new Date().toISOString(),
           atualizadoEm: new Date().toISOString(),
         }),
@@ -201,6 +203,7 @@ describe('contrato da API exposta pelo preload', () => {
           nome: 'Bebidas',
           descricao: null,
           ativo: false,
+          setorImpressao: null,
           criadoEm: new Date().toISOString(),
           atualizadoEm: new Date().toISOString(),
         }),
@@ -209,6 +212,7 @@ describe('contrato da API exposta pelo preload', () => {
           nome: 'Bebidas',
           descricao: null,
           ativo: true,
+          setorImpressao: null,
           criadoEm: new Date().toISOString(),
           atualizadoEm: new Date().toISOString(),
         }),
@@ -221,6 +225,9 @@ describe('contrato da API exposta pelo preload', () => {
         reativarProduto: async () => ({ ...PRODUTO_BASE }),
         excluirProduto: async () => ({ modo: 'EXCLUIDO' as const }),
         obterProdutoPorId: async () => ({ ...PRODUTO_BASE }),
+      },
+      catalogo: {
+        buscarCategorias: async () => [],
       },
       mesas: {
         criarMesasPorIntervalo: async () => [
@@ -361,6 +368,7 @@ describe('contrato da API exposta pelo preload', () => {
           atualizadoEm: new Date().toISOString(),
         }),
         listarSabores: async () => [],
+        listarSaboresComCategorias: async () => [],
         criarSabor: async () => ({
           id: 'ps-1',
           nome: 'Calabresa',

@@ -1,4 +1,9 @@
 import { afterEach, describe, expect, it } from 'vitest'
+import { PERFIL_OPERADOR } from '../../../src/shared/types/operador'
+import {
+  definirSessaoOperador,
+  limparSessaoOperador,
+} from '../../../src/main/modules/configuracoes/services/contexto-sessao-operador'
 import {
   CODIGOS_ERRO_PRODUTOS,
   ErroProdutos,
@@ -24,6 +29,7 @@ describe('produtos', () => {
   let encerrarBanco: (() => void) | undefined
 
   afterEach(() => {
+    limparSessaoOperador()
     encerrarBanco?.()
     encerrarBanco = undefined
   })
@@ -79,6 +85,11 @@ describe('produtos', () => {
   })
 
   it('persiste dados fiscais informados', async () => {
+    definirSessaoOperador({
+      operadorId: 'op-admin',
+      operadorNome: 'Admin',
+      perfil: PERFIL_OPERADOR.ADMIN,
+    })
     const { categoria, criarProduto } = await prepararCatalogo()
 
     const produto = criarProduto({

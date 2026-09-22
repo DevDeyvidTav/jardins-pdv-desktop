@@ -25,9 +25,8 @@ jobs:
         run: npm ci
 
       - name: Testes e typecheck
-        run: |
-          npm run typecheck
-          npx vitest run
+        shell: bash
+        run: npm run typecheck && npx vitest run
 
       - name: Recompilar modulo nativo
         run: npm run rebuild:native

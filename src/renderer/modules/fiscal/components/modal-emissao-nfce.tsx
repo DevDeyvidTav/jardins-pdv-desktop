@@ -47,12 +47,18 @@ export function ModalEmissaoNfce({ pedidoId, onFechar }: Props) {
 
   useEffect(() => {
     let ativo = true
+    let intervalo: ReturnType<typeof setInterval> | undefined
 
     const carregar = async () => {
       try {
         const atual = await window.pdv.fiscal.obterDocumento({ pedidoId })
-        if (ativo) {
-          setDocumento(atual)
+        if (!ativo) {
+          return
+        }
+        setDocumento(atual)
+        if (atual && STATUS_FINAIS.has(atual.status) && intervalo) {
+          clearInterval(intervalo)
+          intervalo = undefined
         }
       } catch {
         // Documento ainda nao replicado — mantem etapa "Enviando"
@@ -60,18 +66,19 @@ export function ModalEmissaoNfce({ pedidoId, onFechar }: Props) {
     }
 
     void carregar()
-    const intervalo = setInterval(() => {
+    intervalo = setInterval(() => {
       void carregar()
     }, INTERVALO_POLL_MS)
 
     return () => {
       ativo = false
-      clearInterval(intervalo)
+      if (intervalo) {
+        clearInterval(intervalo)
+      }
     }
   }, [pedidoId])
 
   const status = documento?.status ?? null
-  const finalizado = status !== null && STATUS_FINAIS.has(status)
 
   async function reimprimir() {
     setImprimindo(true)

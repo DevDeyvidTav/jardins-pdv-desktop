@@ -9,7 +9,7 @@ import { prepararBancoTeste } from '../../helpers/banco-teste'
 
 describe('aplicarCardapioJardins', () => {
   // Seed completo + migracoes passam de 5s quando a suite roda em paralelo.
-  it('configura setores, renomeia categorias e separa pratos italianos', { timeout: 30_000 }, async () => {
+  it('configura setores, renomeia categorias e separa pratos italianos', { timeout: 120_000 }, async () => {
     const banco = await prepararBancoTeste()
     const conexao = obterConexaoBancoLocal()
 

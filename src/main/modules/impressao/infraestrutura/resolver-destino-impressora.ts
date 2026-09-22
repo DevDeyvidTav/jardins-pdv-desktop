@@ -4,6 +4,8 @@ import { criarConfigImpressoraRepository } from '../../configuracoes/repositorie
 
 import {
   consultarPortNameImpressoraWindows,
+  detectarPortaComAtual,
+  listarPortasComWindows,
   normalizarPortaCom,
   obterNomeImpressoraLocal,
   obterPortaImpressoraLocal,
@@ -79,7 +81,13 @@ export function resolverDestinoImpressoraPorSetor(
 
       tipo: 'COM',
 
-      porta: resolverPortaComImpressora(nome, config.portaCom, env),
+      porta: resolverPortaComImpressora(
+        nome,
+        config.portaCom,
+        env,
+        detectarPortaComAtual,
+        listarPortasComWindows,
+      ),
 
       nomeImpressora: nome,
 
@@ -103,7 +111,13 @@ export function resolverDestinoImpressoraPorSetor(
 
       tipo: 'COM',
 
-      porta: resolverPortaComImpressora(nome, config.portaCom, env),
+      porta: resolverPortaComImpressora(
+        nome,
+        config.portaCom,
+        env,
+        detectarPortaComAtual,
+        listarPortasComWindows,
+      ),
 
       nomeImpressora: nome,
 

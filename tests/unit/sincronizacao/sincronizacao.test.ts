@@ -214,8 +214,8 @@ describe('sincronizacao', () => {
     expect(payload.pizzas[0]?.tamanhoNomeSnapshot).toBe('Grande')
     expect(payload.pizzas[0]?.sabores[0]?.saborNomeSnapshot).toBe('Calabresa')
     expect(payload.pedido.fiscalSolicitado).toBe(false)
-    expect((payload as { itens: Array<{ fiscalNcm: string | null }> }).itens[0]?.fiscalNcm).toBe(
-      '19059090',
-    )
+    expect(
+      (payload as unknown as { itens: Array<{ fiscalNcm: string | null }> }).itens[0]?.fiscalNcm,
+    ).toBe('19059090')
   })
 })

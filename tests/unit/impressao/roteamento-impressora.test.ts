@@ -209,6 +209,7 @@ describe('resolver destino impressora', () => {
     vi.spyOn(enviarImpressora, 'consultarPortNameImpressoraWindows').mockReturnValue(
       'Bematech_USB',
     )
+    vi.spyOn(enviarImpressora, 'detectarPortaComAtual').mockReturnValue(null)
     vi.spyOn(enviarImpressora, 'listarPortasComWindows').mockReturnValue(['COM10'])
 
     const destino = resolverDestinoImpressoraPorSetor(

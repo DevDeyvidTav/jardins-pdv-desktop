@@ -90,6 +90,12 @@ function itemBebida() {
     atualizadoEm: agora,
     canceladoEm: null,
     motivoCancelamento: null,
+    fiscalNcm: null,
+    fiscalCfop: null,
+    fiscalIcmsOrigem: null,
+    fiscalIcmsCsosn: null,
+    fiscalPisCst: null,
+    fiscalCofinsCst: null,
   }
 }
 
