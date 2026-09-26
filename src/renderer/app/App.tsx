@@ -10,7 +10,7 @@ import { PedidosPage } from '../modules/pedidos/pages/pedidos.page'
 import { ModalEmissaoNfce } from '../modules/fiscal/components/modal-emissao-nfce'
 import { ClientesPage } from '../modules/clientes/pages/clientes.page'
 import { ConfiguracoesPage } from '../modules/configuracoes/pages/configuracoes.page'
-import { ModalOperador } from '../modules/configuracoes/components/modal-operador'
+import { TelaLoginOperador } from '../modules/configuracoes/pages/tela-login-operador'
 import { ModalAtualizacao } from '../modules/configuracoes/components/modal-atualizacao'
 import { useOperador } from '../modules/configuracoes/hooks/use-operador'
 import { useCaixa } from '../modules/caixa/hooks/use-caixa'
@@ -144,11 +144,12 @@ export function App() {
     }
   }, [operador.autenticado, podeConfigurar, secaoAtiva])
 
+  if (!operador.autenticado) {
+    return <TelaLoginOperador operador={operador} />
+  }
+
   return (
     <>
-      {!operador.autenticado ? (
-        <ModalOperador operador={operador} onAutenticado={() => undefined} />
-      ) : null}
       <NavegacaoPrincipal
         secaoAtiva={secaoAtiva}
         onMudarSecao={setSecaoAtiva}

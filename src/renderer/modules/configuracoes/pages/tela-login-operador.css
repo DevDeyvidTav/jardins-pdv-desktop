@@ -1,0 +1,106 @@
+.tela-login {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(320px, 1fr);
+  background: #111827;
+}
+
+.tela-login__marca {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 3rem 3.5rem;
+  color: #f9fafb;
+}
+
+.tela-login__selo {
+  margin: 1rem 0 0;
+  font-size: 0.8rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #d1d5db;
+}
+
+.tela-login__marca h1 {
+  margin: 0;
+  font-size: 2.4rem;
+  line-height: 1.15;
+}
+
+.tela-login__texto {
+  margin: 0;
+  max-width: 22rem;
+  color: #d1d5db;
+}
+
+.tela-login__formulario {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: #f3f4f6;
+}
+
+.tela-login__formulario form {
+  width: min(420px, 100%);
+  padding: 1.5rem;
+  border-radius: 1rem;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+}
+
+.tela-login__formulario h2 {
+  margin: 0 0 1rem;
+}
+
+.tela-login__campo {
+  display: grid;
+  gap: 0.35rem;
+  margin-bottom: 0.9rem;
+  font-size: 0.95rem;
+}
+
+.tela-login__campo input {
+  padding: 0.7rem 0.8rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+}
+
+.tela-login__erro {
+  color: #b91c1c;
+  margin: 0 0 0.75rem;
+}
+
+.tela-login__formulario button {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 0;
+  border-radius: 0.6rem;
+  background: #111827;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tela-login__formulario button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+@media (max-width: 860px) {
+  .tela-login {
+    grid-template-columns: 1fr;
+  }
+
+  .tela-login__marca {
+    padding: 2rem 1.5rem 1rem;
+    align-items: center;
+    text-align: center;
+  }
+
+  .tela-login__texto {
+    max-width: none;
+  }
+}
