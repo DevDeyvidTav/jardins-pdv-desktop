@@ -4,7 +4,7 @@ import { CANAIS_IPC } from '@shared/types/canais-ipc'
 import type { EstadoAtualizacao } from '@shared/types/atualizacao'
 import { registrarErro, registrarInfo } from '../logging/logger'
 
-const INTERVALO_VERIFICACAO_MS = 6 * 60 * 60 * 1000
+const INTERVALO_VERIFICACAO_MS = 60 * 60 * 1000
 
 let janelaPrincipal: BrowserWindow | null = null
 let intervaloVerificacao: NodeJS.Timeout | null = null

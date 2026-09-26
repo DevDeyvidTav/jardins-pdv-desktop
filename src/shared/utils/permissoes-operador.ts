@@ -7,7 +7,7 @@ import {
 
 const PERMISSOES_POR_PERFIL: Record<PerfilOperador, readonly PermissaoPdv[]> = {
   [PERFIL_OPERADOR.ADMIN]: Object.values(PERMISSAO_PDV),
-  [PERFIL_OPERADOR.OPERADOR]: [],
+  [PERFIL_OPERADOR.OPERADOR]: [PERMISSAO_PDV.CATALOGO_PIZZA],
 }
 
 export function operadorTemPermissao(

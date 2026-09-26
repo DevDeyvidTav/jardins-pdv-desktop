@@ -19,9 +19,9 @@ export function PainelAtualizacao({
     <section className="config-atualizacao" data-testid="painel-atualizacao">
       <h2>Versão e atualizações</h2>
       <p className="config-atualizacao__intro">
-        O PDV verifica sozinho se existe versão nova na internet. Quando encontra,
-        baixa em segundo plano e avisa aqui. Seus pedidos e dados do caixa continuam
-        no computador — a atualização só troca o programa.
+        O PDV consulta o GitHub ao abrir e de hora em hora. Quando encontra
+        versão nova, baixa em segundo plano e pede para reiniciar. Pedidos e
+        dados do caixa continuam no computador — a atualização só troca o programa.
       </p>
 
       <dl className="config-atualizacao__resumo">

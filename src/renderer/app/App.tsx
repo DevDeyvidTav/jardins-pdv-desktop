@@ -11,6 +11,7 @@ import { ModalEmissaoNfce } from '../modules/fiscal/components/modal-emissao-nfc
 import { ClientesPage } from '../modules/clientes/pages/clientes.page'
 import { ConfiguracoesPage } from '../modules/configuracoes/pages/configuracoes.page'
 import { ModalOperador } from '../modules/configuracoes/components/modal-operador'
+import { ModalAtualizacao } from '../modules/configuracoes/components/modal-atualizacao'
 import { useOperador } from '../modules/configuracoes/hooks/use-operador'
 import { useCaixa } from '../modules/caixa/hooks/use-caixa'
 import { useProdutos } from '../modules/produtos/hooks/use-produtos'
@@ -178,6 +179,7 @@ export function App() {
           onFechar={pedidos.fecharEmissaoNfce}
         />
       ) : null}
+      <ModalAtualizacao />
     </>
   )
 }
