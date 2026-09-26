@@ -1,5 +1,5 @@
 export const NOME_APLICACAO = 'PDV Restaurante'
-export const VERSAO_APLICACAO = '0.2.5'
+export const VERSAO_APLICACAO = '0.2.6'
 
 export interface InformacoesSistema {
   nomeAplicacao: string
