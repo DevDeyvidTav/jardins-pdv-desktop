@@ -55,14 +55,12 @@ export async function inicializarBancoLocal(
     // Import tardio: os repositorios do seed importam este modulo de volta, e o
     // import estatico deixava a classe do repositorio em TDZ no boot.
     const { garantirCardapioInicial } = await import('./seeds/garantir-cardapio-inicial')
-    const seedCardapio = garantirCardapioInicial(conexaoAtual)
+    const seedCardapio = await garantirCardapioInicial(conexaoAtual)
     if (seedCardapio.aplicado) {
       registrarInfo('Cardapio inicial aplicado', {
         operacao: 'banco.seed-cardapio',
-        produtos:
-          'resumo' in seedCardapio ? seedCardapio.resumo.produtosCriados : undefined,
-        sabores:
-          'resumo' in seedCardapio ? seedCardapio.resumo.saboresPizzaCriados : undefined,
+        produtos: seedCardapio.resumo?.produtosCriados,
+        sabores: seedCardapio.resumo?.saboresPizzaCriados,
       })
     }
     prepararBootBanco(conexaoAtual)

@@ -52,7 +52,7 @@ describe('garantirCardapioInicial', () => {
     const banco = await prepararBancoTeste()
     const conexao = obterConexaoBancoLocal()
 
-    const resultado = garantirCardapioInicial(conexao)
+    const resultado = await garantirCardapioInicial(conexao)
     expect(resultado.aplicado).toBe(false)
     expect(criarProdutoRepository(conexao).listarComCategoria()).toHaveLength(0)
 
