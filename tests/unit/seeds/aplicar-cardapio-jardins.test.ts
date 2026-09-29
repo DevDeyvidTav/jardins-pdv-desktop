@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { obterConexaoBancoLocal } from '../../../src/main/database/inicializar-banco'
-import {
-  aplicarCardapioJardins,
-  CHAVE_METADATA_CARDAPIO_JARDINS,
-} from '../../../src/main/database/seeds/aplicar-cardapio-jardins'
+import { aplicarCardapioJardins } from '../../../src/main/database/seeds/aplicar-cardapio-jardins'
 import { executarSeedChinaExpress } from '../../../src/main/database/seeds/seed-china-express'
 import { SETOR_POR_CATEGORIA_JARDINS } from '../../../src/main/database/seeds/setores-categoria-jardins'
 import { criarCategoriaProdutoRepository } from '../../../src/main/modules/produtos/repositories/categoria-produto.repository'
@@ -11,16 +8,20 @@ import { criarProdutoRepository } from '../../../src/main/modules/produtos/repos
 import { prepararBancoTeste } from '../../helpers/banco-teste'
 
 describe('aplicarCardapioJardins', () => {
-  // Seed completo + migracoes passam de 5s quando a suite roda em paralelo.
-  it('configura setores, renomeia categorias e separa pratos italianos', { timeout: 120_000 }, async () => {
+  // Um unico teste: o seed completo e pesado (~20s no CI por execucao) e
+  // varias rodadas no mesmo arquivo derrubam o worker do vitest (RPC timeout).
+  it('configura cardapio, esconde categorias fora do menu e preenche fiscal', { timeout: 180_000 }, async () => {
     const banco = await prepararBancoTeste()
     const conexao = obterConexaoBancoLocal()
 
     executarSeedChinaExpress(conexao, { forcar: true })
 
-    const categorias = criarCategoriaProdutoRepository(conexao).listar()
-    const produtos = criarProdutoRepository(conexao).listarComCategoria()
+    const repositorioCategoria = criarCategoriaProdutoRepository(conexao)
+    const repositorioProduto = criarProdutoRepository(conexao)
+    const categorias = repositorioCategoria.listar()
+    const produtos = repositorioProduto.listarComCategoria()
 
+    // Renomeia e separa categorias do cardapio Jardins
     expect(categorias.some((c) => c.nome === 'Pratos Quentes Chinesa')).toBe(true)
     expect(categorias.some((c) => c.nome === 'Pratos Quentes Italiano')).toBe(true)
     expect(categorias.some((c) => c.nome === 'Sushi Tradicional')).toBe(true)
@@ -41,64 +42,30 @@ describe('aplicarCardapioJardins', () => {
       }
     }
 
-    const reaplicar = aplicarCardapioJardins(conexao)
-    expect(reaplicar.aplicado).toBe(false)
-
-    banco.encerrar()
-  })
-
-  it('esconde categorias que nao estao no cardapio impresso', { timeout: 120_000 }, async () => {
-    const banco = await prepararBancoTeste()
-    const conexao = obterConexaoBancoLocal()
-
-    executarSeedChinaExpress(conexao, { forcar: true })
-
-    const categorias = criarCategoriaProdutoRepository(conexao).listar()
-    const produtos = criarProdutoRepository(conexao).listarComCategoria()
-
+    // Esconde categorias que nao estao no cardapio impresso
     for (const nome of ['Rodizio', 'Temakis', 'Yakissoba', 'Sobremesa', 'Promocao Do Dia']) {
       const categoria = categorias.find((c) => c.nome === nome)
       expect(categoria?.ativo).toBe(false)
-      expect(
-        produtos.some((p) => p.categoriaId === categoria?.id && p.ativo),
-      ).toBe(false)
+      expect(produtos.some((p) => p.categoriaId === categoria?.id && p.ativo)).toBe(false)
     }
 
-    banco.encerrar()
-  })
-
-  it('preenche fiscal de produto sem NCM', { timeout: 120_000 }, async () => {
-    const banco = await prepararBancoTeste()
-    const conexao = obterConexaoBancoLocal()
-
-    executarSeedChinaExpress(conexao, { forcar: true })
-
-    const repositorio = criarProdutoRepository(conexao)
-    const semNcm = repositorio
+    // Todo produto sai com NCM preenchido
+    const semNcm = repositorioProduto
       .listarComCategoria({ apenasAtivos: false })
       .filter((p) => !p.fiscalNcm)
-    expect(
-      semNcm.map((p) => `${p.categoriaNome} | ${p.nome}`),
-    ).toEqual([])
+    expect(semNcm.map((p) => `${p.categoriaNome} | ${p.nome}`)).toEqual([])
 
-    banco.encerrar()
-  })
+    // Idempotente na mesma versao
+    const reaplicar = aplicarCardapioJardins(conexao)
+    expect(reaplicar.aplicado).toBe(false)
 
-  it('reaplica quando a versao do cardapio muda', { timeout: 120_000 }, async () => {
-    const banco = await prepararBancoTeste()
-    const conexao = obterConexaoBancoLocal()
-
-    executarSeedChinaExpress(conexao, { forcar: true })
-
-    const repositorioCategoria = criarCategoriaProdutoRepository(conexao)
+    // Reaplica quando forçado (ex.: versao nova do cardapio)
     const rodizio = repositorioCategoria.listar().find((c) => c.nome === 'Rodizio')
-    expect(rodizio?.ativo).toBe(false)
-
     repositorioCategoria.reativar(rodizio!.id)
     expect(repositorioCategoria.buscarPorId(rodizio!.id)?.ativo).toBe(true)
 
-    const resultado = aplicarCardapioJardins(conexao, { forcar: true })
-    expect(resultado.aplicado).toBe(true)
+    const forcado = aplicarCardapioJardins(conexao, { forcar: true })
+    expect(forcado.aplicado).toBe(true)
     expect(repositorioCategoria.buscarPorId(rodizio!.id)?.ativo).toBe(false)
 
     banco.encerrar()
