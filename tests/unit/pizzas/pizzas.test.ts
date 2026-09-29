@@ -3,7 +3,10 @@ import { ZodError } from 'zod'
 import {
   calcularPrecoPizzaCentavos,
   REGRA_PRECIFICACAO_PIZZA,
+  resolverRegraPrecificacaoComposicaoPizza,
+  rotuloRegraPrecificacaoPizza,
   TIPO_PEDIDO_ITEM,
+  type PizzaCategoria,
 } from '../../../src/shared/types/pizza'
 import { FORMA_PAGAMENTO } from '../../../src/shared/types/pagamento-pedido'
 import {
@@ -88,6 +91,79 @@ describe('calcularPrecoPizzaCentavos', () => {
     expect(() =>
       calcularPrecoPizzaCentavos([], REGRA_PRECIFICACAO_PIZZA.MAIOR_SABOR),
     ).toThrow(/vazia/)
+  })
+})
+
+function categoriaFake(
+  id: string,
+  regra: (typeof REGRA_PRECIFICACAO_PIZZA)[keyof typeof REGRA_PRECIFICACAO_PIZZA],
+): PizzaCategoria {
+  return {
+    id,
+    nome: id,
+    descricao: null,
+    regraPrecificacao: regra,
+    ativa: true,
+    ordem: 1,
+    criadoEm: '2026-01-01T00:00:00.000Z',
+    atualizadoEm: '2026-01-01T00:00:00.000Z',
+  }
+}
+
+describe('resolverRegraPrecificacaoComposicaoPizza', () => {
+  it('usa a regra da categoria quando todos os sabores sao da mesma', () => {
+    const tradicional = categoriaFake('trad', REGRA_PRECIFICACAO_PIZZA.MEDIA_SABORES)
+    const resolucao = resolverRegraPrecificacaoComposicaoPizza(
+      [
+        { valorCentavos: 3000, categoriaIds: [tradicional.id] },
+        { valorCentavos: 5000, categoriaIds: [tradicional.id] },
+      ],
+      (id) => (id === tradicional.id ? tradicional : null),
+    )
+
+    expect(resolucao.regra).toBe(REGRA_PRECIFICACAO_PIZZA.MEDIA_SABORES)
+    expect(resolucao.categoriaReferencia.id).toBe(tradicional.id)
+  })
+
+  it('mantem media ao misturar categorias que usam a mesma regra', () => {
+    const tradicional = categoriaFake('trad', REGRA_PRECIFICACAO_PIZZA.MEDIA_SABORES)
+    const especial = categoriaFake('esp', REGRA_PRECIFICACAO_PIZZA.MEDIA_SABORES)
+    const resolucao = resolverRegraPrecificacaoComposicaoPizza(
+      [
+        { valorCentavos: 3000, categoriaIds: [tradicional.id] },
+        { valorCentavos: 5000, categoriaIds: [especial.id] },
+      ],
+      (id) => (id === tradicional.id ? tradicional : especial),
+    )
+
+    expect(resolucao.regra).toBe(REGRA_PRECIFICACAO_PIZZA.MEDIA_SABORES)
+    expect(resolucao.categoriaReferencia.id).toBe(especial.id)
+  })
+
+  it('usa sabor mais caro quando as categorias discordam da regra', () => {
+    const tradicional = categoriaFake('trad', REGRA_PRECIFICACAO_PIZZA.MEDIA_SABORES)
+    const especial = categoriaFake('esp', REGRA_PRECIFICACAO_PIZZA.MAIOR_SABOR)
+    const resolucao = resolverRegraPrecificacaoComposicaoPizza(
+      [
+        { valorCentavos: 3000, categoriaIds: [tradicional.id] },
+        { valorCentavos: 5000, categoriaIds: [especial.id] },
+      ],
+      (id) => (id === tradicional.id ? tradicional : especial),
+    )
+
+    expect(resolucao.regra).toBe(REGRA_PRECIFICACAO_PIZZA.MAIOR_SABOR)
+    expect(resolucao.categoriaReferencia.id).toBe(especial.id)
+  })
+})
+
+describe('rotuloRegraPrecificacaoPizza', () => {
+  it('nomeia as regras para o operador', () => {
+    expect(rotuloRegraPrecificacaoPizza(REGRA_PRECIFICACAO_PIZZA.MAIOR_SABOR)).toBe(
+      'Sabor mais caro',
+    )
+    expect(rotuloRegraPrecificacaoPizza(REGRA_PRECIFICACAO_PIZZA.MEDIA_SABORES)).toBe(
+      'Média dos sabores',
+    )
   })
 })
 
@@ -273,6 +349,35 @@ describe('pizzas', () => {
 
     expect(preview.valorFinalCentavos).toBe(5000)
     expect(preview.categoria.regraPrecificacao).toBe(REGRA_PRECIFICACAO_PIZZA.MAIOR_SABOR)
+  })
+
+  it('mantem MEDIA_SABORES ao misturar categorias com a mesma regra', async () => {
+    const ambiente = await setup({
+      regraPrecificacao: REGRA_PRECIFICACAO_PIZZA.MEDIA_SABORES,
+    })
+    const categoriaEspecial = ambiente.criarCategoria({
+      nome: 'Especial media',
+      regraPrecificacao: REGRA_PRECIFICACAO_PIZZA.MEDIA_SABORES,
+    })
+    const saborEspecial = ambiente.criarSabor({ nome: 'Premium media' })
+    ambiente.vincularSaborCategoria({
+      categoriaId: categoriaEspecial.id,
+      saborId: saborEspecial.id,
+    })
+    ambiente.definirPreco({
+      saborId: saborEspecial.id,
+      tamanhoId: ambiente.tamanhoM.id,
+      valorCentavos: 5000,
+    })
+
+    const preview = ambiente.montarPreview({
+      tamanhoId: ambiente.tamanhoM.id,
+      saborIds: [ambiente.sabores.mussarela.id, saborEspecial.id],
+    })
+
+    // M: mussarela 3500 + premium 5000 → media 4250
+    expect(preview.valorFinalCentavos).toBe(4250)
+    expect(preview.categoria.regraPrecificacao).toBe(REGRA_PRECIFICACAO_PIZZA.MEDIA_SABORES)
   })
 
   it('mantem precos diferentes por tamanho', async () => {

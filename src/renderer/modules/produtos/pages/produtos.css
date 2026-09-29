@@ -173,6 +173,12 @@
   color: #374151;
 }
 
+.formulario-produto__campo small {
+  font-weight: 400;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
 .formulario-categoria input,
 .formulario-produto input,
 .formulario-produto select,

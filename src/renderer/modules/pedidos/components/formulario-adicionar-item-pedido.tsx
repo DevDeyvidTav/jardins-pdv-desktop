@@ -3,7 +3,7 @@ import type { CategoriaProduto } from '@shared/types/categoria-produto'
 import type { CategoriaCatalogo } from '@shared/types/categoria-catalogo'
 import type { ProdutoComCategoria } from '@shared/types/produto'
 import {
-  REGRA_PRECIFICACAO_PIZZA,
+  rotuloRegraPrecificacaoPizza,
   type PizzaSaborComCategoria,
   type PizzaTamanho,
   type PreviewPizza,
@@ -881,9 +881,7 @@ function FormularioPizzaRapido({
         data-testid="pizza-regra-preco"
       >
         {regraPreview
-          ? regraPreview === REGRA_PRECIFICACAO_PIZZA.MAIOR_SABOR
-            ? 'Preco calculado pelo maior sabor'
-            : 'Preco calculado pela media dos sabores'
+          ? `Preço: ${rotuloRegraPrecificacaoPizza(regraPreview).toLowerCase()}`
           : ''}
       </p>
 

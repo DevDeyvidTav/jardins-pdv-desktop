@@ -7,9 +7,10 @@ import { criarCategoriaProdutoRepository } from '../../modules/produtos/reposito
 import { criarProdutoRepository } from '../../modules/produtos/repositories/produto.repository'
 import { criarCriarCategoriaProduto } from '../../modules/produtos/use-cases/criar-categoria-produto'
 import { criarCriarProduto } from '../../modules/produtos/use-cases/criar-produto'
+import { preencherFiscalProduto } from '@shared/utils/preencher-fiscal-produto'
 import { SETOR_POR_CATEGORIA_JARDINS } from './setores-categoria-jardins'
 
-export const CHAVE_METADATA_CARDAPIO_JARDINS = 'cardapio_jardins_config_v2'
+export const CHAVE_METADATA_CARDAPIO_JARDINS = 'cardapio_jardins_config_v3'
 
 const FISCAL_PADRAO = {
   fiscalNcm: '21069090',
@@ -124,6 +125,26 @@ function normalizarNome(nome: string): string {
   return nome.trim().toUpperCase()
 }
 
+/** Categorias do seed que nao aparecem no cardapio impresso — ficam ocultas no caixa. */
+const CATEGORIAS_OCULTAS_CARDAPIO_REAL = [
+  'Promocao Do Dia',
+  'Rdz A La Cart',
+  'Rdz Pecas Especiais',
+  'Rdz Pratos',
+  'Rdz Rolinho',
+  'Rdz Sunomono',
+  'Rdz Temaki',
+  'Rodizio',
+  'Rolinhos',
+  'Sashimi',
+  'Sobremesa',
+  'Sunomono',
+  'Supremo',
+  'Sushiburguer',
+  'Temakis',
+  'Yakissoba',
+]
+
 function buscarCategoriaPorNome(
   repositorio: ReturnType<typeof criarCategoriaProdutoRepository>,
   nome: string,
@@ -179,6 +200,14 @@ export function aplicarCardapioJardins(
       categoriaId: pratosQuentes.id,
       nome: 'Pratos Quentes Chinesa',
     })
+  }
+
+  for (const nome of CATEGORIAS_OCULTAS_CARDAPIO_REAL) {
+    const categoria = buscarCategoriaPorNome(repositorioCategoria, nome)
+    if (categoria?.ativo) {
+      repositorioProduto.inativarPorCategoria(categoria.id)
+      repositorioCategoria.inativar(categoria.id)
+    }
   }
 
   const pratosItaliano = garantirCategoria(
@@ -373,6 +402,17 @@ export function aplicarCardapioJardins(
   }
 
   aplicarSetoresCategoria(repositorioCategoria)
+
+  for (const produto of repositorioProduto.listarComCategoria({ apenasAtivos: false })) {
+    const resultado = preencherFiscalProduto(produto)
+    if (resultado.atualizado && resultado.dadosFiscais) {
+      repositorioProduto.atualizar({
+        produtoId: produto.id,
+        ...resultado.dadosFiscais,
+      })
+    }
+  }
+
   definirValorMetadata(conexao, CHAVE_METADATA_CARDAPIO_JARDINS, '1')
 
   return { aplicado: true }

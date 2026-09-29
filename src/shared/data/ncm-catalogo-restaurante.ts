@@ -244,6 +244,13 @@ const NCM_POR_CATEGORIA: Record<string, SugestaoNcmProduto> = {
   pizza: { ncm: '19059090', fonte: 'Fallback pizzas — NCM 1905.90.90' },
   sushi: { ncm: '16042000', fonte: 'Fallback sushi — NCM 1604.20.00' },
   combos: { ncm: '21069090', fonte: 'Fallback combos — NCM 2106.90.90' },
+  'sushi tradicional': { ncm: '16042000', fonte: 'Fallback sushi — NCM 1604.20.00' },
+  'sushi especial': { ncm: '16042000', fonte: 'Fallback sushi — NCM 1604.20.00' },
+  'sushi premium': { ncm: '16042000', fonte: 'Fallback sushi — NCM 1604.20.00' },
+  'sushi doce': { ncm: '19059090', fonte: 'Fallback sushi doce — NCM 1905.90.90' },
+  'pratos quentes chinesa': { ncm: '21069090', fonte: 'Fallback pratos — NCM 2106.90.90' },
+  'pratos quentes italiano': { ncm: '21069090', fonte: 'Fallback pratos — NCM 2106.90.90' },
+  petiscos: { ncm: '21069090', fonte: 'Fallback petiscos — NCM 2106.90.90' },
 }
 
 import { resolverFiscalChinaExpress } from './china-express-catalogo-fiscal'

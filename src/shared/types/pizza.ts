@@ -6,6 +6,12 @@ export const REGRA_PRECIFICACAO_PIZZA = {
 export type RegraPrecificacaoPizza =
   (typeof REGRA_PRECIFICACAO_PIZZA)[keyof typeof REGRA_PRECIFICACAO_PIZZA]
 
+export function rotuloRegraPrecificacaoPizza(regra: string): string {
+  return regra === REGRA_PRECIFICACAO_PIZZA.MEDIA_SABORES
+    ? 'Média dos sabores'
+    : 'Sabor mais caro'
+}
+
 export const TIPO_PEDIDO_ITEM = {
   PRODUTO: 'PRODUTO',
   PIZZA: 'PIZZA',
@@ -221,24 +227,23 @@ export function resolverRegraPrecificacaoComposicaoPizza(
     return categoria
   })
 
-  const categoriasUnicas = new Set(categoriasPorSabor.map((categoria) => categoria.id))
-
-  if (categoriasUnicas.size === 1) {
-    const categoriaReferencia = categoriasPorSabor[0]!
-    return {
-      regra: categoriaReferencia.regraPrecificacao,
-      categoriaReferencia,
-    }
-  }
-
   const indiceMaisCaro = sabores.reduce(
     (indiceAtual, sabor, indice) =>
       sabor.valorCentavos >= sabores[indiceAtual]!.valorCentavos ? indice : indiceAtual,
     0,
   )
+  const categoriaDoMaisCaro = categoriasPorSabor[indiceMaisCaro]!
+  const regras = new Set(categoriasPorSabor.map((categoria) => categoria.regraPrecificacao))
+
+  if (regras.size === 1) {
+    return {
+      regra: categoriaDoMaisCaro.regraPrecificacao,
+      categoriaReferencia: categoriaDoMaisCaro,
+    }
+  }
 
   return {
     regra: REGRA_PRECIFICACAO_PIZZA.MAIOR_SABOR,
-    categoriaReferencia: categoriasPorSabor[indiceMaisCaro]!,
+    categoriaReferencia: categoriaDoMaisCaro,
   }
 }

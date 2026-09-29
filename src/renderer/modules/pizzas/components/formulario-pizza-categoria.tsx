@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import {
   REGRA_PRECIFICACAO_PIZZA,
+  rotuloRegraPrecificacaoPizza,
   type PizzaCategoria,
   type RegraPrecificacaoPizza,
 } from '@shared/types/pizza'
@@ -82,7 +83,7 @@ export function FormularioPizzaCategoria({
       </label>
 
       <label className="formulario-produto__campo" htmlFor="regra-pizza-categoria">
-        Regra de precificacao
+        Como cobrar pizza com mais de um sabor
         <select
           id="regra-pizza-categoria"
           data-testid="campo-regra-pizza-categoria"
@@ -90,9 +91,18 @@ export function FormularioPizzaCategoria({
           onChange={(evento) => setRegra(evento.target.value as RegraPrecificacaoPizza)}
           disabled={carregando || enviando}
         >
-          <option value={REGRA_PRECIFICACAO_PIZZA.MAIOR_SABOR}>Maior sabor</option>
-          <option value={REGRA_PRECIFICACAO_PIZZA.MEDIA_SABORES}>Media dos sabores</option>
+          <option value={REGRA_PRECIFICACAO_PIZZA.MAIOR_SABOR}>
+            {rotuloRegraPrecificacaoPizza(REGRA_PRECIFICACAO_PIZZA.MAIOR_SABOR)}
+          </option>
+          <option value={REGRA_PRECIFICACAO_PIZZA.MEDIA_SABORES}>
+            {rotuloRegraPrecificacaoPizza(REGRA_PRECIFICACAO_PIZZA.MEDIA_SABORES)}
+          </option>
         </select>
+        <small>
+          {regra === REGRA_PRECIFICACAO_PIZZA.MAIOR_SABOR
+            ? 'Cobra o preço do sabor mais caro. Se misturar com outra categoria que usa média, vale o mais caro.'
+            : 'Cobra a média dos sabores. Vale também ao misturar categorias que usam a mesma regra.'}
+        </small>
       </label>
 
       <label className="formulario-produto__campo" htmlFor="descricao-pizza-categoria">

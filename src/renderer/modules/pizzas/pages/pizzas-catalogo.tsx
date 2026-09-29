@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import {
-  REGRA_PRECIFICACAO_PIZZA,
+  rotuloRegraPrecificacaoPizza,
   type PizzaCategoria,
   type PizzaSabor,
   type PizzaTamanho,
@@ -15,12 +15,6 @@ import './pizzas.css'
 interface PizzasCatalogoProps {
   pizzas: UsePizzasResultado
   permitirEdicao?: boolean
-}
-
-function rotuloRegra(regra: string): string {
-  return regra === REGRA_PRECIFICACAO_PIZZA.MAIOR_SABOR
-    ? 'Maior sabor'
-    : 'Media dos sabores'
 }
 
 function DialogoCadastro({
@@ -224,7 +218,7 @@ export function PizzasCatalogo({ pizzas, permitirEdicao = false }: PizzasCatalog
                 >
                   <div className="lista-categorias__selecao">
                     <strong>{categoria.nome}</strong>
-                    <span>{rotuloRegra(categoria.regraPrecificacao)}</span>
+                    <span>{rotuloRegraPrecificacaoPizza(categoria.regraPrecificacao)}</span>
                   </div>
                   <span
                     className={
