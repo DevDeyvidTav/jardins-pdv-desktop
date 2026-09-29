@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { _electron as electron } from '@playwright/test'
 import { test, expect } from '@playwright/test'
+import { entrarComOperadorPadrao } from './helpers-operador'
 
 const diretorioDesktop = join(__dirname, '../..')
 const executavelMain = join(diretorioDesktop, 'out/main/index.js')
@@ -27,6 +28,7 @@ test.describe('catalogo de produtos local', () => {
       const janela = await aplicativo.firstWindow()
 
       await expect(janela.getByTestId('app-carregando')).toBeHidden({ timeout: 15_000 })
+      await entrarComOperadorPadrao(janela)
       await janela.getByTestId('nav-produtos').click()
       await expect(janela.getByTestId('pagina-produtos')).toBeVisible()
 
@@ -79,6 +81,7 @@ test.describe('catalogo de produtos local', () => {
       await expect(janelaReaberta.getByTestId('app-carregando')).toBeHidden({
         timeout: 15_000,
       })
+      await entrarComOperadorPadrao(janelaReaberta)
       await janelaReaberta.getByTestId('nav-produtos').click()
       await expect(janelaReaberta.getByTestId('item-categoria')).toHaveCount(1)
       await expect(

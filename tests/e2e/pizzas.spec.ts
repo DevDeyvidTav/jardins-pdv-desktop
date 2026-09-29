@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { _electron as electron } from '@playwright/test'
 import { test, expect, type Page } from '@playwright/test'
+import { entrarComOperadorPadrao } from './helpers-operador'
 
 const diretorioDesktop = join(__dirname, '../..')
 const executavelMain = join(diretorioDesktop, 'out/main/index.js')
@@ -20,6 +21,7 @@ async function abrirAplicativo(diretorioDados: string) {
 
 async function garantirCaixaAberto(janela: Page) {
   await expect(janela.getByTestId('app-carregando')).toBeHidden({ timeout: 15_000 })
+  await entrarComOperadorPadrao(janela)
 
   if (await janela.getByTestId('pagina-abertura-caixa').isVisible().catch(() => false)) {
     await janela.getByTestId('campo-saldo-inicial').fill('100,00')
@@ -80,9 +82,9 @@ async function configurarCatalogoPizzas(janela: Page) {
     await janela.getByTestId('botao-salvar-precos-sabor').click()
     await expect(janela.getByTestId('feedback-sucesso-pizzas')).toBeVisible({ timeout: 10_000 })
 
-    // Fecha o formulario de edicao antes do proximo sabor
+    // Fecha o modal de edicao antes do proximo sabor
     await janela
-      .locator('[data-testid="secao-pizza-sabores"] > header')
+      .getByTestId('formulario-pizza-sabor')
       .getByRole('button', { name: 'Fechar' })
       .click()
   }
@@ -93,6 +95,11 @@ async function configurarCatalogoPizzas(janela: Page) {
 
 async function abrirFormularioAdicionarItem(janela: Page) {
   if (await janela.getByTestId('busca-produtos-pedido').isVisible().catch(() => false)) {
+    // Seletor ja aberto (fica aberto apos cada item): volta para as categorias.
+    const voltar = janela.getByTestId('botao-voltar-categorias')
+    if (await voltar.isVisible().catch(() => false)) {
+      await voltar.click()
+    }
     return
   }
   await janela.getByTestId('botao-adicionar-item-painel').click()
@@ -101,13 +108,31 @@ async function abrirFormularioAdicionarItem(janela: Page) {
 async function selecionarCategoriaPizza(janela: Page) {
   const campo = janela.getByTestId('campo-categoria-produto-pedido')
   await expect(campo).toBeVisible()
-  await campo.click()
   const opcao = janela
-    .getByTestId('lista-opcoes-categoria-pedido')
-    .getByRole('option', { name: 'Pizzas' })
+    .getByTestId('opcao-categoria-pedido')
+    .filter({ hasText: 'Pizzas' })
     .first()
   await expect(opcao).toBeVisible({ timeout: 10_000 })
   await opcao.click()
+}
+
+async function selecionarTamanhoPizza(janela: Page, sigla: 'P' | 'M' | 'G') {
+  const tile = janela
+    .getByTestId('opcao-pizza-tamanho')
+    .filter({ hasText: new RegExp(`\\(${sigla}\\)`) })
+    .first()
+  await expect(tile).toBeVisible({ timeout: 10_000 })
+  await tile.click()
+}
+
+async function tocarSaborPizza(janela: Page, nome: string) {
+  const tile = janela
+    .getByTestId('opcao-pizza-sabor')
+    .filter({ hasText: nome })
+    .first()
+  await expect(tile).toBeVisible({ timeout: 10_000 })
+  await tile.click()
+  return tile
 }
 
 async function adicionarPizzaComSabores(
@@ -118,24 +143,14 @@ async function adicionarPizzaComSabores(
   await selecionarCategoriaPizza(janela)
   await expect(janela.getByTestId('formulario-adicionar-pizza')).toBeVisible()
 
-  const tamanhoOption = janela
-    .getByTestId('campo-pizza-tamanho')
-    .locator('option')
-    .filter({ hasText: new RegExp(`\\(${opcoes.tamanhoSigla}\\)`) })
-  const tamanhoValue = await tamanhoOption.first().getAttribute('value')
-  expect(tamanhoValue).toBeTruthy()
-  await janela.getByTestId('campo-pizza-tamanho').selectOption(tamanhoValue!)
+  await selecionarTamanhoPizza(janela, opcoes.tamanhoSigla)
 
   await expect(janela.getByTestId('pizza-limite-sabores')).toContainText(
     `Pizza ${opcoes.tamanhoSigla}`,
   )
 
   for (const nome of opcoes.nomesSabores) {
-    const checkbox = janela
-      .locator('label')
-      .filter({ hasText: nome })
-      .getByTestId('opcao-pizza-sabor')
-    await checkbox.check()
+    await tocarSaborPizza(janela, nome)
   }
 
   if (opcoes.observacao) {
@@ -144,7 +159,8 @@ async function adicionarPizzaComSabores(
 
   await expect(janela.getByTestId('preview-pizza-preco')).not.toHaveText('—', { timeout: 10_000 })
   await janela.getByTestId('botao-confirmar-pizza').click()
-  await expect(janela.getByTestId('formulario-adicionar-pizza')).toBeHidden({ timeout: 10_000 })
+  // O seletor fica aberto para a proxima pizza; o preview limpa apos adicionar.
+  await expect(janela.getByTestId('preview-pizza-preco')).toHaveText('—', { timeout: 10_000 })
 }
 
 test.describe('pizzas', () => {
@@ -190,32 +206,12 @@ test.describe('pizzas', () => {
       await abrirFormularioAdicionarItem(janela)
       await selecionarCategoriaPizza(janela)
       await expect(janela.getByTestId('formulario-adicionar-pizza')).toBeVisible()
-      const tamanhoP = await janela
-        .getByTestId('campo-pizza-tamanho')
-        .locator('option')
-        .filter({ hasText: /\(P\)/ })
-        .first()
-        .getAttribute('value')
-      await janela.getByTestId('campo-pizza-tamanho').selectOption(tamanhoP!)
-      await janela
-        .locator('label')
-        .filter({ hasText: 'Calabresa' })
-        .getByTestId('opcao-pizza-sabor')
-        .check()
-      await janela
-        .locator('label')
-        .filter({ hasText: 'Frango' })
-        .getByTestId('opcao-pizza-sabor')
-        .check()
-      await janela
-        .locator('label')
-        .filter({ hasText: 'Quatro Queijos' })
-        .getByTestId('opcao-pizza-sabor')
-        .click({ force: true })
+      await selecionarTamanhoPizza(janela, 'P')
+      await tocarSaborPizza(janela, 'Calabresa')
+      await tocarSaborPizza(janela, 'Frango')
+      const terceiroSabor = await tocarSaborPizza(janela, 'Quatro Queijos')
       await expect(janela.getByText(/permite no maximo 2/i)).toBeVisible()
-      await expect(
-        janela.locator('label').filter({ hasText: 'Quatro Queijos' }).getByTestId('opcao-pizza-sabor'),
-      ).not.toBeChecked()
+      await expect(terceiroSabor).toHaveAttribute('aria-pressed', 'false')
 
       const rejeicaoIpc = await janela.evaluate(async () => {
         const categorias = await window.pdv.pizzas.listarCategorias({ apenasAtivas: true })

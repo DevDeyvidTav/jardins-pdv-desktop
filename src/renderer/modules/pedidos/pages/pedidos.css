@@ -1422,6 +1422,124 @@
   margin: 0;
 }
 
+/* Seletor de itens em quadradinhos (categorias, produtos, tamanhos e sabores) */
+.seletor-item__cabecalho {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.seletor-item__cabecalho-titulo {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.busca-produtos-pedido .seletor-item__voltar {
+  padding: 0.3125rem 0.625rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #111827;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.busca-produtos-pedido .seletor-item__voltar:hover {
+  border-color: #111827;
+}
+
+.seletor-item__grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
+  gap: 0.375rem;
+  max-height: 13rem;
+  overflow: auto;
+  padding: 0.125rem;
+}
+
+.seletor-item__grade--tamanhos {
+  grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr));
+  max-height: none;
+}
+
+.seletor-item__grade--sabores {
+  grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+  max-height: none;
+}
+
+.busca-produtos-pedido .seletor-item__tile {
+  display: grid;
+  gap: 0.125rem;
+  align-content: center;
+  min-height: 3rem;
+  padding: 0.4375rem 0.625rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #111827;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.busca-produtos-pedido .seletor-item__tile:hover {
+  border-color: #111827;
+}
+
+.busca-produtos-pedido .seletor-item__tile[aria-pressed='true'] {
+  background: #111827;
+  border-color: #111827;
+  color: #f9fafb;
+}
+
+.busca-produtos-pedido .seletor-item__tile--pizza {
+  border-style: dashed;
+}
+
+.seletor-item__tile-meta {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.busca-produtos-pedido .seletor-item__tile[aria-pressed='true'] .seletor-item__tile-meta {
+  color: #d1d5db;
+}
+
+.seletor-item__barra-add {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 3.5rem auto;
+  gap: 0.5rem;
+  align-items: end;
+  padding: 0.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f9fafb;
+}
+
+.seletor-item__barra-add-info {
+  display: grid;
+  gap: 0.125rem;
+  min-width: 0;
+  font-size: 0.8125rem;
+  color: #111827;
+}
+
+.seletor-item__barra-add-info strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.seletor-item__barra-add-info span {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;

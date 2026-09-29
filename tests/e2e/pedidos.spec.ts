@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { _electron as electron } from '@playwright/test'
 import { test, expect, type Page } from '@playwright/test'
+import { entrarComOperadorPadrao } from './helpers-operador'
 
 const diretorioDesktop = join(__dirname, '../..')
 const executavelMain = join(diretorioDesktop, 'out/main/index.js')
@@ -20,6 +21,7 @@ async function abrirAplicativo(diretorioDados: string) {
 
 async function garantirCaixaAberto(janela: Page) {
   await expect(janela.getByTestId('app-carregando')).toBeHidden({ timeout: 15_000 })
+  await entrarComOperadorPadrao(janela)
 
   if (await janela.getByTestId('pagina-abertura-caixa').isVisible().catch(() => false)) {
     await janela.getByTestId('campo-saldo-inicial').fill('100,00')
@@ -99,7 +101,8 @@ test.describe('pedidos locais', () => {
       await expect(janela.getByTestId('item-pedido')).toHaveCount(0)
       await expect(janela.getByTestId('pedido-total')).toHaveText(/R\$\s*0,00/)
 
-      await janela.getByTestId('botao-adicionar-item-painel').click()
+      // O seletor continua aberto apos adicionar — volta para as categorias
+      await janela.getByTestId('botao-voltar-categorias').click()
       await janela.getByTestId('campo-categoria-produto-pedido').click()
       await janela.getByTestId('opcao-categoria-pedido').first().click()
       await janela.getByTestId('campo-produto-pedido').click()
@@ -114,6 +117,7 @@ test.describe('pedidos locais', () => {
       const janelaReaberta = await aplicativoReaberto.firstWindow()
 
       await expect(janelaReaberta.getByTestId('app-carregando')).toBeHidden({ timeout: 15_000 })
+      await entrarComOperadorPadrao(janelaReaberta)
       await janelaReaberta.getByTestId('nav-pedidos').click()
       await expect(janelaReaberta.getByTestId('pagina-pedidos')).toBeVisible({
         timeout: 15_000,

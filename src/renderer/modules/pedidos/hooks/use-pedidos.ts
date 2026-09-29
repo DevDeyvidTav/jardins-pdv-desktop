@@ -498,7 +498,7 @@ export function usePedidos(): UsePedidosResultado {
         })
         setResumoPedido(resumo)
         await carregarDados()
-        setExibirFormularioItem(false)
+        // Mantem o seletor aberto: o operador costuma lancar varios itens seguidos.
         setSucesso('Item adicionado ao pedido.')
         return true
       } catch (causa) {
@@ -531,7 +531,7 @@ export function usePedidos(): UsePedidosResultado {
         })
         setResumoPedido(resumo)
         await carregarDados()
-        setExibirFormularioItem(false)
+        // Mantem o seletor aberto: mesas costumam pedir mais de uma pizza.
         setSucesso('Pizza adicionada ao pedido.')
         return true
       } catch (causa) {

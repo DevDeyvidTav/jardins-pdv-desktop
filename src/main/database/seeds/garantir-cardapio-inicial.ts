@@ -27,7 +27,8 @@ export async function garantirCardapioInicial(
   opcoes: { ignorarAmbienteTeste?: boolean } = {},
 ): Promise<{ aplicado: boolean; motivo?: string; resumo?: { produtosCriados: number; saboresPizzaCriados: number } }> {
   if (ambienteDeTeste() && !opcoes.ignorarAmbienteTeste) {
-    aplicarCardapioJardins(conexao)
+    // Em teste nao roda seed nem ajustes de cardapio: o banco fica vazio
+    // e cada teste cria so o que precisa (determinismo no e2e).
     return { aplicado: false, motivo: 'ambiente de teste' }
   }
 

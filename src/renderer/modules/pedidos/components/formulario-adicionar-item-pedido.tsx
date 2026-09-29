@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent, type KeyboardEvent } from 'react'
 import type { CategoriaProduto } from '@shared/types/categoria-produto'
-import type { CategoriaCatalogo } from '@shared/types/categoria-catalogo'
 import type { ProdutoComCategoria } from '@shared/types/produto'
 import {
   rotuloRegraPrecificacaoPizza,
+  type PizzaCategoria,
   type PizzaSaborComCategoria,
   type PizzaTamanho,
   type PreviewPizza,
@@ -11,11 +11,7 @@ import {
 import { formatarMoeda } from '@shared/utils/moeda'
 import { extrairMensagemErroIpc } from '@shared/utils/erro-ipc'
 
-type ModoCatalogo = 'produto' | 'pizza' | null
-
-type OpcaoCategoria =
-  | { tipo: 'produto'; id: string; nome: string }
-  | { tipo: 'pizza'; id: string; nome: string }
+type ModoCatalogo = 'categorias' | 'produto' | 'pizza'
 
 interface FormularioAdicionarItemPedidoProps {
   produtos: ProdutoComCategoria[]
@@ -32,282 +28,16 @@ interface FormularioAdicionarItemPedidoProps {
   ) => Promise<boolean>
 }
 
-function parseOpcaoCategoria(valor: string): { tipo: ModoCatalogo; id: string } {
-  if (!valor) return { tipo: null, id: '' }
-  if (valor.startsWith('pizza:')) {
-    return { tipo: 'pizza', id: valor.slice('pizza:'.length) }
-  }
-  if (valor.startsWith('produto:')) {
-    return { tipo: 'produto', id: valor.slice('produto:'.length) }
-  }
-  return { tipo: 'produto', id: valor }
+function normalizarBusca(valor: string): string {
+  return valor
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase()
+    .trim()
 }
 
-function formatarValorOpcaoCategoria(opcao: OpcaoCategoria): string {
-  return `${opcao.tipo}:${opcao.id}`
-}
-
-function catalogoParaOpcao(item: CategoriaCatalogo): OpcaoCategoria {
-  return {
-    tipo: item.tipo,
-    id: item.id,
-    nome: item.nome,
-  }
-}
-
-/**
- * O seletor de sabores ja agrupa por categoria internamente, entao o
- * combobox de categoria expoe uma unica entrada "Pizzas".
- */
-const OPCAO_PIZZAS: OpcaoCategoria = { tipo: 'pizza', id: 'todas', nome: 'Pizzas' }
-
-function consolidarOpcoesCatalogo(itens: CategoriaCatalogo[]): OpcaoCategoria[] {
-  const produtos = itens
-    .filter((item) => item.tipo === 'produto')
-    .map(catalogoParaOpcao)
-  return itens.some((item) => item.tipo === 'pizza')
-    ? [...produtos, OPCAO_PIZZAS]
-    : produtos
-}
-
-function ComboboxBuscaCategoria({
-  selecaoCategoria,
-  onSelecionar,
-  opcoesFallback,
-  disabled,
-}: {
-  selecaoCategoria: string
-  onSelecionar: (valor: string) => void
-  opcoesFallback: OpcaoCategoria[]
-  disabled?: boolean
-}) {
-  const [termo, setTermo] = useState('')
-  const [listaAberta, setListaAberta] = useState(false)
-  const [resultados, setResultados] = useState<CategoriaCatalogo[]>([])
-  const [carregando, setCarregando] = useState(false)
-  const [geracaoCatalogo, setGeracaoCatalogo] = useState(0)
-  const comboboxRef = useRef<HTMLDivElement>(null)
-
-  const opcaoSelecionada = useMemo(() => {
-    const parsed = parseOpcaoCategoria(selecaoCategoria)
-    if (!parsed.tipo) return null
-    const encontrada = resultados.find(
-      (item) => item.tipo === parsed.tipo && item.id === parsed.id,
-    )
-    if (encontrada) return catalogoParaOpcao(encontrada)
-    return (
-      opcoesFallback.find(
-        (opcao) => formatarValorOpcaoCategoria(opcao) === selecaoCategoria,
-      ) ?? null
-    )
-  }, [opcoesFallback, resultados, selecaoCategoria])
-
-  useEffect(() => {
-    let cancelado = false
-
-    async function buscarCategorias() {
-      setCarregando(true)
-      try {
-        const lista = await window.pdv.catalogo.buscarCategorias({
-          termo: termo.trim() || undefined,
-        })
-        if (!cancelado) {
-          setResultados(lista)
-        }
-      } finally {
-        if (!cancelado) setCarregando(false)
-      }
-    }
-
-    const timer = window.setTimeout(() => {
-      void buscarCategorias()
-    }, termo.trim() ? 180 : 0)
-
-    return () => {
-      cancelado = true
-      window.clearTimeout(timer)
-    }
-  }, [termo, geracaoCatalogo])
-
-  useEffect(() => {
-    return window.pdv.sync.onCatalogoAtualizado(() => {
-      setGeracaoCatalogo((atual) => atual + 1)
-    })
-  }, [])
-
-  useEffect(() => {
-    function fecharAoClicarFora(evento: MouseEvent) {
-      if (!comboboxRef.current?.contains(evento.target as Node)) {
-        setListaAberta(false)
-        if (opcaoSelecionada) setTermo('')
-      }
-    }
-
-    document.addEventListener('mousedown', fecharAoClicarFora)
-    return () => document.removeEventListener('mousedown', fecharAoClicarFora)
-  }, [opcaoSelecionada])
-
-  const opcoesVisiveis = useMemo(() => {
-    const termoNormalizado = termo.trim().toLowerCase()
-
-    // Sem termo: lista completa (resultados da busca inicial ou fallback).
-    if (!termoNormalizado) {
-      return resultados.length > 0 ? consolidarOpcoesCatalogo(resultados) : opcoesFallback
-    }
-
-    // Com termo: apenas o que a busca retornou — nunca a lista inteira,
-    // senao parece que o filtro nao funciona.
-    let consolidadas = consolidarOpcoesCatalogo(resultados)
-
-    // A busca no servidor cobre nomes de categoria; "Pizzas" e sintetica,
-    // entao tratamos o termo aqui (ex.: digitar "piz" ou "pizza").
-    const temPizzas = opcoesFallback.some((opcao) => opcao.tipo === 'pizza')
-    if (
-      temPizzas &&
-      !consolidadas.some((opcao) => opcao.tipo === 'pizza') &&
-      ('pizzas'.includes(termoNormalizado) || termoNormalizado.includes('pizza'))
-    ) {
-      consolidadas = [...consolidadas, OPCAO_PIZZAS]
-    }
-
-    return consolidadas
-  }, [opcoesFallback, resultados, termo])
-
-  const opcoesAgrupadas = useMemo(() => {
-    const produtos = opcoesVisiveis.filter((opcao) => opcao.tipo === 'produto')
-    const pizzas = opcoesVisiveis.filter((opcao) => opcao.tipo === 'pizza')
-    return { produtos, pizzas }
-  }, [opcoesVisiveis])
-
-  function selecionarOpcao(opcao: OpcaoCategoria) {
-    onSelecionar(formatarValorOpcaoCategoria(opcao))
-    setTermo('')
-    setListaAberta(false)
-  }
-
-  function handleTeclado(evento: KeyboardEvent<HTMLInputElement>) {
-    if (evento.key === 'Escape') {
-      setListaAberta(false)
-      if (opcaoSelecionada) setTermo('')
-      return
-    }
-
-    const todas = [...opcoesAgrupadas.produtos, ...opcoesAgrupadas.pizzas]
-    if (evento.key === 'Enter' && listaAberta && todas.length === 1) {
-      evento.preventDefault()
-      selecionarOpcao(todas[0]!)
-    }
-  }
-
-  const valorExibido =
-    listaAberta || !opcaoSelecionada ? termo : opcaoSelecionada.nome
-
-  return (
-    <div
-      className="busca-produtos-pedido__campo busca-produtos-pedido__combobox"
-      ref={comboboxRef}
-    >
-      <label htmlFor="categoria-item-pedido">Categoria</label>
-      <div className="busca-produtos-pedido__combobox-controle">
-        <input
-          id="categoria-item-pedido"
-          data-testid="campo-categoria-produto-pedido"
-          type="text"
-          role="combobox"
-          aria-expanded={listaAberta}
-          aria-controls="lista-categorias-pedido"
-          aria-autocomplete="list"
-          autoComplete="off"
-          value={valorExibido}
-          placeholder="Buscar categoria..."
-          onFocus={() => {
-            setListaAberta(true)
-            setTermo('')
-          }}
-          onClick={() => {
-            setListaAberta(true)
-            setTermo('')
-          }}
-          onChange={(evento) => {
-            setTermo(evento.target.value)
-            setListaAberta(true)
-          }}
-          onKeyDown={handleTeclado}
-          disabled={disabled || opcoesFallback.length === 0}
-        />
-        {listaAberta ? (
-          <ul
-            id="lista-categorias-pedido"
-            className="busca-produtos-pedido__opcoes"
-            data-testid="lista-opcoes-categoria-pedido"
-            role="listbox"
-          >
-            {carregando ? (
-              <li className="busca-produtos-pedido__opcao busca-produtos-pedido__opcao--vazia">
-                Buscando...
-              </li>
-            ) : opcoesVisiveis.length === 0 ? (
-              <li className="busca-produtos-pedido__opcao busca-produtos-pedido__opcao--vazia">
-                Nenhuma categoria encontrada.
-              </li>
-            ) : (
-              <>
-                {opcoesAgrupadas.produtos.length > 0 ? (
-                  <li role="presentation" className="busca-produtos-pedido__opcao-grupo">
-                    <span>Produtos</span>
-                    <ul role="group">
-                      {opcoesAgrupadas.produtos.map((opcao) => (
-                        <li key={formatarValorOpcaoCategoria(opcao)}>
-                          <button
-                            type="button"
-                            className="busca-produtos-pedido__opcao"
-                            data-testid="opcao-categoria-pedido"
-                            role="option"
-                            aria-selected={
-                              formatarValorOpcaoCategoria(opcao) === selecaoCategoria
-                            }
-                            onMouseDown={(evento) => evento.preventDefault()}
-                            onClick={() => selecionarOpcao(opcao)}
-                          >
-                            {opcao.nome}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  </li>
-                ) : null}
-                {opcoesAgrupadas.pizzas.length > 0 ? (
-                  <li role="presentation" className="busca-produtos-pedido__opcao-grupo">
-                    <span>Pizzas</span>
-                    <ul role="group">
-                      {opcoesAgrupadas.pizzas.map((opcao) => (
-                        <li key={formatarValorOpcaoCategoria(opcao)}>
-                          <button
-                            type="button"
-                            className="busca-produtos-pedido__opcao"
-                            data-testid="opcao-categoria-pedido"
-                            role="option"
-                            aria-selected={
-                              formatarValorOpcaoCategoria(opcao) === selecaoCategoria
-                            }
-                            onMouseDown={(evento) => evento.preventDefault()}
-                            onClick={() => selecionarOpcao(opcao)}
-                          >
-                            {opcao.nome}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  </li>
-                ) : null}
-              </>
-            )}
-          </ul>
-        ) : null}
-      </div>
-    </div>
-  )
-}
+/** Limite de produtos soltos na busca global para nao poluir a grade. */
+const LIMITE_PRODUTOS_BUSCA_GLOBAL = 24
 
 export function FormularioAdicionarItemPedido({
   produtos,
@@ -315,23 +45,18 @@ export function FormularioAdicionarItemPedido({
   onAdicionarProduto,
   onAdicionarPizza,
 }: FormularioAdicionarItemPedidoProps) {
-  const [categoriasPizza, setCategoriasPizza] = useState<CategoriaCatalogo[]>([])
+  const [modo, setModo] = useState<ModoCatalogo>('categorias')
+  const [categoriaId, setCategoriaId] = useState('')
+  const [termo, setTermo] = useState('')
+  const [categoriasPizza, setCategoriasPizza] = useState<PizzaCategoria[]>([])
   const [tamanhos, setTamanhos] = useState<PizzaTamanho[]>([])
-  const [selecaoCategoria, setSelecaoCategoria] = useState('')
   const [carregandoPizza, setCarregandoPizza] = useState(true)
   const [erroCatalogo, setErroCatalogo] = useState<string | null>(null)
 
-  const parsed = useMemo(() => parseOpcaoCategoria(selecaoCategoria), [selecaoCategoria])
-  const modo: ModoCatalogo = parsed.tipo
-
-  const opcoesCategoria = useMemo((): OpcaoCategoria[] => {
-    const produtosOpts: OpcaoCategoria[] = categoriasProduto.map((categoria) => ({
-      tipo: 'produto',
-      id: categoria.id,
-      nome: categoria.nome,
-    }))
-    return categoriasPizza.length > 0 ? [...produtosOpts, OPCAO_PIZZAS] : produtosOpts
-  }, [categoriasProduto, categoriasPizza])
+  const [produtoSelecionadoId, setProdutoSelecionadoId] = useState('')
+  const [quantidade, setQuantidade] = useState('1')
+  const [erroValidacao, setErroValidacao] = useState<string | null>(null)
+  const [enviando, setEnviando] = useState(false)
 
   useEffect(() => {
     let cancelado = false
@@ -344,13 +69,7 @@ export function FormularioAdicionarItemPedido({
           window.pdv.pizzas.listarTamanhos({ apenasAtivas: true }),
         ])
         if (cancelado) return
-        setCategoriasPizza(
-          listaCategorias.map((categoria) => ({
-            id: categoria.id,
-            tipo: 'pizza' as const,
-            nome: categoria.nome,
-          })),
-        )
+        setCategoriasPizza(listaCategorias)
         setTamanhos(listaTamanhos)
         setErroCatalogo(null)
       } catch (causa) {
@@ -372,132 +91,119 @@ export function FormularioAdicionarItemPedido({
     }
   }, [])
 
-  // Sem auto-selecao: o formulario abre so com a categoria e o operador
-  // escolhe; o sub-formulario (produto ou pizza) aparece depois da escolha.
+  const termoNormalizado = normalizarBusca(termo)
 
-  return (
-    <section
-      className="busca-produtos-pedido busca-produtos-pedido--compacto"
-      data-testid="busca-produtos-pedido"
-      data-modo={modo ?? 'vazio'}
-    >
-      <div className="formulario-adicionar-item">
-        <ComboboxBuscaCategoria
-          selecaoCategoria={selecaoCategoria}
-          onSelecionar={setSelecaoCategoria}
-          opcoesFallback={opcoesCategoria}
-          disabled={carregandoPizza}
-        />
-
-        {erroCatalogo ? (
-          <p className="busca-produtos-pedido__erro" role="alert">
-            {erroCatalogo}
-          </p>
-        ) : null}
-
-        {!modo ? (
-          <p className="formulario-adicionar-item__dica" data-testid="dica-selecionar-categoria">
-            Busque e selecione uma categoria para continuar.
-          </p>
-        ) : null}
-
-        {modo === 'produto' ? (
-          <FormularioProdutoRapido
-            produtos={produtos}
-            categoriaId={parsed.id}
-            onAdicionar={onAdicionarProduto}
-          />
-        ) : null}
-
-        {modo === 'pizza' ? (
-          <FormularioPizzaRapido tamanhos={tamanhos} onAdicionar={onAdicionarPizza} />
-        ) : null}
-
-        {opcoesCategoria.length === 0 && !carregandoPizza ? (
-          <p className="busca-produtos-pedido__erro" role="alert">
-            Nenhuma categoria disponivel no cardapio.
-          </p>
-        ) : null}
-      </div>
-    </section>
+  const categoriaSelecionada = useMemo(
+    () => categoriasProduto.find((categoria) => categoria.id === categoriaId) ?? null,
+    [categoriaId, categoriasProduto],
   )
-}
-
-function FormularioProdutoRapido({
-  produtos,
-  categoriaId,
-  onAdicionar,
-}: {
-  produtos: ProdutoComCategoria[]
-  categoriaId: string
-  onAdicionar: (
-    produtoId: string,
-    quantidade: number,
-    observacao?: string,
-  ) => Promise<boolean>
-}) {
-  const [produtoSelecionadoId, setProdutoSelecionadoId] = useState('')
-  const [termo, setTermo] = useState('')
-  const [listaAberta, setListaAberta] = useState(false)
-  const [quantidade, setQuantidade] = useState('1')
-  const [erroValidacao, setErroValidacao] = useState<string | null>(null)
-  const [enviando, setEnviando] = useState(false)
-  const comboboxRef = useRef<HTMLDivElement>(null)
 
   const produtoSelecionado = useMemo(
     () => produtos.find((produto) => produto.id === produtoSelecionadoId) ?? null,
     [produtoSelecionadoId, produtos],
   )
 
-  const produtosFiltrados = useMemo(() => {
-    const termoNormalizado = termo.trim().toLowerCase()
-    return produtos.filter((produto) => {
-      if (categoriaId && produto.categoriaId !== categoriaId) return false
-      if (!termoNormalizado) return true
-      return (
-        produto.nome.toLowerCase().includes(termoNormalizado) ||
-        produto.categoriaNome.toLowerCase().includes(termoNormalizado)
-      )
-    })
-  }, [categoriaId, produtos, termo])
+  const categoriasVisiveis = useMemo(() => {
+    if (modo !== 'categorias') return []
+    if (!termoNormalizado) return categoriasProduto
+    return categoriasProduto.filter((categoria) =>
+      normalizarBusca(categoria.nome).includes(termoNormalizado),
+    )
+  }, [categoriasProduto, modo, termoNormalizado])
 
-  useEffect(() => {
-    setProdutoSelecionadoId('')
-    setTermo('')
-    setErroValidacao(null)
-  }, [categoriaId])
+  const mostrarTilePizzas =
+    modo === 'categorias' &&
+    categoriasPizza.length > 0 &&
+    (!termoNormalizado ||
+      'pizzas'.includes(termoNormalizado) ||
+      termoNormalizado.includes('pizza'))
 
-  useEffect(() => {
-    function fecharAoClicarFora(evento: MouseEvent) {
-      if (!comboboxRef.current?.contains(evento.target as Node)) {
-        setListaAberta(false)
-        if (produtoSelecionado) setTermo('')
-      }
+  const produtosVisiveis = useMemo(() => {
+    if (modo === 'produto') {
+      return produtos.filter((produto) => {
+        if (produto.categoriaId !== categoriaId) return false
+        if (!termoNormalizado) return true
+        return normalizarBusca(produto.nome).includes(termoNormalizado)
+      })
     }
-    document.addEventListener('mousedown', fecharAoClicarFora)
-    return () => document.removeEventListener('mousedown', fecharAoClicarFora)
-  }, [produtoSelecionado])
+    // Na visao de categorias a busca ja chega direto no produto.
+    if (modo === 'categorias' && termoNormalizado) {
+      return produtos
+        .filter((produto) => normalizarBusca(produto.nome).includes(termoNormalizado))
+        .slice(0, LIMITE_PRODUTOS_BUSCA_GLOBAL)
+    }
+    return []
+  }, [categoriaId, modo, produtos, termoNormalizado])
+
+  function abrirCategoria(id: string) {
+    setCategoriaId(id)
+    setModo('produto')
+    setTermo('')
+    setProdutoSelecionadoId('')
+    setQuantidade('1')
+    setErroValidacao(null)
+  }
+
+  function abrirPizzas() {
+    setModo('pizza')
+    setTermo('')
+    setProdutoSelecionadoId('')
+    setErroValidacao(null)
+  }
+
+  function voltarParaCategorias() {
+    setModo('categorias')
+    setCategoriaId('')
+    setTermo('')
+    setProdutoSelecionadoId('')
+    setQuantidade('1')
+    setErroValidacao(null)
+  }
 
   function selecionarProduto(produto: ProdutoComCategoria) {
-    setProdutoSelecionadoId(produto.id)
-    setTermo('')
-    setListaAberta(false)
     setErroValidacao(null)
-  }
-
-  function handleTeclado(evento: KeyboardEvent<HTMLInputElement>) {
-    if (evento.key === 'Escape') {
-      setListaAberta(false)
-      if (produtoSelecionado) setTermo('')
+    // Tocar de novo no mesmo produto soma mais um — agiliza itens repetidos.
+    if (produtoSelecionadoId === produto.id) {
+      setQuantidade((atual) => {
+        const numero = Number(atual)
+        return String((Number.isInteger(numero) && numero > 0 ? numero : 0) + 1)
+      })
       return
     }
-    if (evento.key === 'Enter' && listaAberta && produtosFiltrados.length === 1) {
+    setProdutoSelecionadoId(produto.id)
+    setQuantidade('1')
+  }
+
+  function handleTecladoBusca(evento: KeyboardEvent<HTMLInputElement>) {
+    if (evento.key === 'Escape') {
+      if (modo === 'categorias') {
+        setTermo('')
+      } else {
+        voltarParaCategorias()
+      }
+      return
+    }
+    if (evento.key !== 'Enter') return
+
+    const semCategoriaParaAbrir =
+      categoriasVisiveis.length === 0 && !mostrarTilePizzas
+    if (produtosVisiveis.length === 1 && (modo === 'produto' || semCategoriaParaAbrir)) {
       evento.preventDefault()
-      selecionarProduto(produtosFiltrados[0]!)
+      selecionarProduto(produtosVisiveis[0]!)
+      return
+    }
+    if (
+      modo === 'categorias' &&
+      categoriasVisiveis.length === 1 &&
+      produtosVisiveis.length === 0 &&
+      !mostrarTilePizzas
+    ) {
+      evento.preventDefault()
+      abrirCategoria(categoriasVisiveis[0]!.id)
     }
   }
 
-  async function handleSubmit(evento: FormEvent<HTMLFormElement>) {
+  async function handleAdicionarProduto(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault()
     setErroValidacao(null)
     const quantidadeNumero = Number(quantidade)
@@ -513,122 +219,212 @@ function FormularioProdutoRapido({
 
     setEnviando(true)
     try {
-      const ok = await onAdicionar(produtoSelecionadoId, quantidadeNumero)
+      const ok = await onAdicionarProduto(produtoSelecionadoId, quantidadeNumero)
       if (ok) {
-        setQuantidade('1')
         setProdutoSelecionadoId('')
-        setTermo('')
+        setQuantidade('1')
       }
     } finally {
       setEnviando(false)
     }
   }
 
-  const valorExibido =
-    listaAberta || !produtoSelecionado
-      ? termo
-      : `${produtoSelecionado.nome} — ${formatarMoeda(produtoSelecionado.precoCentavos)}`
+  const semCategorias = categoriasProduto.length === 0 && categoriasPizza.length === 0
 
   return (
-    <form
-      className="busca-produtos-pedido__formulario busca-produtos-pedido__formulario--produto"
-      data-testid="formulario-adicionar-item"
-      onSubmit={(evento) => void handleSubmit(evento)}
+    <section
+      className="busca-produtos-pedido busca-produtos-pedido--compacto"
+      data-testid="busca-produtos-pedido"
+      data-modo={modo}
     >
-      <div className="busca-produtos-pedido__campo busca-produtos-pedido__combobox" ref={comboboxRef}>
-        <label htmlFor="produto-pedido">Produto</label>
-        <div className="busca-produtos-pedido__combobox-controle">
-          <input
-            id="produto-pedido"
-            data-testid="campo-produto-pedido"
-            type="text"
-            role="combobox"
-            aria-expanded={listaAberta}
-            aria-controls="lista-produtos-pedido"
-            aria-autocomplete="list"
-            autoComplete="off"
-            value={valorExibido}
-            placeholder="Buscar produto..."
-            onFocus={() => {
-              setListaAberta(true)
-              setTermo('')
-            }}
-            onClick={() => {
-              setListaAberta(true)
-              setTermo('')
-            }}
-            onChange={(evento) => {
-              setTermo(evento.target.value)
-              setProdutoSelecionadoId('')
-              setListaAberta(true)
-            }}
-            onKeyDown={handleTeclado}
-            disabled={enviando || produtosFiltrados.length === 0}
-          />
-          {listaAberta ? (
-            <ul
-              id="lista-produtos-pedido"
-              className="busca-produtos-pedido__opcoes"
-              data-testid="lista-opcoes-produto-pedido"
-              role="listbox"
+      <div className="formulario-adicionar-item">
+        {modo !== 'categorias' ? (
+          <div className="seletor-item__cabecalho">
+            <button
+              type="button"
+              className="seletor-item__voltar"
+              data-testid="botao-voltar-categorias"
+              onClick={voltarParaCategorias}
             >
-              {produtosFiltrados.length === 0 ? (
-                <li className="busca-produtos-pedido__opcao busca-produtos-pedido__opcao--vazia">
-                  Nenhum produto nesta categoria.
-                </li>
-              ) : (
-                produtosFiltrados.map((produto) => (
-                  <li key={produto.id}>
-                    <button
-                      type="button"
-                      className="busca-produtos-pedido__opcao"
-                      data-testid="opcao-produto-pedido"
-                      role="option"
-                      aria-selected={produto.id === produtoSelecionadoId}
-                      onMouseDown={(evento) => evento.preventDefault()}
-                      onClick={() => selecionarProduto(produto)}
-                    >
-                      <span>{produto.nome}</span>
-                      <span className="busca-produtos-pedido__opcao-meta">
-                        {formatarMoeda(produto.precoCentavos)}
-                      </span>
-                    </button>
-                  </li>
-                ))
-              )}
-            </ul>
-          ) : null}
-        </div>
+              ← Categorias
+            </button>
+            <span className="seletor-item__cabecalho-titulo">
+              {modo === 'pizza' ? 'Pizzas' : (categoriaSelecionada?.nome ?? '')}
+            </span>
+          </div>
+        ) : null}
+
+        {modo !== 'pizza' ? (
+          <div className="busca-produtos-pedido__campo busca-produtos-pedido__combobox">
+            <label htmlFor="busca-item-pedido" className="visually-hidden">
+              {modo === 'produto' ? 'Buscar produto' : 'Buscar categoria ou produto'}
+            </label>
+            <div className="busca-produtos-pedido__combobox-controle">
+              <input
+                id="busca-item-pedido"
+                data-testid={
+                  modo === 'produto'
+                    ? 'campo-produto-pedido'
+                    : 'campo-categoria-produto-pedido'
+                }
+                type="text"
+                autoComplete="off"
+                value={termo}
+                placeholder={
+                  modo === 'produto'
+                    ? `Buscar em ${categoriaSelecionada?.nome ?? 'produtos'}...`
+                    : 'Buscar categoria ou produto...'
+                }
+                onChange={(evento) => setTermo(evento.target.value)}
+                onKeyDown={handleTecladoBusca}
+                disabled={enviando || carregandoPizza}
+              />
+            </div>
+          </div>
+        ) : null}
+
+        {erroCatalogo ? (
+          <p className="busca-produtos-pedido__erro" role="alert">
+            {erroCatalogo}
+          </p>
+        ) : null}
+
+        {modo === 'categorias' ? (
+          <>
+            {!termoNormalizado ? (
+              <p
+                className="formulario-adicionar-item__dica"
+                data-testid="dica-selecionar-categoria"
+              >
+                Toque em uma categoria ou busque direto pelo produto.
+              </p>
+            ) : null}
+
+            {categoriasVisiveis.length === 0 &&
+            !mostrarTilePizzas &&
+            produtosVisiveis.length === 0 ? (
+              <p className="formulario-adicionar-item__dica">
+                Nada encontrado para essa busca.
+              </p>
+            ) : (
+              <div className="seletor-item__grade" data-testid="grade-categorias">
+                {categoriasVisiveis.map((categoria) => (
+                  <button
+                    key={categoria.id}
+                    type="button"
+                    className="seletor-item__tile"
+                    data-testid="opcao-categoria-pedido"
+                    onClick={() => abrirCategoria(categoria.id)}
+                  >
+                    <span className="seletor-item__tile-nome">{categoria.nome}</span>
+                  </button>
+                ))}
+                {mostrarTilePizzas ? (
+                  <button
+                    type="button"
+                    className="seletor-item__tile seletor-item__tile--pizza"
+                    data-testid="opcao-categoria-pedido"
+                    onClick={abrirPizzas}
+                  >
+                    <span className="seletor-item__tile-nome">Pizzas</span>
+                  </button>
+                ) : null}
+                {produtosVisiveis.map((produto) => (
+                  <button
+                    key={produto.id}
+                    type="button"
+                    className="seletor-item__tile"
+                    data-testid="opcao-produto-pedido"
+                    aria-pressed={produto.id === produtoSelecionadoId}
+                    onClick={() => selecionarProduto(produto)}
+                  >
+                    <span className="seletor-item__tile-nome">{produto.nome}</span>
+                    <span className="seletor-item__tile-meta">
+                      {produto.categoriaNome} · {formatarMoeda(produto.precoCentavos)}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
+        ) : null}
+
+        {modo === 'produto' ? (
+          produtosVisiveis.length === 0 ? (
+            <p className="formulario-adicionar-item__dica">
+              Nenhum produto nesta categoria.
+            </p>
+          ) : (
+            <div className="seletor-item__grade" data-testid="grade-produtos">
+              {produtosVisiveis.map((produto) => (
+                <button
+                  key={produto.id}
+                  type="button"
+                  className="seletor-item__tile"
+                  data-testid="opcao-produto-pedido"
+                  aria-pressed={produto.id === produtoSelecionadoId}
+                  onClick={() => selecionarProduto(produto)}
+                >
+                  <span className="seletor-item__tile-nome">{produto.nome}</span>
+                  <span className="seletor-item__tile-meta">
+                    {formatarMoeda(produto.precoCentavos)}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )
+        ) : null}
+
+        {modo === 'pizza' ? (
+          <FormularioPizzaRapido tamanhos={tamanhos} onAdicionar={onAdicionarPizza} />
+        ) : null}
+
+        {produtoSelecionado && modo !== 'pizza' ? (
+          <form
+            className="seletor-item__barra-add"
+            data-testid="formulario-adicionar-item"
+            onSubmit={(evento) => void handleAdicionarProduto(evento)}
+          >
+            <div className="seletor-item__barra-add-info">
+              <strong>{produtoSelecionado.nome}</strong>
+              <span>{formatarMoeda(produtoSelecionado.precoCentavos)}</span>
+            </div>
+            <label className="busca-produtos-pedido__campo" htmlFor="quantidade-item">
+              Qtd
+              <input
+                id="quantidade-item"
+                data-testid="campo-quantidade-item"
+                type="number"
+                min={1}
+                value={quantidade}
+                onChange={(evento) => setQuantidade(evento.target.value)}
+                disabled={enviando}
+              />
+            </label>
+            <button
+              type="submit"
+              className="busca-produtos-pedido__botao-adicionar"
+              data-testid="botao-adicionar-item"
+              disabled={enviando}
+            >
+              Adicionar
+            </button>
+          </form>
+        ) : null}
+
+        {erroValidacao ? (
+          <p className="busca-produtos-pedido__erro" role="alert">
+            {erroValidacao}
+          </p>
+        ) : null}
+
+        {semCategorias && !carregandoPizza ? (
+          <p className="busca-produtos-pedido__erro" role="alert">
+            Nenhuma categoria disponivel no cardapio.
+          </p>
+        ) : null}
       </div>
-
-      <label className="busca-produtos-pedido__campo" htmlFor="quantidade-item">
-        Qtd
-        <input
-          id="quantidade-item"
-          data-testid="campo-quantidade-item"
-          type="number"
-          min={1}
-          value={quantidade}
-          onChange={(evento) => setQuantidade(evento.target.value)}
-          disabled={enviando}
-        />
-      </label>
-
-      {erroValidacao ? (
-        <p className="busca-produtos-pedido__erro" role="alert">
-          {erroValidacao}
-        </p>
-      ) : null}
-
-      <button
-        type="submit"
-        className="busca-produtos-pedido__botao-adicionar"
-        data-testid="botao-adicionar-item"
-        disabled={enviando || produtosFiltrados.length === 0}
-      >
-        Adicionar
-      </button>
-    </form>
+    </section>
   )
 }
 
@@ -646,6 +442,7 @@ function FormularioPizzaRapido({
   const [saboresComCategoria, setSaboresComCategoria] = useState<PizzaSaborComCategoria[]>([])
   const [tamanhoId, setTamanhoId] = useState(tamanhos[0]?.id ?? '')
   const [saborIds, setSaborIds] = useState<string[]>([])
+  const [termoSabor, setTermoSabor] = useState('')
   const [observacao, setObservacao] = useState('')
   const [preview, setPreview] = useState<PreviewPizza | null>(null)
   const [erroPreview, setErroPreview] = useState<string | null>(null)
@@ -659,12 +456,21 @@ function FormularioPizzaRapido({
   )
 
   const gruposSabores = useMemo(() => {
+    const termoNormalizado = normalizarBusca(termoSabor)
     const grupos = new Map<
       string,
       { categoriaNome: string; sabores: PizzaSaborComCategoria[] }
     >()
 
     for (const sabor of saboresComCategoria) {
+      if (
+        termoNormalizado &&
+        !normalizarBusca(sabor.nome).includes(termoNormalizado) &&
+        !normalizarBusca(sabor.categoriaNome).includes(termoNormalizado)
+      ) {
+        continue
+      }
+
       const existente = grupos.get(sabor.categoriaId)
       if (!existente) {
         grupos.set(sabor.categoriaId, {
@@ -680,7 +486,7 @@ function FormularioPizzaRapido({
     }
 
     return [...grupos.values()]
-  }, [saboresComCategoria])
+  }, [saboresComCategoria, termoSabor])
 
   useEffect(() => {
     if (!tamanhoId && tamanhos[0]) {
@@ -761,6 +567,19 @@ function FormularioPizzaRapido({
     })
   }
 
+  function handleTecladoSabor(evento: KeyboardEvent<HTMLInputElement>) {
+    if (evento.key === 'Escape') {
+      setTermoSabor('')
+      return
+    }
+    if (evento.key !== 'Enter') return
+    const visiveis = gruposSabores.flatMap((grupo) => grupo.sabores)
+    if (visiveis.length === 1) {
+      evento.preventDefault()
+      alternarSabor(visiveis[0]!.id)
+    }
+  }
+
   async function handleSubmit(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault()
     setErroValidacao(null)
@@ -780,6 +599,7 @@ function FormularioPizzaRapido({
       if (ok) {
         setSaborIds([])
         setObservacao('')
+        setTermoSabor('')
         setPreview(null)
       }
     } finally {
@@ -796,34 +616,60 @@ function FormularioPizzaRapido({
       data-testid="formulario-adicionar-pizza"
       onSubmit={(evento) => void handleSubmit(evento)}
     >
-      <label
-        className="busca-produtos-pedido__campo formulario-adicionar-item__campo-largo"
-        htmlFor="pizza-tamanho"
+      <div
+        className="seletor-item__grade seletor-item__grade--tamanhos"
+        role="group"
+        aria-label="Tamanho"
+        data-testid="campo-pizza-tamanho"
       >
-        Tamanho
-        <select
-          id="pizza-tamanho"
-          data-testid="campo-pizza-tamanho"
-          value={tamanhoId}
-          onChange={(evento) => {
-            setTamanhoId(evento.target.value)
-            setSaborIds([])
-          }}
-          disabled={enviando || tamanhos.length === 0}
-        >
-          {tamanhos.map((tamanho) => (
-            <option key={tamanho.id} value={tamanho.id}>
+        {tamanhos.map((tamanho) => (
+          <button
+            key={tamanho.id}
+            type="button"
+            className="seletor-item__tile"
+            data-testid="opcao-pizza-tamanho"
+            aria-pressed={tamanho.id === tamanhoId}
+            disabled={enviando}
+            onClick={() => {
+              setTamanhoId(tamanho.id)
+              setSaborIds([])
+              setErroValidacao(null)
+            }}
+          >
+            <span className="seletor-item__tile-nome">
               {tamanho.nome} ({tamanho.sigla})
-            </option>
-          ))}
-        </select>
-      </label>
+            </span>
+            <span className="seletor-item__tile-meta">
+              ate {tamanho.maximoSabores} sabor(es)
+            </span>
+          </button>
+        ))}
+      </div>
 
       <p className="formulario-adicionar-item__meta" data-testid="pizza-limite-sabores">
         {tamanhoSelecionado
-          ? `Pizza ${tamanhoSelecionado.sigla} — ate ${maximoSabores} sabores (pode misturar categorias)`
+          ? `Pizza ${tamanhoSelecionado.sigla} — ate ${maximoSabores} sabores (pode misturar categorias) — ${saborIds.length} selecionado(s)`
           : 'Selecione o tamanho'}
       </p>
+
+      <div className="busca-produtos-pedido__campo busca-produtos-pedido__combobox formulario-adicionar-item__campo-largo">
+        <label htmlFor="busca-sabor-pizza" className="visually-hidden">
+          Buscar sabor
+        </label>
+        <div className="busca-produtos-pedido__combobox-controle">
+          <input
+            id="busca-sabor-pizza"
+            data-testid="campo-pizza-sabor-busca"
+            type="text"
+            autoComplete="off"
+            value={termoSabor}
+            placeholder="Buscar sabor..."
+            onChange={(evento) => setTermoSabor(evento.target.value)}
+            onKeyDown={handleTecladoSabor}
+            disabled={enviando || carregandoSabores}
+          />
+        </div>
+      </div>
 
       <fieldset
         className="formulario-adicionar-item__sabores"
@@ -833,7 +679,11 @@ function FormularioPizzaRapido({
         {carregandoSabores ? (
           <p className="formulario-adicionar-item__meta">Carregando...</p>
         ) : gruposSabores.length === 0 ? (
-          <p className="formulario-adicionar-item__meta">Nenhum sabor disponivel.</p>
+          <p className="formulario-adicionar-item__meta">
+            {termoSabor.trim()
+              ? 'Nenhum sabor encontrado para essa busca.'
+              : 'Nenhum sabor disponivel.'}
+          </p>
         ) : (
           <div className="formulario-adicionar-item__sabores-lista">
             {gruposSabores.map((grupo) => (
@@ -841,17 +691,18 @@ function FormularioPizzaRapido({
                 <h4 className="formulario-adicionar-item__grupo-sabor-titulo">
                   {grupo.categoriaNome}
                 </h4>
-                <div className="formulario-adicionar-item__grupo-sabor-lista">
+                <div className="seletor-item__grade seletor-item__grade--sabores">
                   {grupo.sabores.map((sabor) => (
-                    <label key={`${grupo.categoriaNome}:${sabor.id}`} className="formulario-adicionar-item__sabor">
-                      <input
-                        type="checkbox"
-                        data-testid="opcao-pizza-sabor"
-                        checked={saborIds.includes(sabor.id)}
-                        onChange={() => alternarSabor(sabor.id)}
-                      />
-                      <span>{sabor.nome}</span>
-                    </label>
+                    <button
+                      key={`${grupo.categoriaNome}:${sabor.id}`}
+                      type="button"
+                      className="seletor-item__tile"
+                      data-testid="opcao-pizza-sabor"
+                      aria-pressed={saborIds.includes(sabor.id)}
+                      onClick={() => alternarSabor(sabor.id)}
+                    >
+                      <span className="seletor-item__tile-nome">{sabor.nome}</span>
+                    </button>
                   ))}
                 </div>
               </section>

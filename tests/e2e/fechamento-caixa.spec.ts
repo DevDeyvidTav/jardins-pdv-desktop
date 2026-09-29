@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { _electron as electron } from '@playwright/test'
 import { test, expect, type Page } from '@playwright/test'
+import { entrarComOperadorPadrao } from './helpers-operador'
 
 const diretorioDesktop = join(__dirname, '../..')
 const executavelMain = join(diretorioDesktop, 'out/main/index.js')
@@ -20,6 +21,7 @@ async function abrirAplicativo(diretorioDados: string) {
 
 async function garantirCaixaAberto(janela: Page) {
   await expect(janela.getByTestId('app-carregando')).toBeHidden({ timeout: 15_000 })
+  await entrarComOperadorPadrao(janela)
 
   const paginaAbertura = janela.getByTestId('pagina-abertura-caixa')
   const paginaCaixaAtual = janela.getByTestId('pagina-caixa-atual')
@@ -92,6 +94,7 @@ test.describe('fechamento de caixa local', () => {
       const aplicativoReaberto = await abrirAplicativo(diretorioDados)
       const janelaReaberta = await aplicativoReaberto.firstWindow()
 
+      await entrarComOperadorPadrao(janelaReaberta)
       await expect(janelaReaberta.getByTestId('pagina-pos-fechamento')).toBeVisible({
         timeout: 15_000,
       })

@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { _electron as electron } from '@playwright/test'
 import { test, expect, type Page } from '@playwright/test'
+import { entrarComOperadorPadrao } from './helpers-operador'
 
 const diretorioDesktop = join(__dirname, '../..')
 const executavelMain = join(diretorioDesktop, 'out/main/index.js')
@@ -20,6 +21,7 @@ async function abrirAplicativo(diretorioDados: string) {
 
 async function garantirCaixaAberto(janela: Page) {
   await expect(janela.getByTestId('app-carregando')).toBeHidden({ timeout: 15_000 })
+  await entrarComOperadorPadrao(janela)
 
   if (await janela.getByTestId('pagina-abertura-caixa').isVisible().catch(() => false)) {
     await janela.getByTestId('campo-saldo-inicial').fill('100,00')
@@ -58,7 +60,15 @@ async function selecionarMesaPorNumero(janela: Page, numero: number) {
 }
 
 async function adicionarItemQuantidade(janela: Page, quantidade: string) {
-  await janela.getByTestId('botao-adicionar-item-painel').click()
+  // O seletor fica aberto apos cada item; garante a visao de categorias.
+  if (await janela.getByTestId('busca-produtos-pedido').isVisible().catch(() => false)) {
+    const voltar = janela.getByTestId('botao-voltar-categorias')
+    if (await voltar.isVisible().catch(() => false)) {
+      await voltar.click()
+    }
+  } else {
+    await janela.getByTestId('botao-adicionar-item-painel').click()
+  }
   await janela.getByTestId('campo-categoria-produto-pedido').click()
   await janela.getByTestId('opcao-categoria-pedido').first().click()
   await janela.getByTestId('campo-produto-pedido').click()

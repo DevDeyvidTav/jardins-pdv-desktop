@@ -55,6 +55,7 @@ describe('garantirCardapioInicial', () => {
     const resultado = await garantirCardapioInicial(conexao)
     expect(resultado.aplicado).toBe(false)
     expect(criarProdutoRepository(conexao).listarComCategoria()).toHaveLength(0)
+    expect(criarCategoriaProdutoRepository(conexao).listar()).toHaveLength(0)
 
     banco.encerrar()
   })

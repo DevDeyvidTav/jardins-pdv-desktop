@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { _electron as electron } from '@playwright/test'
 import { test, expect, type Page, type ElectronApplication } from '@playwright/test'
+import { entrarComOperadorPadrao } from './helpers-operador'
 import {
   abrirConexaoSqlite,
   consultarValorMetadata,
@@ -26,6 +27,7 @@ async function abrirAplicativo(diretorioDados: string) {
 
 async function garantirCaixaAberto(janela: Page) {
   await expect(janela.getByTestId('app-carregando')).toBeHidden({ timeout: 15_000 })
+  await entrarComOperadorPadrao(janela)
 
   if (await janela.getByTestId('pagina-abertura-caixa').isVisible().catch(() => false)) {
     await janela.getByTestId('campo-saldo-inicial').fill('100,00')
@@ -118,6 +120,7 @@ test.describe('hardening persistencia', () => {
       expect(janela).not.toBeNull()
 
       await expect(janela!.getByTestId('app-carregando')).toBeHidden({ timeout: 15_000 })
+      await entrarComOperadorPadrao(janela!)
       await janela!.getByTestId('nav-pedidos').click()
       await janela!.getByTestId('item-mesa').click()
       await expect(janela!.getByTestId('pagina-pedido-aberto')).toBeVisible({

@@ -3,6 +3,7 @@ import { test, expect } from '@playwright/test'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { entrarComOperadorPadrao } from './helpers-operador'
 
 const diretorioDesktop = join(__dirname, '../..')
 const executavelMain = join(diretorioDesktop, 'out/main/index.js')
@@ -23,6 +24,7 @@ test.describe('aplicativo desktop', () => {
     try {
       const janela = await aplicativo.firstWindow()
 
+      await entrarComOperadorPadrao(janela)
       await expect(janela.getByTestId('pagina-abertura-caixa')).toBeVisible({
         timeout: 15_000,
       })
