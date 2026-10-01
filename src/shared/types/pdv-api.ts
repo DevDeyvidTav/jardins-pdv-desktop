@@ -112,6 +112,8 @@ import type {
   AtualizarSetorCategoriaEntrada,
   ConfigImpressora,
   ImpressorasSistemaResposta,
+  InstalarImpressoraGenericaEntrada,
+  ResultadoInstalacaoImpressoraGenerica,
   SalvarConfigImpressorasEntrada,
 } from './config-impressora'
 import type {
@@ -352,6 +354,9 @@ export interface PdvApi {
   config: {
     listarImpressoras: () => Promise<ConfigImpressora[]>
     listarImpressorasSistema: () => Promise<ImpressorasSistemaResposta>
+    instalarImpressoraGenerica: (
+      entrada: InstalarImpressoraGenericaEntrada,
+    ) => Promise<ResultadoInstalacaoImpressoraGenerica>
     recuperarImpressoras: () => Promise<
       Array<{ nome: string; status: string | null; jobCount: number | null }>
     >

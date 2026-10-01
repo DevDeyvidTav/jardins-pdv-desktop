@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import type { CategoriaProduto } from '@shared/types/categoria-produto'
 import {
+  ACAO_DIAGNOSTICO_IMPRESSORA,
   ROTULOS_SETOR_IMPRESSAO,
   SETORES_IMPRESSORA_CONFIG,
   type ConfigImpressoraEntrada,
@@ -35,7 +36,14 @@ export function ConfiguracoesPage({ operador }: ConfiguracoesPageProps) {
   }>({ apiUrl: null, apiConfigurada: false })
   const [impressoras, setImpressoras] = useState<ConfigImpressoraEntrada[]>([])
   const [impressorasSistema, setImpressorasSistema] =
-    useState<ImpressorasSistemaResposta>({ impressoras: [], portasCom: [] })
+    useState<ImpressorasSistemaResposta>({
+      impressoras: [],
+      portasCom: [],
+      portasUsbLivres: [],
+      dispositivos: [],
+      diagnosticos: [],
+    })
+  const [instalandoGenerica, setInstalandoGenerica] = useState(false)
   const [categorias, setCategorias] = useState<CategoriaProduto[]>([])
   const [operadores, setOperadores] = useState<OperadorResumo[]>([])
   const [operadorSelecionadoId, setOperadorSelecionadoId] = useState('')
@@ -180,6 +188,46 @@ export function ConfiguracoesPage({ operador }: ConfiguracoesPageProps) {
             }
           : item,
       ),
+    )
+  }
+
+  async function instalarImpressoraGenerica(porta: string | null) {
+    setErro(null)
+    setSucesso(null)
+    setInstalandoGenerica(true)
+
+    try {
+      const resultado = await window.pdv.config.instalarImpressoraGenerica({
+        porta,
+      })
+
+      if (resultado.instalada) {
+        setSucesso(
+          `Impressora "${resultado.nomeImpressora}" instalada na ${resultado.porta}. ` +
+            'Agora atribua-a a um setor na tabela acima e clique em Salvar impressoras.',
+        )
+        await carregarDados()
+      } else {
+        setErro(resultado.mensagem)
+      }
+    } catch (causa) {
+      setErro(extrairMensagemErroIpc(causa))
+    } finally {
+      setInstalandoGenerica(false)
+    }
+  }
+
+  function atribuirPortaComAoSetor(setor: SetorImpressoraConfig, porta: string) {
+    setImpressoras((atual) =>
+      atual.map((item) =>
+        item.setor === setor
+          ? { ...item, nomeImpressora: `Serial ${porta}`, portaCom: porta }
+          : item,
+      ),
+    )
+    setSucesso(
+      `Setor ${ROTULOS_SETOR_IMPRESSAO[setor]} preenchido com a ${porta} (impressão direta, sem driver). ` +
+        'Clique em "Salvar impressoras" para confirmar e depois em Testar.',
     )
   }
 
@@ -350,6 +398,65 @@ export function ConfiguracoesPage({ operador }: ConfiguracoesPageProps) {
               </div>
             ) : null}
           </section>
+
+          {impressorasSistema.diagnosticos.length > 0 ? (
+            <section
+              className="config-diagnostico"
+              data-testid="diagnostico-impressoras"
+            >
+              <h2>Diagnóstico de impressoras</h2>
+              <ul className="config-diagnostico__lista">
+                {impressorasSistema.diagnosticos.map((diagnostico, indice) => (
+                  <li
+                    key={`${diagnostico.tipo}-${diagnostico.porta ?? indice}`}
+                    className="config-diagnostico__item"
+                    data-testid="diagnostico-impressora"
+                  >
+                    <div className="config-diagnostico__texto">
+                      <strong>{diagnostico.titulo}</strong>
+                      <p>{diagnostico.detalhe}</p>
+                    </div>
+                    {diagnostico.acao === ACAO_DIAGNOSTICO_IMPRESSORA.INSTALAR_GENERICA ? (
+                      <button
+                        type="button"
+                        className="config-diagnostico__acao"
+                        data-testid="botao-instalar-impressora-generica"
+                        disabled={instalandoGenerica}
+                        onClick={() => void instalarImpressoraGenerica(diagnostico.porta)}
+                      >
+                        {instalandoGenerica
+                          ? 'Instalando… (autorize no Windows)'
+                          : 'Instalar impressora genérica'}
+                      </button>
+                    ) : null}
+                    {diagnostico.acao === ACAO_DIAGNOSTICO_IMPRESSORA.USAR_PORTA_COM &&
+                    diagnostico.porta ? (
+                      <select
+                        className="config-diagnostico__acao"
+                        data-testid="seletor-setor-porta-com"
+                        defaultValue=""
+                        onChange={(evento) => {
+                          const setor = evento.target.value as SetorImpressoraConfig
+                          if (!setor || !diagnostico.porta) {
+                            return
+                          }
+                          atribuirPortaComAoSetor(setor, diagnostico.porta)
+                          evento.target.value = ''
+                        }}
+                      >
+                        <option value="">Usar {diagnostico.porta} no setor…</option>
+                        {SETORES_IMPRESSORA_CONFIG.map((setor) => (
+                          <option key={setor} value={setor}>
+                            {ROTULOS_SETOR_IMPRESSAO[setor]}
+                          </option>
+                        ))}
+                      </select>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
 
           <h2>Impressoras por setor</h2>
           <p className="config-impressoras__dica">

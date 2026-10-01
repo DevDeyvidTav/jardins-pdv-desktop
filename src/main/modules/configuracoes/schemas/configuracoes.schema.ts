@@ -20,6 +20,11 @@ export const salvarConfigImpressorasSchema = z.object({
   configs: z.array(configImpressoraEntradaSchema),
 })
 
+export const instalarImpressoraGenericaSchema = z.object({
+  porta: z.string().trim().max(40).nullable().optional(),
+  nomeSugerido: z.string().trim().max(80).nullable().optional(),
+})
+
 export const atualizarSetorCategoriaSchema = z.object({
   categoriaId: z.string().uuid('Categoria invalida.'),
   setorImpressao: setorImpressaoSchema.nullable(),

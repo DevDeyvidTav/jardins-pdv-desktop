@@ -101,6 +101,7 @@ export const CANAIS_IPC = {
   SYNC_CATALOGO_ATUALIZADO: 'sync:catalogo-atualizado',
   CONFIG_LISTAR_IMPRESSORAS: 'config:listar-impressoras',
   CONFIG_LISTAR_IMPRESSORAS_SISTEMA: 'config:listar-impressoras-sistema',
+  CONFIG_INSTALAR_IMPRESSORA_GENERICA: 'config:instalar-impressora-generica',
   CONFIG_RECUPERAR_IMPRESSORAS: 'config:recuperar-impressoras',
   CONFIG_SALVAR_IMPRESSORAS: 'config:salvar-impressoras',
   CONFIG_ATUALIZAR_SETOR_CATEGORIA: 'config:atualizar-setor-categoria',

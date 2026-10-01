@@ -20,6 +20,8 @@ import {
 
   autenticarOperadorSchema,
 
+  instalarImpressoraGenericaSchema,
+
   salvarConfigImpressorasSchema,
 
   salvarOperadorSchema,
@@ -39,6 +41,8 @@ import {
 } from './use-cases/config-impressora'
 
 import { listarImpressorasSistema } from './use-cases/listar-impressoras-sistema'
+
+import { instalarImpressoraGenerica } from './use-cases/instalar-impressora-generica'
 
 import { recuperarImpressorasConfiguradas } from './use-cases/recuperar-impressora'
 
@@ -113,6 +117,25 @@ export function registrarHandlersConfiguracoes(): void {
     try {
 
       return executarComPermissao(PERMISSAO_PDV.CONFIGURACOES, () => listarImpressorasSistema())
+
+    } catch (erro) {
+
+      tratarErroConfiguracoes(erro)
+
+    }
+
+  })
+
+
+  ipcMain.handle(CANAIS_IPC.CONFIG_INSTALAR_IMPRESSORA_GENERICA, (_evento, entrada) => {
+
+    try {
+
+      return executarComPermissao(PERMISSAO_PDV.CONFIGURACOES, () =>
+
+        instalarImpressoraGenerica(instalarImpressoraGenericaSchema.parse(entrada ?? {})),
+
+      )
 
     } catch (erro) {
 

@@ -702,6 +702,15 @@ describe('contrato da API exposta pelo preload', () => {
         listarImpressorasSistema: async () => ({
           impressoras: [],
           portasCom: [],
+          portasUsbLivres: [],
+          dispositivos: [],
+          diagnosticos: [],
+        }),
+        instalarImpressoraGenerica: async () => ({
+          instalada: false,
+          nomeImpressora: null,
+          porta: null,
+          mensagem: 'mock',
         }),
         recuperarImpressoras: async () => [],
         salvarImpressoras: async () => [],
