@@ -396,36 +396,53 @@ export function PainelMesaPedido({
 
           <div className="painel-mesa-pedido__inferior">
             {exibirFormularioItem && resumoPedido.pedido.status === 'ABERTO' ? (
-              <FormularioAdicionarItemPedido
-                produtos={produtosAtivos}
-                categoriasProduto={categoriasAtivas}
-                onAdicionarProduto={onAdicionarItemPedido}
-                onAdicionarPizza={onAdicionarPizzaPedido}
-              />
+              <div
+                className="modal-adicionar-item__overlay"
+                data-testid="modal-adicionar-item"
+                role="dialog"
+                aria-modal="true"
+                aria-label="Adicionar item ao pedido"
+                onKeyDown={(evento) => {
+                  if (evento.key === 'Escape') {
+                    onFecharFormularioItem()
+                  }
+                }}
+              >
+                <div className="modal-adicionar-item__painel">
+                  <header className="modal-adicionar-item__cabecalho">
+                    <h2>Adicionar item</h2>
+                    <button
+                      type="button"
+                      className="modal-adicionar-item__fechar"
+                      data-testid="botao-fechar-adicionar-item"
+                      onClick={onFecharFormularioItem}
+                    >
+                      Fechar ✕
+                    </button>
+                  </header>
+                  <div className="modal-adicionar-item__conteudo">
+                    <FormularioAdicionarItemPedido
+                      produtos={produtosAtivos}
+                      categoriasProduto={categoriasAtivas}
+                      onAdicionarProduto={onAdicionarItemPedido}
+                      onAdicionarPizza={onAdicionarPizzaPedido}
+                    />
+                  </div>
+                </div>
+              </div>
             ) : null}
 
             <footer className="painel-mesa-pedido__rodape">
               {resumoPedido.pedido.status === 'ABERTO' ? (
                 <div className="painel-mesa-pedido__acoes-pedido">
-                  {exibirFormularioItem ? (
-                    <button
-                      type="button"
-                      className="painel-mesa-pedido__acao-secundaria"
-                      data-testid="botao-fechar-adicionar-item"
-                      onClick={onFecharFormularioItem}
-                    >
-                      Fechar busca
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      className="painel-mesa-pedido__acao-principal"
-                      data-testid="botao-adicionar-item-painel"
-                      onClick={onAdicionarItem}
-                    >
-                      Adicionar item
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    className="painel-mesa-pedido__acao-principal"
+                    data-testid="botao-adicionar-item-painel"
+                    onClick={onAdicionarItem}
+                  >
+                    Adicionar item
+                  </button>
 
                   {resumoPedido.itens.some(itemPedidoEstaAtivo) ? (
                     <>

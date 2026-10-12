@@ -92,6 +92,8 @@ test.describe('Evolucao da Etapa 7 - Pagamentos parciais, desconto e cortesia', 
       await janela.getByTestId('botao-adicionar-item').click()
       await expect(janela.getByTestId('item-pedido')).toHaveCount(1)
       await expect(janela.getByTestId('pedido-subtotal')).toHaveText(/R\$\s*60,00/)
+      await janela.getByTestId('botao-fechar-adicionar-item').click()
+      await expect(janela.getByTestId('modal-adicionar-item')).toBeHidden()
 
       // Aplicar Desconto Geral no Pedido: R$ 10,00 -> Total fica 50,00
       await janela.getByTestId('botao-abrir-desconto').click()

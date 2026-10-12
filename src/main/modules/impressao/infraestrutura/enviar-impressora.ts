@@ -738,6 +738,13 @@ if ($Modo -eq 'Limpar') {
 
 # SerialPort.Open() na MP-4200 chama SetCommState e o USB responde
 # "dispositivo nao esta funcionando". CreateFile + DTR/RTS via Win32 funciona.
+#
+# Faltava configurar a porta (SetCommState): sem isso o driver fica com o
+# controle de fluxo que estava antes (ex.: handshake de hardware aguardando
+# CTS/DSR que a MP-2500 nunca assert). O WriteFile entao bloqueia ate o
+# timeout (Win32 121 — ERROR_SEM_TIMEOUT) mesmo com a porta aberta e livre.
+# BuildCommDCB com handshake nenhum reproduz o que corrigiu manualmente via
+# SerialPort do .NET (que sempre configura a porta no Open()).
 try {
   $bytes = [IO.File]::ReadAllBytes($FilePath)
   if (-not ([System.Management.Automation.PSTypeName]'PdvComPort').Type) {
@@ -754,6 +761,28 @@ public class PdvComPort {
   [DllImport("kernel32.dll", SetLastError = true)]
   public static extern bool EscapeCommFunction(IntPtr h, uint fn);
   [StructLayout(LayoutKind.Sequential)]
+  public struct DCB {
+    public int DCBlength;
+    public int BaudRate;
+    public uint fBitFields;
+    public ushort wReserved;
+    public ushort XonLim;
+    public ushort XoffLim;
+    public byte ByteSize;
+    public byte Parity;
+    public byte StopBits;
+    public char XonChar;
+    public char XoffChar;
+    public char ErrorChar;
+    public char EofChar;
+    public char EvtChar;
+    public ushort wReserved1;
+  }
+  [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+  public static extern bool BuildCommDCB(string lpDef, ref DCB lpDCB);
+  [DllImport("kernel32.dll", SetLastError = true)]
+  public static extern bool SetCommState(IntPtr h, ref DCB lpDCB);
+  [StructLayout(LayoutKind.Sequential)]
   public struct COMMTIMEOUTS {
     public uint ReadIntervalTimeout;
     public uint ReadTotalTimeoutMultiplier;
@@ -766,6 +795,20 @@ public class PdvComPort {
   public static IntPtr OpenCom(string port) {
     string path = new string((char)92, 2) + "." + (char)92 + port;
     return CreateFile(path, 1073741824, 0, IntPtr.Zero, 3, 0, IntPtr.Zero);
+  }
+  // Sem isso a porta fica com o handshake que o Windows deixou da ultima vez
+  // (as vezes hardware, esperando CTS/DSR que a impressora nunca assert).
+  // dtr=on/rts=on mantem os sinais que a MP-4200/MP-2500 esperam para
+  // considerar a linha "pronta"; octs/odsr/xon=off desliga qualquer espera
+  // de handshake que travaria o WriteFile ate o timeout.
+  public static bool ConfigurarPorta(IntPtr h) {
+    DCB dcb = new DCB();
+    dcb.DCBlength = Marshal.SizeOf(dcb);
+    bool montou = BuildCommDCB(
+      "baud=9600 parity=N data=8 stop=1 dtr=on rts=on octs=off odsr=off xon=off",
+      ref dcb);
+    if (!montou) { return false; }
+    return SetCommState(h, ref dcb);
   }
   // Sem timeout de escrita, uma impressora travada bloqueia o WriteFile no
   // kernel para sempre: o processo vira zumbi imortal segurando a COM e a
@@ -796,9 +839,10 @@ try {
   if ($handle -eq [IntPtr]::Zero -or $handle -eq [IntPtr]::new(-1)) {
     throw "Nao foi possivel abrir $PortName (Win32 $([Runtime.InteropServices.Marshal]::GetLastWin32Error()))."
   }
+  if (-not [PdvComPort]::ConfigurarPorta($handle)) {
+    throw "Nao foi possivel configurar $PortName (Win32 $([Runtime.InteropServices.Marshal]::GetLastWin32Error()))."
+  }
   [PdvComPort]::AplicarTimeoutEscrita($handle)
-  [void][PdvComPort]::EscapeCommFunction($handle, 5)
-  [void][PdvComPort]::EscapeCommFunction($handle, 3)
   Start-Sleep -Milliseconds 400
   $escritos = 0
   $ok = [PdvComPort]::WriteFile($handle, $bytes, $bytes.Length, [ref]$escritos, [IntPtr]::Zero)

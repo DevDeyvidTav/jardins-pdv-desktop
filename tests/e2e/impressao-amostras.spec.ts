@@ -107,6 +107,8 @@ test.describe('impressao no pedido', () => {
       await janela.getByTestId('opcao-produto-pedido').first().click()
       await janela.getByTestId('botao-adicionar-item').click()
       await expect(janela.getByTestId('item-pedido')).toHaveCount(1)
+      await janela.getByTestId('botao-fechar-adicionar-item').click()
+      await expect(janela.getByTestId('modal-adicionar-item')).toBeHidden()
 
       await janela.getByTestId('botao-imprimir-conta').click()
       await expect(janela.getByTestId('feedback-sucesso-impressao')).toBeVisible()

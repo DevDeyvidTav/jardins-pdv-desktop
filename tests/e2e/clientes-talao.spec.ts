@@ -99,6 +99,8 @@ test.describe('clientes, talão e delivery opcional', () => {
       await janela.getByTestId('campo-quantidade-item').fill('1')
       await janela.getByTestId('botao-adicionar-item').click()
       await expect(janela.getByTestId('pedido-total')).toHaveText(/R\$\s*6,00/)
+      await janela.getByTestId('botao-fechar-adicionar-item').click()
+      await expect(janela.getByTestId('modal-adicionar-item')).toBeHidden()
 
       await janela.getByTestId('select-cliente-pedido').selectOption({ index: 1 })
       await expect(janela.getByTestId('feedback-sucesso-pedidos')).toContainText(

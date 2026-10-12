@@ -91,6 +91,8 @@ test.describe('transferencia e agrupamento de mesas', () => {
       await janela.getByTestId('campo-quantidade-item').fill('1')
       await janela.getByTestId('botao-adicionar-item').click()
       await expect(janela.getByTestId('pedido-total')).toHaveText(/R\$\s*6,00/)
+      await janela.getByTestId('botao-fechar-adicionar-item').click()
+      await expect(janela.getByTestId('modal-adicionar-item')).toBeHidden()
 
       const totalAntes = await janela.getByTestId('pedido-total').innerText()
 

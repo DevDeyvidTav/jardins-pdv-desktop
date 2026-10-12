@@ -75,6 +75,9 @@ async function adicionarItemQuantidade(janela: Page, quantidade: string) {
   await janela.getByTestId('opcao-produto-pedido').first().click()
   await janela.getByTestId('campo-quantidade-item').fill(quantidade)
   await janela.getByTestId('botao-adicionar-item').click()
+  // Fecha o modal para liberar as acoes do pedido (dividir conta, imprimir etc.)
+  await janela.getByTestId('botao-fechar-adicionar-item').click()
+  await expect(janela.getByTestId('modal-adicionar-item')).toBeHidden()
 }
 
 test.describe('divisao de conta', () => {

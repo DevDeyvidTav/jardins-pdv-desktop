@@ -91,6 +91,10 @@ test.describe('pedidos locais', () => {
       await expect(janela.getByTestId('item-pedido')).toHaveCount(1)
       await expect(janela.getByTestId('pedido-total')).toHaveText(/R\$\s*12,00/)
 
+      // Fecha o modal para mexer na lista de itens
+      await janela.getByTestId('botao-fechar-adicionar-item').click()
+      await expect(janela.getByTestId('modal-adicionar-item')).toBeHidden()
+
       await janela.getByTestId('botao-aumentar-quantidade').click()
       await expect(janela.getByTestId('pedido-total')).toHaveText(/R\$\s*18,00/)
 
@@ -101,8 +105,8 @@ test.describe('pedidos locais', () => {
       await expect(janela.getByTestId('item-pedido')).toHaveCount(0)
       await expect(janela.getByTestId('pedido-total')).toHaveText(/R\$\s*0,00/)
 
-      // O seletor continua aberto apos adicionar — volta para as categorias
-      await janela.getByTestId('botao-voltar-categorias').click()
+      // Reabre o modal para adicionar de novo
+      await janela.getByTestId('botao-adicionar-item-painel').click()
       await janela.getByTestId('campo-categoria-produto-pedido').click()
       await janela.getByTestId('opcao-categoria-pedido').first().click()
       await janela.getByTestId('campo-produto-pedido').click()

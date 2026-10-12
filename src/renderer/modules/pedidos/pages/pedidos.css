@@ -1988,3 +1988,124 @@
     justify-self: stretch;
   }
 }
+
+/* Modal de adicionar item — fluxo completo com espaço de sobra */
+.modal-adicionar-item__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: rgba(17, 24, 39, 0.55);
+}
+
+.modal-adicionar-item__painel {
+  display: flex;
+  flex-direction: column;
+  width: min(72rem, 100%);
+  max-height: 100%;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+.modal-adicionar-item__cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.modal-adicionar-item__cabecalho h2 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.modal-adicionar-item__fechar {
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+}
+
+.modal-adicionar-item__fechar:hover {
+  background: #f3f4f6;
+  border-color: #111827;
+}
+
+.modal-adicionar-item__conteudo {
+  flex: 1;
+  overflow: auto;
+  padding: 1.5rem;
+}
+
+/* Dentro do modal o seletor respira: tiles maiores e grade sem teto baixo */
+.modal-adicionar-item__conteudo .formulario-adicionar-item {
+  gap: 1rem;
+}
+
+.modal-adicionar-item__conteudo .seletor-item__grade {
+  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+  gap: 0.625rem;
+  max-height: none;
+}
+
+.modal-adicionar-item__conteudo .seletor-item__grade--tamanhos {
+  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+}
+
+.modal-adicionar-item__conteudo .seletor-item__grade--sabores {
+  grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
+}
+
+.modal-adicionar-item__conteudo .busca-produtos-pedido .seletor-item__tile {
+  min-height: 4.25rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.9375rem;
+}
+
+.modal-adicionar-item__conteudo .seletor-item__tile-meta {
+  font-size: 0.8125rem;
+}
+
+.modal-adicionar-item__conteudo .formulario-adicionar-item__sabores {
+  max-height: none;
+  padding: 0.75rem 1rem;
+}
+
+.modal-adicionar-item__conteudo .formulario-adicionar-item__dica,
+.modal-adicionar-item__conteudo .formulario-adicionar-item__meta {
+  font-size: 0.875rem;
+}
+
+.modal-adicionar-item__conteudo .seletor-item__barra-add {
+  grid-template-columns: minmax(0, 1fr) 5rem auto;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+}
+
+.modal-adicionar-item__conteudo .seletor-item__barra-add-info {
+  font-size: 0.9375rem;
+}
+
+.modal-adicionar-item__conteudo .busca-produtos-pedido__botao-adicionar {
+  padding: 0.75rem 1.5rem;
+  font-size: 0.9375rem;
+}
+
+.modal-adicionar-item__conteudo .busca-produtos-pedido input,
+.modal-adicionar-item__conteudo .busca-produtos-pedido select {
+  padding: 0.75rem 0.875rem;
+  font-size: 0.9375rem;
+}
