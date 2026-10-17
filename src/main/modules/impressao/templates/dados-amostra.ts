@@ -99,6 +99,7 @@ export function criarDocumentoComandaAmostra(
   setor: SetorCozinha,
 ): DocumentoComandaImpressao {
   const conta = criarDocumentoContaAmostra()
+  const itensComanda = [ITEM_PIZZA, ITEM_JAPONES, ITEM_CHINES, ITEM_CANCELADO]
 
   return {
     setor,
@@ -106,7 +107,7 @@ export function criarDocumentoComandaAmostra(
     mesaNumero: conta.mesaNumero,
     referencia: conta.referencia,
     emitidoEm: conta.emitidoEm,
-    itens: conta.itens.filter((item) => item.setor === setor),
+    itens: itensComanda.filter((item) => item.setor === setor),
     via: '1a via',
   }
 }
