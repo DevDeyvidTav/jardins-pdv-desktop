@@ -80,6 +80,13 @@ async function adicionarItemQuantidade(janela: Page, quantidade: string) {
   await expect(janela.getByTestId('modal-adicionar-item')).toBeHidden()
 }
 
+async function abrirDividirConta(janela: Page) {
+  await janela.getByTestId('botao-abrir-pagamento').click()
+  await expect(janela.getByTestId('modal-pagamento')).toBeVisible()
+  await janela.getByTestId('botao-dividir-conta').click()
+  await expect(janela.getByTestId('modal-dividir-conta')).toBeVisible()
+}
+
 test.describe('divisao de conta', () => {
   test('divide conta, quita partes, persiste e cancela outra divisao', async () => {
     const diretorioDados = mkdtempSync(join(tmpdir(), 'pdv-e2e-divisao-'))
@@ -108,8 +115,7 @@ test.describe('divisao de conta', () => {
       await adicionarItemQuantidade(janela, '3')
       await expect(janela.getByTestId('pedido-total')).toHaveText(/R\$\s*18,00/)
 
-      await janela.getByTestId('botao-dividir-conta').click()
-      await expect(janela.getByTestId('modal-dividir-conta')).toBeVisible()
+      await abrirDividirConta(janela)
 
       await janela.getByTestId('campo-identificacao-parte-0').fill('Joao')
       await janela.getByTestId('campo-valor-parte-0').fill('6,00')
@@ -187,7 +193,7 @@ test.describe('divisao de conta', () => {
       await adicionarItemQuantidade(janela, '2')
       await expect(janela.getByTestId('pedido-total')).toHaveText(/R\$\s*12,00/)
 
-      await janela.getByTestId('botao-dividir-conta').click()
+      await abrirDividirConta(janela)
       await janela.getByTestId('campo-identificacao-parte-0').fill('Ana')
       await janela.getByTestId('campo-valor-parte-0').fill('6,00')
       await janela.getByTestId('campo-identificacao-parte-1').fill('Bruno')

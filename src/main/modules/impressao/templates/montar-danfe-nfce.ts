@@ -1,6 +1,7 @@
 import { formatarCpf } from '@shared/utils/cpf'
 import { itemPedidoEstaAtivo, type PedidoItem } from '@shared/types/pedido'
 import { TIPO_PEDIDO_ITEM } from '@shared/types/pizza'
+import { expandirLinhasSaborPizza } from '@shared/utils/linhas-sabor-pizza'
 import {
   ROTULOS_FORMA_PAGAMENTO,
   STATUS_PAGAMENTO_PEDIDO,
@@ -124,21 +125,39 @@ const ROTULO_PAGAMENTO_DANFE: Record<string, string> = {
 }
 
 export function mapearItensPedidoParaDanfe(itens: PedidoItem[]): ItemDanfeNfce[] {
-  return itens.filter(itemPedidoEstaAtivo).map((item, indice) => {
-    const pizza = item.tipo === TIPO_PEDIDO_ITEM.PIZZA ? item.pizza : null
-    const descricao = pizza
-      ? `PIZZA ${pizza.tamanhoNomeSnapshot} ${pizza.sabores.map((sabor) => sabor.saborNomeSnapshot).join('/')}`
-      : item.produtoNome
+  return itens
+    .filter(itemPedidoEstaAtivo)
+    .flatMap((item) => {
+      const linhasPizza = expandirLinhasSaborPizza(item)
+      if (linhasPizza && linhasPizza.length > 0) {
+        return linhasPizza.map((linha) => ({
+          descricao: linha.nome.toUpperCase(),
+          quantidade: item.quantidade,
+          unidade: 'UN',
+          unitarioCentavos: linha.valorCentavos,
+          totalCentavos: linha.valorCentavos,
+        }))
+      }
 
-    return {
+      const pizza = item.tipo === TIPO_PEDIDO_ITEM.PIZZA ? item.pizza : null
+      const descricao = pizza
+        ? `PIZZA ${pizza.tamanhoNomeSnapshot} ${pizza.sabores.map((sabor) => sabor.saborNomeSnapshot).join('/')}`
+        : item.produtoNome
+
+      return [
+        {
+          descricao: descricao.toUpperCase(),
+          quantidade: item.quantidade,
+          unidade: 'UN',
+          unitarioCentavos: item.precoUnitarioCentavos,
+          totalCentavos: item.totalCentavos,
+        },
+      ]
+    })
+    .map((item, indice) => ({
+      ...item,
       codigo: String(indice + 1).padStart(3, '0'),
-      descricao: descricao.toUpperCase(),
-      quantidade: item.quantidade,
-      unidade: 'UN',
-      unitarioCentavos: item.precoUnitarioCentavos,
-      totalCentavos: item.totalCentavos,
-    }
-  })
+    }))
 }
 
 export function mapearPagamentosParaDanfe(pagamentos: PagamentoPedido[]): PagamentoDanfeNfce[] {

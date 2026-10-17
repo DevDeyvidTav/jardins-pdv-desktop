@@ -4,6 +4,7 @@ import type { PedidoItem } from '@shared/types/pedido'
 import type { ProdutoComCategoria } from '@shared/types/produto'
 import { TIPO_PEDIDO_ITEM } from '@shared/types/pizza'
 import { formatarMoeda } from '@shared/utils/moeda'
+import { expandirLinhasSaborPizza } from '@shared/utils/linhas-sabor-pizza'
 import { ModalMotivoCancelamento } from './modal-motivo-cancelamento'
 
 interface BuscaProdutosPedidoProps {
@@ -332,6 +333,7 @@ export function ListaItensPedido({
         <ul className="lista-itens-pedido lista-itens-pedido--tabela" data-testid="lista-itens-pedido">
           {itens.map((item) => {
             const ehPizza = item.tipo === TIPO_PEDIDO_ITEM.PIZZA
+            const linhasPizza = expandirLinhasSaborPizza(item)
 
             return (
               <li
@@ -368,11 +370,22 @@ export function ListaItensPedido({
                   )}
                 </div>
                 <div className="lista-itens-pedido__produto">
-                  <strong data-testid="item-pedido-nome">{item.produtoNome}</strong>
+                  {linhasPizza ? (
+                    <ul className="lista-itens-pedido__sabores" data-testid="item-pedido-nome">
+                      {linhasPizza.map((linha) => (
+                        <li key={linha.nome} className="lista-itens-pedido__sabor">
+                          <strong>{linha.nome}</strong>
+                          <span>{formatarMoeda(linha.valorCentavos)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <strong data-testid="item-pedido-nome">{item.produtoNome}</strong>
+                  )}
                   {item.observacao ? <p data-testid="item-pedido-obs">{item.observacao}</p> : null}
                 </div>
                 <span data-testid="item-pedido-preco-unitario">
-                  {formatarMoeda(item.precoUnitarioCentavos)}
+                  {linhasPizza ? '' : formatarMoeda(item.precoUnitarioCentavos)}
                 </span>
                 <div className="lista-itens-pedido__total-acoes">
                   <span data-testid="item-pedido-total">{formatarMoeda(item.totalCentavos)}</span>
@@ -401,6 +414,7 @@ export function ListaItensPedido({
       <ul className="lista-itens-pedido" data-testid="lista-itens-pedido">
         {itens.map((item) => {
           const ehPizza = item.tipo === TIPO_PEDIDO_ITEM.PIZZA
+          const linhasPizza = expandirLinhasSaborPizza(item)
 
           return (
             <li
@@ -411,11 +425,21 @@ export function ListaItensPedido({
               data-pizza={ehPizza ? 'true' : undefined}
             >
               <div>
-                <strong data-testid="item-pedido-nome">{item.produtoNome}</strong>
+                {linhasPizza ? (
+                  <ul className="lista-itens-pedido__sabores" data-testid="item-pedido-nome">
+                    {linhasPizza.map((linha) => (
+                      <li key={linha.nome}>
+                        <strong>{linha.nome}</strong> {formatarMoeda(linha.valorCentavos)}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <strong data-testid="item-pedido-nome">{item.produtoNome}</strong>
+                )}
                 {item.observacao ? <p data-testid="item-pedido-obs">{item.observacao}</p> : null}
               </div>
               <span data-testid="item-pedido-preco-unitario">
-                {formatarMoeda(item.precoUnitarioCentavos)}
+                {linhasPizza ? '' : formatarMoeda(item.precoUnitarioCentavos)}
               </span>
               <div className="lista-itens-pedido__quantidade">
                 {editavel && !ehPizza ? (

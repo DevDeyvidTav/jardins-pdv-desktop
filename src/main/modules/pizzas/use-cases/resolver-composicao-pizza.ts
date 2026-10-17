@@ -171,7 +171,13 @@ export function criarResolverComposicaoPizza(
       regraPrecificacaoAplicada,
     )
 
-    const produtoNome = `Pizza ${tamanho.sigla} — ${sabores.map((s) => s.nome).join(' / ')}`
+    const produtoNome = sabores
+      .map((sabor) =>
+        sabores.length > 1
+          ? `1/${sabores.length} ${sabor.nome} ${tamanho.sigla}`
+          : `${sabor.nome} ${tamanho.sigla}`,
+      )
+      .join(' + ')
 
     return {
       categoria: categoriaReferencia,

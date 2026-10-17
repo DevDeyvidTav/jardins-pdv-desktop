@@ -14,6 +14,7 @@ import {
 } from '@shared/types/pagamento-pedido'
 import { itemPedidoEstaAtivo, type PedidoItem, type ResumoPedido } from '@shared/types/pedido'
 import { TIPO_PEDIDO_ITEM } from '@shared/types/pizza'
+import { expandirLinhasSaborPizza } from '@shared/utils/linhas-sabor-pizza'
 
 import { valorEntraNaContaImpressao } from './formatar-cupom'
 
@@ -63,35 +64,61 @@ export function itemEntraNaContaImpressao(item: ItemDocumentoImpressao): boolean
   return valorEntraNaContaImpressao(item.totalCentavos)
 }
 
+function setorDoItem(
+  item: PedidoItem,
+  consultarSetorCategoria?: ConsultarSetorCategoriaProduto,
+): SetorComanda {
+  const ehPizza = item.tipo === TIPO_PEDIDO_ITEM.PIZZA && item.pizza
+  const setorCategoria =
+    !ehPizza && item.produtoId && consultarSetorCategoria
+      ? consultarSetorCategoria(item.produtoId)
+      : null
+
+  if (setorCategoria) {
+    return setorImpressaoParaComanda(setorCategoria)
+  }
+
+  return ehPizza ? SETOR_COMANDA.PIZZA : SETOR_COMANDA.COZINHA
+}
+
 export function mapearItensPedidoParaImpressao(
   resumo: ResumoPedido,
   consultarSetorCategoria?: ConsultarSetorCategoriaProduto,
+  opcoes: { expandirSaboresPizza?: boolean } = {},
 ): ItemDocumentoImpressao[] {
-  return resumo.itens.map((item) => {
+  return resumo.itens.flatMap((item) => {
     const pizza = item.pizza
     const ehPizza = item.tipo === TIPO_PEDIDO_ITEM.PIZZA && pizza
-    const setorCategoria =
-      !ehPizza && item.produtoId && consultarSetorCategoria
-        ? consultarSetorCategoria(item.produtoId)
-        : null
+    const setor = setorDoItem(item, consultarSetorCategoria)
+    const cancelado = !itemPedidoEstaAtivo(item)
+    const linhasPizza =
+      opcoes.expandirSaboresPizza && ehPizza ? expandirLinhasSaborPizza(item) : null
 
-    let setor: SetorComanda = ehPizza ? SETOR_COMANDA.PIZZA : SETOR_COMANDA.COZINHA
-    if (setorCategoria) {
-      setor = setorImpressaoParaComanda(setorCategoria)
+    if (linhasPizza && linhasPizza.length > 0) {
+      return linhasPizza.map((linha, indice) => ({
+        quantidade: item.quantidade,
+        nome: linha.nome,
+        detalhes: [],
+        observacao: indice === 0 ? (item.observacao ?? pizza?.observacao ?? null) : null,
+        precoUnitarioCentavos: linha.valorCentavos,
+        totalCentavos: linha.valorCentavos,
+        setor,
+        cancelado,
+      }))
     }
 
-    return {
-      quantidade: item.quantidade,
-      nome: ehPizza
-        ? `Pizza ${pizza.tamanhoNomeSnapshot}`
-        : item.produtoNome,
-      detalhes: ehPizza ? pizza.sabores.map((sabor) => sabor.saborNomeSnapshot) : [],
-      observacao: item.observacao ?? pizza?.observacao ?? null,
-      precoUnitarioCentavos: item.precoUnitarioCentavos,
-      totalCentavos: item.totalCentavos,
-      setor,
-      cancelado: !itemPedidoEstaAtivo(item),
-    }
+    return [
+      {
+        quantidade: item.quantidade,
+        nome: ehPizza ? `Pizza ${pizza.tamanhoNomeSnapshot}` : item.produtoNome,
+        detalhes: ehPizza ? pizza.sabores.map((sabor) => sabor.saborNomeSnapshot) : [],
+        observacao: item.observacao ?? pizza?.observacao ?? null,
+        precoUnitarioCentavos: item.precoUnitarioCentavos,
+        totalCentavos: item.totalCentavos,
+        setor,
+        cancelado,
+      },
+    ]
   })
 }
 
@@ -109,9 +136,9 @@ export function mapearPedidoParaConta(
     mesaNumero: mesa?.numero ?? null,
     referencia: pedido.referencia,
     emitidoEm: pedido.atualizadoEm,
-    itens: mapearItensPedidoParaImpressao(resumo, consultarSetorCategoria).filter(
-      itemEntraNaContaImpressao,
-    ),
+    itens: mapearItensPedidoParaImpressao(resumo, consultarSetorCategoria, {
+      expandirSaboresPizza: true,
+    }).filter(itemEntraNaContaImpressao),
     subtotalCentavos: pedido.subtotalCentavos,
     descontoItensCentavos: pedido.descontoItensCentavos,
     descontoPedidoCentavos: pedido.descontoPedidoCentavos,

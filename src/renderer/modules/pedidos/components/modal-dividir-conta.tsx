@@ -11,6 +11,7 @@ interface ModalDividirContaProps {
   totalCentavos: number
   carregando?: boolean
   erroExterno?: string | null
+  embutido?: boolean
   onConfirmar: (partes: CriarParteDivisaoEntrada[]) => Promise<boolean>
   onFechar: () => void
 }
@@ -23,6 +24,7 @@ export function ModalDividirConta({
   totalCentavos,
   carregando = false,
   erroExterno = null,
+  embutido = false,
   onConfirmar,
   onFechar,
 }: ModalDividirContaProps) {
@@ -105,22 +107,7 @@ export function ModalDividirConta({
 
   const mensagemErro = erro ?? erroExterno
 
-  return (
-    <div className="modal-pagamento" data-testid="modal-dividir-conta">
-      <div className="modal-pagamento__backdrop" onClick={onFechar} />
-      <div className="modal-pagamento__conteudo" role="dialog" aria-modal="true">
-        <header className="modal-pagamento__cabecalho">
-          <div>
-            <h2>Dividir conta</h2>
-            <p className="modal-pagamento__total">
-              Total do pedido: {formatarMoeda(totalCentavos)}
-            </p>
-          </div>
-          <button type="button" className="modal-pagamento__fechar" onClick={onFechar}>
-            Fechar
-          </button>
-        </header>
-
+  const formulario = (
         <div data-testid="formulario-dividir-conta" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {partes.map((parte, indice) => (
             <div
@@ -191,6 +178,28 @@ export function ModalDividirConta({
             {confirmarCriacao ? 'Confirmar divisao' : 'Criar divisao'}
           </button>
         </div>
+  )
+
+  if (embutido) {
+    return <div data-testid="modal-dividir-conta">{formulario}</div>
+  }
+
+  return (
+    <div className="modal-pagamento" data-testid="modal-dividir-conta">
+      <div className="modal-pagamento__backdrop" onClick={onFechar} />
+      <div className="modal-pagamento__conteudo" role="dialog" aria-modal="true">
+        <header className="modal-pagamento__cabecalho">
+          <div>
+            <h2>Dividir conta</h2>
+            <p className="modal-pagamento__total">
+              Total do pedido: {formatarMoeda(totalCentavos)}
+            </p>
+          </div>
+          <button type="button" className="modal-pagamento__fechar" onClick={onFechar}>
+            Fechar
+          </button>
+        </header>
+        {formulario}
       </div>
     </div>
   )

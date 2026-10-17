@@ -263,6 +263,17 @@ describe('mapearPedidoParaComanda', () => {
     expect(comanda.setor).toBe(SETOR_COMANDA.PIZZA)
     expect(comanda.itens[0]?.nome).toBe('Pizza G')
     expect(comanda.itens[0]?.detalhes).toEqual(['Calabresa'])
+
+    resumo.itens[0]!.pizza!.sabores.push({
+      id: 's2',
+      pizzaSaborId: 'ps-2',
+      saborNomeSnapshot: 'Matuta',
+      valorSaborSnapshotCentavos: 5500,
+      ordem: 2,
+    })
+    const conta = mapearPedidoParaConta(resumo, mesa, [])
+    expect(conta.itens.map((item) => item.nome)).toEqual(['1/2 Calabresa G', '1/2 Matuta G'])
+    expect(conta.itens.reduce((acc, item) => acc + item.totalCentavos, 0)).toBe(5500)
   })
 })
 

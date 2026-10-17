@@ -4,8 +4,10 @@ import {
   formatarChaveAcesso,
   formatarCnpj,
   formatarNumeroNfce,
+  mapearItensPedidoParaDanfe,
   montarDanfeNfce,
 } from '../../../src/main/modules/impressao/templates/montar-danfe-nfce'
+import type { PedidoItem } from '../../../src/shared/types/pedido'
 
 describe('montarDanfeNfce', () => {
   const chave = '35200914200166000187550020462799281000000010'
@@ -82,5 +84,75 @@ describe('montarDanfeNfce', () => {
       }),
     ).toBe('https://www.sefaz.rs.gov.br/NFCE/NFCE-COM.aspx?p=1')
     expect(conteudoQrDanfe({ chaveAcesso: chave, qrCode: null })).toBe(chave)
+  })
+
+  it('expande pizza em uma linha por sabor na DANFE', () => {
+    const agora = '2026-10-17T12:00:00.000Z'
+    const item: PedidoItem = {
+      id: 'item-1',
+      pedidoId: 'ped-1',
+      produtoId: null,
+      tipo: 'PIZZA',
+      produtoNome: '1/2 Calabresa G + 1/2 Matuta G',
+      quantidade: 1,
+      precoUnitarioCentavos: 5500,
+      subtotalCentavos: 5500,
+      descontoCentavos: 0,
+      totalCentavos: 5500,
+      observacao: null,
+      criadoEm: agora,
+      atualizadoEm: agora,
+      canceladoEm: null,
+      motivoCancelamento: null,
+      fiscalNcm: '19059090',
+      fiscalCfop: '5102',
+      fiscalIcmsOrigem: 0,
+      fiscalIcmsCsosn: '102',
+      fiscalPisCst: '07',
+      fiscalCofinsCst: '07',
+      pizza: {
+        id: 'ppi-1',
+        pedidoItemId: 'item-1',
+        pizzaCategoriaId: 'pc-1',
+        pizzaTamanhoId: 'tam-g',
+        regraPrecificacaoSnapshot: 'MAIOR_SABOR',
+        valorCalculadoCentavos: 5500,
+        observacao: null,
+        categoriaNomeSnapshot: 'Tradicional',
+        tamanhoNomeSnapshot: 'Grande',
+        sabores: [
+          {
+            id: 's1',
+            pizzaSaborId: 'ps-1',
+            saborNomeSnapshot: 'Calabresa',
+            valorSaborSnapshotCentavos: 5000,
+            ordem: 1,
+          },
+          {
+            id: 's2',
+            pizzaSaborId: 'ps-2',
+            saborNomeSnapshot: 'Matuta',
+            valorSaborSnapshotCentavos: 5500,
+            ordem: 2,
+          },
+        ],
+      },
+    }
+
+    const itens = mapearItensPedidoParaDanfe([item])
+    expect(itens).toEqual([
+      expect.objectContaining({
+        codigo: '001',
+        descricao: '1/2 CALABRESA G',
+        unitarioCentavos: 2619,
+        totalCentavos: 2619,
+      }),
+      expect.objectContaining({
+        codigo: '002',
+        descricao: '1/2 MATUTA G',
+        unitarioCentavos: 2881,
+        totalCentavos: 2881,
+      }),
+    ])
   })
 })

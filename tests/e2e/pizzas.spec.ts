@@ -195,9 +195,8 @@ test.describe('pizzas', () => {
       })
 
       const pizzaP = janela.locator('[data-testid="item-pedido"][data-pizza="true"]').first()
-      await expect(pizzaP.getByTestId('item-pedido-nome')).toContainText('Pizza P')
-      await expect(pizzaP.getByTestId('item-pedido-nome')).toContainText('Calabresa')
-      await expect(pizzaP.getByTestId('item-pedido-nome')).toContainText('Frango')
+      await expect(pizzaP.getByTestId('item-pedido-nome')).toContainText('1/2 Calabresa P')
+      await expect(pizzaP.getByTestId('item-pedido-nome')).toContainText('1/2 Frango P')
       await expect(pizzaP.getByTestId('item-pedido-obs')).toContainText('sem cebola')
       await expect(pizzaP.getByTestId('item-pedido-total')).toHaveText(/R\$\s*45,00/)
       await expect(janela.getByTestId('pedido-total')).toHaveText(/R\$\s*45,00/)
@@ -257,8 +256,8 @@ test.describe('pizzas', () => {
 
       const pizzas = janela.locator('[data-testid="item-pedido"][data-pizza="true"]')
       await expect(pizzas).toHaveCount(2)
-      await expect(pizzas.nth(1).getByTestId('item-pedido-nome')).toContainText('Pizza G')
-      await expect(pizzas.nth(1).getByTestId('item-pedido-nome')).toContainText('Quatro Queijos')
+      await expect(pizzas.nth(1).getByTestId('item-pedido-nome')).toContainText('1/3 Calabresa G')
+      await expect(pizzas.nth(1).getByTestId('item-pedido-nome')).toContainText('1/3 Quatro Queijos G')
       await expect(pizzas.nth(1).getByTestId('item-pedido-total')).toHaveText(/R\$\s*60,00/)
       // 45 + 60 = 105
       await expect(janela.getByTestId('pedido-total')).toHaveText(/R\$\s*105,00/)
@@ -286,6 +285,8 @@ test.describe('pizzas', () => {
       ).toContainText('sem cebola')
 
       // Cenario divisao: bloqueia alteracao de pizza
+      await janela.getByTestId('botao-abrir-pagamento').click()
+      await expect(janela.getByTestId('modal-pagamento')).toBeVisible()
       await janela.getByTestId('botao-dividir-conta').click()
       await expect(janela.getByTestId('modal-dividir-conta')).toBeVisible()
       await janela.getByTestId('campo-identificacao-parte-0').fill('A')

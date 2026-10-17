@@ -52,6 +52,29 @@ const ITEM_CANCELADO: ItemDocumentoImpressao = {
   cancelado: true,
 }
 
+const ITENS_CONTA_PIZZA: ItemDocumentoImpressao[] = [
+  {
+    quantidade: 1,
+    nome: '1/2 Calabresa G',
+    detalhes: [],
+    observacao: 'sem cebola',
+    precoUnitarioCentavos: 2619,
+    totalCentavos: 2619,
+    setor: SETOR_COZINHA.PIZZA,
+    cancelado: false,
+  },
+  {
+    quantidade: 1,
+    nome: '1/2 Mussarela G',
+    detalhes: [],
+    observacao: null,
+    precoUnitarioCentavos: 2881,
+    totalCentavos: 2881,
+    setor: SETOR_COZINHA.PIZZA,
+    cancelado: false,
+  },
+]
+
 export function criarDocumentoContaAmostra(): DocumentoContaImpressao {
   return {
     estabelecimento: 'JARDINS',
@@ -59,7 +82,7 @@ export function criarDocumentoContaAmostra(): DocumentoContaImpressao {
     mesaNumero: 12,
     referencia: 104,
     emitidoEm: EMITIDO_EM_AMOSTRA,
-    itens: [ITEM_PIZZA, ITEM_JAPONES, ITEM_CHINES, ITEM_CANCELADO],
+    itens: [...ITENS_CONTA_PIZZA, ITEM_JAPONES, ITEM_CHINES, ITEM_CANCELADO],
     subtotalCentavos: 13500,
     descontoItensCentavos: 0,
     descontoPedidoCentavos: 500,

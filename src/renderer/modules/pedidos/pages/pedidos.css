@@ -729,6 +729,14 @@
   color: #111827;
 }
 
+.modal-pagamento__acoes-cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
 .modal-pagamento__total {
   margin: 0.25rem 0 0;
   font-weight: 600;
@@ -1757,6 +1765,25 @@
   margin: 0.125rem 0 0;
   font-size: 0.8125rem;
   color: #6b7280;
+}
+
+.lista-itens-pedido__sabores {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.lista-itens-pedido__sabor {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+}
+
+.lista-itens-pedido__sabor strong {
+  font-weight: 600;
 }
 
 .lista-itens-pedido__total-acoes {

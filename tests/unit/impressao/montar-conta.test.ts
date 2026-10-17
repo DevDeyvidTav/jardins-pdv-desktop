@@ -33,19 +33,23 @@ describe('montarConta', () => {
   })
 
   it('imprime itens ativos com precos e omite item cancelado', () => {
-    expect(texto).toContain('Pizza G')
-    expect(texto).toContain('Calabresa / Mussarela')
+    expect(texto).toContain('1/2 Calabresa G')
+    expect(texto).toContain('1/2 Mussarela G')
     expect(texto).toContain('Combinado 20 pecas')
     expect(texto).toContain('sem wasabi')
     expect(texto).toContain('Yakisoba carne')
-    expect(texto).toContain(formatarMoedaCupom(5500))
+    expect(texto).toContain(formatarMoedaCupom(2619))
+    expect(texto).toContain(formatarMoedaCupom(2881))
     expect(texto).toContain(formatarMoedaCupom(4800))
     expect(texto).toContain(formatarMoedaCupom(3200))
     expect(texto).not.toMatch(/\u00A0/)
     expect(texto).not.toContain('Refrigerante lata')
-    expect(linhas.some((linha) => linha.includes('Pizza G') && linha.includes('R$ 55,00'))).toBe(
-      true,
-    )
+    expect(
+      linhas.some((linha) => linha.includes('1/2 Calabresa G') && linha.includes('R$ 26,19')),
+    ).toBe(true)
+    expect(
+      linhas.some((linha) => linha.includes('1/2 Mussarela G') && linha.includes('R$ 28,81')),
+    ).toBe(true)
   })
 
   it('repete o rodape financeiro do cupom da tela', () => {

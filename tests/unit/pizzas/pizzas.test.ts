@@ -645,8 +645,7 @@ describe('pizzas', () => {
     expect(item.produtoId).toBeNull()
     expect(item.quantidade).toBe(1)
     expect(item.observacao).toBe('Sem cebola')
-    expect(item.produtoNome).toContain('Calabresa')
-    expect(item.produtoNome).toContain('Mussarela')
+    expect(item.produtoNome).toBe('1/2 Calabresa G + 1/2 Mussarela G')
 
     const pizza = ambiente.obterPizzaItem({ pedidoItemId: item.id })
     expect(pizza.pedidoItemId).toBe(item.id)

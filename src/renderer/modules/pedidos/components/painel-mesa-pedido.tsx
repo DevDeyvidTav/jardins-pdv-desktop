@@ -124,11 +124,11 @@ export function PainelMesaPedido({
     !resumoPedido!.divisao
   const impressao = useImpressaoPedido()
   const [mostrarPagamento, setMostrarPagamento] = useState(false)
+  const [modoRecebimento, setModoRecebimento] = useState<'pagar' | 'dividir'>('pagar')
   const [mostrarDesconto, setMostrarDesconto] = useState(false)
   const [mostrarConfirmacaoCancelar, setMostrarConfirmacaoCancelar] = useState(false)
   const [mostrarTransferir, setMostrarTransferir] = useState(false)
   const [mostrarAgrupar, setMostrarAgrupar] = useState(false)
-  const [mostrarDividirConta, setMostrarDividirConta] = useState(false)
   const [cancelandoPedido, setCancelandoPedido] = useState(false)
   const [valorDescontoReais, setValorDescontoReais] = useState('')
   const [motivoDesconto, setMotivoDesconto] = useState('')
@@ -230,23 +230,15 @@ export function PainelMesaPedido({
             type="button"
             className="painel-mesa-pedido__botao-receber"
             data-testid="botao-abrir-pagamento"
-            onClick={() => setMostrarPagamento(true)}
+            onClick={() => {
+              setModoRecebimento('pagar')
+              setMostrarPagamento(true)
+            }}
           >
             <span className="painel-mesa-pedido__botao-receber-icone" aria-hidden>
               $
             </span>
             Receber
-          </button>
-        ) : null}
-
-        {podeDividirConta ? (
-          <button
-            type="button"
-            className="painel-mesa-pedido__acao-secundaria"
-            data-testid="botao-dividir-conta"
-            onClick={() => setMostrarDividirConta(true)}
-          >
-            Dividir conta
           </button>
         ) : null}
 
@@ -678,12 +670,15 @@ export function PainelMesaPedido({
         <div className="modal-pagamento" data-testid="modal-pagamento">
           <div
             className="modal-pagamento__backdrop"
-            onClick={() => setMostrarPagamento(false)}
+            onClick={() => {
+              setMostrarPagamento(false)
+              setModoRecebimento('pagar')
+            }}
           />
           <div className="modal-pagamento__conteudo" role="dialog" aria-modal="true">
             <header className="modal-pagamento__cabecalho">
               <div>
-                <h2>Pagamento do pedido</h2>
+                <h2>{modoRecebimento === 'dividir' ? 'Dividir conta' : 'Pagamento do pedido'}</h2>
                 <p className="modal-pagamento__total">
                   Total do Pedido: {formatarMoeda(resumoPedido.pedido.totalCentavos)}
                 </p>
@@ -691,47 +686,79 @@ export function PainelMesaPedido({
                   Restante: {formatarMoeda(resumoPedido.pedido.valorRestanteCentavos)}
                 </p>
               </div>
-              <button
-                type="button"
-                className="modal-pagamento__fechar"
-                onClick={() => setMostrarPagamento(false)}
-              >
-                Fechar
-              </button>
+              <div className="modal-pagamento__acoes-cabecalho">
+                {podeDividirConta && modoRecebimento === 'pagar' ? (
+                  <button
+                    type="button"
+                    className="painel-mesa-pedido__acao-secundaria"
+                    data-testid="botao-dividir-conta"
+                    onClick={() => setModoRecebimento('dividir')}
+                  >
+                    Dividir conta
+                  </button>
+                ) : null}
+                {modoRecebimento === 'dividir' ? (
+                  <button
+                    type="button"
+                    className="painel-mesa-pedido__acao-secundaria"
+                    onClick={() => setModoRecebimento('pagar')}
+                  >
+                    Voltar ao pagamento
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className="modal-pagamento__fechar"
+                  onClick={() => {
+                    setMostrarPagamento(false)
+                    setModoRecebimento('pagar')
+                  }}
+                >
+                  Fechar
+                </button>
+              </div>
             </header>
-            <FormularioPagamentoPedido
-              totalCentavos={resumoPedido.pedido.valorRestanteCentavos}
-              erroExterno={erroPagamento}
-              permitirTalao={permitirTalao}
-              fiscal={
-                onAtualizarSolicitacaoFiscal
-                  ? {
-                      solicitado: resumoPedido.pedido.fiscalSolicitado,
-                      cpf: resumoPedido.pedido.fiscalCpfDestinatario ?? '',
-                      onChange: (solicitado, cpf) => {
-                        void onAtualizarSolicitacaoFiscal(solicitado, cpf)
-                      },
-                    }
-                  : undefined
-              }
-              onConfirmar={async (pagamento) => {
-                const ok = await onRegistrarPagamento(pagamento)
-                if (ok) setMostrarPagamento(false)
-                return ok
-              }}
-            />
+            {modoRecebimento === 'dividir' ? (
+              <ModalDividirConta
+                totalCentavos={resumoPedido.pedido.totalCentavos}
+                carregando={carregandoPedido}
+                erroExterno={erroPagamento}
+                embutido
+                onConfirmar={async (partes) => {
+                  const ok = await onCriarDivisaoConta(partes)
+                  if (ok) {
+                    setMostrarPagamento(false)
+                    setModoRecebimento('pagar')
+                  }
+                  return ok
+                }}
+                onFechar={() => setModoRecebimento('pagar')}
+              />
+            ) : (
+              <FormularioPagamentoPedido
+                totalCentavos={resumoPedido.pedido.valorRestanteCentavos}
+                erroExterno={erroPagamento}
+                permitirTalao={permitirTalao}
+                fiscal={
+                  onAtualizarSolicitacaoFiscal
+                    ? {
+                        solicitado: resumoPedido.pedido.fiscalSolicitado,
+                        cpf: resumoPedido.pedido.fiscalCpfDestinatario ?? '',
+                        onChange: (solicitado, cpf) => {
+                          void onAtualizarSolicitacaoFiscal(solicitado, cpf)
+                        },
+                      }
+                    : undefined
+                }
+                onConfirmar={async (pagamento) => {
+                  const ok = await onRegistrarPagamento(pagamento)
+                  if (ok) setMostrarPagamento(false)
+                  return ok
+                }}
+              />
+            )}
           </div>
         </div>
-      ) : null}
-
-      {mostrarDividirConta && resumoPedido ? (
-        <ModalDividirConta
-          totalCentavos={resumoPedido.pedido.totalCentavos}
-          carregando={carregandoPedido}
-          erroExterno={erroPagamento}
-          onConfirmar={onCriarDivisaoConta}
-          onFechar={() => setMostrarDividirConta(false)}
-        />
       ) : null}
 
       {mostrarTransferir && mesaSelecionada && onTransferirMesa ? (
