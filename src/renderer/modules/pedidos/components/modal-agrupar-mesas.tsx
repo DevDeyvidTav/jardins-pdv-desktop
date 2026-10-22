@@ -23,7 +23,7 @@ export function ModalAgruparMesas({
         (mesa) =>
           mesa.id !== mesaPrincipal.id &&
           mesa.ativo &&
-          mesa.status === STATUS_MESA.LIVRE,
+          (mesa.status === STATUS_MESA.LIVRE || mesa.status === STATUS_MESA.OCUPADA),
       ),
     [mesaPrincipal.id, mesas],
   )
@@ -74,9 +74,9 @@ export function ModalAgruparMesas({
         </p>
 
         <fieldset className="modal-agrupar-mesas__lista" data-testid="lista-mesas-agrupar">
-          <legend>Mesas livres</legend>
+          <legend>Mesas para agrupar</legend>
           {elegiveis.length === 0 ? (
-            <p className="modal-agrupar-mesas__vazio">Nenhuma mesa livre disponivel.</p>
+            <p className="modal-agrupar-mesas__vazio">Nenhuma mesa disponivel para agrupar.</p>
           ) : (
             <div className="modal-agrupar-mesas__grade">
               {elegiveis.map((mesa) => (
@@ -88,7 +88,10 @@ export function ModalAgruparMesas({
                     disabled={carregando || enviando}
                     onChange={() => alternarMesa(mesa.id)}
                   />
-                  <span>Mesa {mesa.numero}</span>
+                  <span>
+                    Mesa {mesa.numero}
+                    {mesa.status === STATUS_MESA.OCUPADA ? ' · pedido' : ''}
+                  </span>
                 </label>
               ))}
             </div>

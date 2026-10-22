@@ -120,6 +120,7 @@ export class PedidoItemRepository {
       fiscalIcmsCsosn: dados.fiscal?.fiscalIcmsCsosn ?? null,
       fiscalPisCst: dados.fiscal?.fiscalPisCst ?? null,
       fiscalCofinsCst: dados.fiscal?.fiscalCofinsCst ?? null,
+      enviadoCozinhaEm: null,
       pizza: null,
     }
 
@@ -129,8 +130,8 @@ export class PedidoItemRepository {
          preco_unitario_centavos, subtotal_centavos, desconto_centavos,
          total_centavos, observacao, criado_em, atualizado_em, cancelado_em,
          fiscal_ncm, fiscal_cfop, fiscal_icms_origem, fiscal_icms_csosn,
-         fiscal_pis_cst, fiscal_cofins_cst
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         fiscal_pis_cst, fiscal_cofins_cst, enviado_cozinha_em
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         item.id,
         item.pedidoId,
@@ -152,6 +153,7 @@ export class PedidoItemRepository {
         item.fiscalIcmsCsosn,
         item.fiscalPisCst,
         item.fiscalCofinsCst,
+        item.enviadoCozinhaEm ?? null,
       ],
     )
 
@@ -221,6 +223,31 @@ export class PedidoItemRepository {
       motivoCancelamento,
       atualizadoEm: agora,
     }
+  }
+
+  marcarEnviadosCozinha(itemIds: string[]): void {
+    if (itemIds.length === 0) {
+      return
+    }
+
+    const conexao = this.obterConexao()
+    const agora = agoraEmIsoUtc()
+    const placeholders = itemIds.map(() => '?').join(', ')
+
+    conexao.instancia.run(
+      `UPDATE pedido_item
+       SET enviado_cozinha_em = COALESCE(enviado_cozinha_em, ?), atualizado_em = ?
+       WHERE id IN (${placeholders}) AND cancelado_em IS NULL`,
+      [agora, agora, ...itemIds],
+    )
+
+    persistirConexaoBanco(conexao)
+  }
+
+  excluir(itemId: string): void {
+    const conexao = this.obterConexao()
+    conexao.instancia.run('DELETE FROM pedido_item WHERE id = ?', [itemId])
+    persistirConexaoBanco(conexao)
   }
 
   cancelarItensAtivosPorPedido(pedidoId: string, motivoCancelamento: string): void {

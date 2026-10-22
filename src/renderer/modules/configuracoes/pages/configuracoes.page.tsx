@@ -97,6 +97,10 @@ export function ConfiguracoesPage({ operador }: ConfiguracoesPageProps) {
     setSucesso(null)
 
     try {
+      await window.pdv.config.salvarImpressoras({
+        configs: impressoras.filter((config) => config.nomeImpressora.trim()),
+      })
+
       const resultado =
         setor === 'BALCAO'
           ? await window.pdv.impressao.imprimirAmostra({ tipo: 'CONTA' })
@@ -460,8 +464,9 @@ export function ConfiguracoesPage({ operador }: ConfiguracoesPageProps) {
 
           <h2>Impressoras por setor</h2>
           <p className="config-impressoras__dica">
-            Somente setores com nome preenchido e salvos recebem impressao. Deixe vazio
-            os setores que ainda nao tem impressora (ex.: pizza, japonesa, chinesa).
+            Cada cozinha precisa da própria porta COM (COM3, COM5…). Não coloque o nome
+            da NFC-e/caixa nas cozinhas: o teste e a comanda saem na COM daquele setor.
+            Testar já salva antes de imprimir.
           </p>
           <form onSubmit={(evento) => void salvarImpressoras(evento)}>
             <datalist id="nomes-impressoras-detectadas">

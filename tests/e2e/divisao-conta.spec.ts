@@ -71,10 +71,10 @@ async function adicionarItemQuantidade(janela: Page, quantidade: string) {
   }
   await janela.getByTestId('campo-categoria-produto-pedido').click()
   await janela.getByTestId('opcao-categoria-pedido').first().click()
-  await janela.getByTestId('campo-produto-pedido').click()
-  await janela.getByTestId('opcao-produto-pedido').first().click()
-  await janela.getByTestId('campo-quantidade-item').fill(quantidade)
-  await janela.getByTestId('botao-adicionar-item').click()
+  const vezes = Number(quantidade) || 1
+  for (let indice = 0; indice < vezes; indice += 1) {
+    await janela.getByTestId('opcao-produto-pedido').first().click()
+  }
   // Fecha o modal para liberar as acoes do pedido (dividir conta, imprimir etc.)
   await janela.getByTestId('botao-fechar-adicionar-item').click()
   await expect(janela.getByTestId('modal-adicionar-item')).toBeHidden()

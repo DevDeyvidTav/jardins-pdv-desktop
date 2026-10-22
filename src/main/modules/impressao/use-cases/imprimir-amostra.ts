@@ -57,6 +57,14 @@ export function criarImprimirAmostra(
         operacao: 'impressao.imprimirAmostra',
         tipo: entrada.tipo,
         setor: entrada.setor ?? null,
+        destinoTipo: destino.tipo,
+        destinoPorta: destino.tipo === 'COM' ? destino.porta : null,
+        destinoNome:
+          destino.tipo === 'SPOOLER'
+            ? destino.nome
+            : destino.tipo === 'COM'
+              ? destino.nomeImpressora
+              : null,
       })
     } catch (erro) {
       aviso =

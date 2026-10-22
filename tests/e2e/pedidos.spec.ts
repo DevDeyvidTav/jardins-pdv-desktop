@@ -84,10 +84,8 @@ test.describe('pedidos locais', () => {
       await janela.getByTestId('botao-adicionar-item-painel').click()
       await janela.getByTestId('campo-categoria-produto-pedido').click()
       await janela.getByTestId('opcao-categoria-pedido').first().click()
-      await janela.getByTestId('campo-produto-pedido').click()
       await janela.getByTestId('opcao-produto-pedido').first().click()
-      await janela.getByTestId('campo-quantidade-item').fill('2')
-      await janela.getByTestId('botao-adicionar-item').click()
+      await janela.getByTestId('opcao-produto-pedido').first().click()
       await expect(janela.getByTestId('item-pedido')).toHaveCount(1)
       await expect(janela.getByTestId('pedido-total')).toHaveText(/R\$\s*12,00/)
 
@@ -99,9 +97,6 @@ test.describe('pedidos locais', () => {
       await expect(janela.getByTestId('pedido-total')).toHaveText(/R\$\s*18,00/)
 
       await janela.getByTestId('botao-remover-item').click()
-      await expect(janela.getByTestId('modal-confirmar-cancelamento-item')).toBeVisible()
-      await janela.getByTestId('input-motivo-cancelamento').fill('Item lancado errado')
-      await janela.getByTestId('botao-confirmar-cancelamento-pedido').click()
       await expect(janela.getByTestId('item-pedido')).toHaveCount(0)
       await expect(janela.getByTestId('pedido-total')).toHaveText(/R\$\s*0,00/)
 
@@ -109,10 +104,7 @@ test.describe('pedidos locais', () => {
       await janela.getByTestId('botao-adicionar-item-painel').click()
       await janela.getByTestId('campo-categoria-produto-pedido').click()
       await janela.getByTestId('opcao-categoria-pedido').first().click()
-      await janela.getByTestId('campo-produto-pedido').click()
       await janela.getByTestId('opcao-produto-pedido').first().click()
-      await janela.getByTestId('campo-quantidade-item').fill('1')
-      await janela.getByTestId('botao-adicionar-item').click()
       await expect(janela.getByTestId('pedido-total')).toHaveText(/R\$\s*6,00/)
 
       await aplicativo.close()

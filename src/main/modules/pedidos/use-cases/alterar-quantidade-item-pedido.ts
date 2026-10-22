@@ -1,4 +1,8 @@
-import type { AlterarQuantidadeItemPedidoEntrada, ResumoPedido } from '@shared/types/pedido'
+import {
+  itemPedidoEnviadoCozinha,
+  type AlterarQuantidadeItemPedidoEntrada,
+  type ResumoPedido,
+} from '@shared/types/pedido'
 import { TIPO_PEDIDO_ITEM } from '@shared/types/pizza'
 import { CODIGOS_ERRO_PEDIDOS, ErroPedidos } from '../errors/erros-pedidos'
 import type { PedidoRepository } from '../repositories/pedido.repository'
@@ -50,6 +54,13 @@ export function criarAlterarQuantidadeItemPedido(
 
       if (!item || item.pedidoId !== entrada.pedidoId || item.canceladoEm) {
         throw new ErroPedidos(CODIGOS_ERRO_PEDIDOS.ITEM_NAO_ENCONTRADO, 'Item nao encontrado.')
+      }
+
+      if (itemPedidoEnviadoCozinha(item)) {
+        throw new ErroPedidos(
+          CODIGOS_ERRO_PEDIDOS.ENTRADA_INVALIDA,
+          'Item ja enviado para a cozinha nao pode ter a quantidade alterada.',
+        )
       }
 
       if (item.tipo === TIPO_PEDIDO_ITEM.PIZZA) {

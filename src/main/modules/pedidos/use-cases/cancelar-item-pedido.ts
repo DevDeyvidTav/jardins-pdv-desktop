@@ -1,5 +1,13 @@
-import type { CancelarItemPedidoEntrada, ResumoPedido } from '@shared/types/pedido'
+import {
+  itemPedidoEnviadoCozinha,
+  type CancelarItemPedidoEntrada,
+  type ResumoPedido,
+} from '@shared/types/pedido'
 import { TIPO_PEDIDO_ITEM } from '@shared/types/pizza'
+import {
+  criarPizzaPedidoItemRepository,
+  type PizzaPedidoItemRepository,
+} from '../../pizzas/repositories/pizza-pedido-item.repository'
 import { CODIGOS_ERRO_PEDIDOS, ErroPedidos } from '../errors/erros-pedidos'
 import type { PedidoRepository } from '../repositories/pedido.repository'
 import { criarPedidoRepository } from '../repositories/pedido.repository'
@@ -27,6 +35,7 @@ export function criarCancelarItemPedido(
   repositorioItem: PedidoItemRepository = criarPedidoItemRepository(),
   repositorioDivisao: PedidoDivisaoContaRepository = criarPedidoDivisaoContaRepository(),
   obterConexao = obterConexaoBancoLocal,
+  repositorioPizza: PizzaPedidoItemRepository = criarPizzaPedidoItemRepository(),
 ) {
   return function cancelarItemPedido(entrada: CancelarItemPedidoEntrada): ResumoPedido {
     const conexao = obterConexao()
@@ -62,19 +71,35 @@ export function criarCancelarItemPedido(
         garantirPedidoSemDivisaoAtiva(pedido.id)
       }
 
-      repositorioItem.cancelar(entrada.itemId, entrada.motivoCancelamento)
+      const enviadoCozinha = itemPedidoEnviadoCozinha(item)
+      if (!enviadoCozinha) {
+        if (item.tipo === TIPO_PEDIDO_ITEM.PIZZA) {
+          repositorioPizza.excluirPorPedidoItemId(entrada.itemId)
+        }
+        repositorioItem.excluir(entrada.itemId)
+      } else {
+        const motivo = entrada.motivoCancelamento?.trim() ?? ''
+        if (!motivo) {
+          throw new ErroPedidos(
+            CODIGOS_ERRO_PEDIDOS.ENTRADA_INVALIDA,
+            'Motivo do cancelamento e obrigatorio para item ja enviado a cozinha.',
+          )
+        }
+        repositorioItem.cancelar(entrada.itemId, motivo)
+      }
+
       recalcularTotaisPedido(entrada.pedidoId, repositorioPedido, repositorioItem)
 
       registrarEventoPedidoSync(entrada.pedidoId, OPERACAO_SYNC.UPDATE, conexao)
       registrarAcaoAuditoria(
         {
-          acao: 'ITEM_CANCELAR',
-          resumo: 'Removeu item do pedido',
+          acao: enviadoCozinha ? 'ITEM_CANCELAR' : 'ITEM_EXCLUIR',
+          resumo: enviadoCozinha ? 'Cancelou item enviado a cozinha' : 'Removeu item do pedido',
           entidade: 'PEDIDO_ITEM',
           entidadeId: entrada.itemId,
           detalhes: {
             pedidoId: entrada.pedidoId,
-            motivo: entrada.motivoCancelamento,
+            motivo: entrada.motivoCancelamento ?? null,
           },
         },
         conexao,

@@ -53,8 +53,6 @@ export function FormularioAdicionarItemPedido({
   const [carregandoPizza, setCarregandoPizza] = useState(true)
   const [erroCatalogo, setErroCatalogo] = useState<string | null>(null)
 
-  const [produtoSelecionadoId, setProdutoSelecionadoId] = useState('')
-  const [quantidade, setQuantidade] = useState('1')
   const [erroValidacao, setErroValidacao] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
 
@@ -98,11 +96,6 @@ export function FormularioAdicionarItemPedido({
     [categoriaId, categoriasProduto],
   )
 
-  const produtoSelecionado = useMemo(
-    () => produtos.find((produto) => produto.id === produtoSelecionadoId) ?? null,
-    [produtoSelecionadoId, produtos],
-  )
-
   const categoriasVisiveis = useMemo(() => {
     if (modo !== 'categorias') return []
     if (!termoNormalizado) return categoriasProduto
@@ -139,15 +132,12 @@ export function FormularioAdicionarItemPedido({
     setCategoriaId(id)
     setModo('produto')
     setTermo('')
-    setProdutoSelecionadoId('')
-    setQuantidade('1')
     setErroValidacao(null)
   }
 
   function abrirPizzas() {
     setModo('pizza')
     setTermo('')
-    setProdutoSelecionadoId('')
     setErroValidacao(null)
   }
 
@@ -155,23 +145,18 @@ export function FormularioAdicionarItemPedido({
     setModo('categorias')
     setCategoriaId('')
     setTermo('')
-    setProdutoSelecionadoId('')
-    setQuantidade('1')
     setErroValidacao(null)
   }
 
-  function selecionarProduto(produto: ProdutoComCategoria) {
+  async function adicionarProduto(produto: ProdutoComCategoria) {
+    if (enviando) return
     setErroValidacao(null)
-    // Tocar de novo no mesmo produto soma mais um — agiliza itens repetidos.
-    if (produtoSelecionadoId === produto.id) {
-      setQuantidade((atual) => {
-        const numero = Number(atual)
-        return String((Number.isInteger(numero) && numero > 0 ? numero : 0) + 1)
-      })
-      return
+    setEnviando(true)
+    try {
+      await onAdicionarProduto(produto.id, 1)
+    } finally {
+      setEnviando(false)
     }
-    setProdutoSelecionadoId(produto.id)
-    setQuantidade('1')
   }
 
   function handleTecladoBusca(evento: KeyboardEvent<HTMLInputElement>) {
@@ -189,7 +174,7 @@ export function FormularioAdicionarItemPedido({
       categoriasVisiveis.length === 0 && !mostrarTilePizzas
     if (produtosVisiveis.length === 1 && (modo === 'produto' || semCategoriaParaAbrir)) {
       evento.preventDefault()
-      selecionarProduto(produtosVisiveis[0]!)
+      void adicionarProduto(produtosVisiveis[0]!)
       return
     }
     if (
@@ -200,32 +185,6 @@ export function FormularioAdicionarItemPedido({
     ) {
       evento.preventDefault()
       abrirCategoria(categoriasVisiveis[0]!.id)
-    }
-  }
-
-  async function handleAdicionarProduto(evento: FormEvent<HTMLFormElement>) {
-    evento.preventDefault()
-    setErroValidacao(null)
-    const quantidadeNumero = Number(quantidade)
-
-    if (!produtoSelecionadoId) {
-      setErroValidacao('Selecione um produto.')
-      return
-    }
-    if (!Number.isInteger(quantidadeNumero) || quantidadeNumero <= 0) {
-      setErroValidacao('Informe uma quantidade valida maior que zero.')
-      return
-    }
-
-    setEnviando(true)
-    try {
-      const ok = await onAdicionarProduto(produtoSelecionadoId, quantidadeNumero)
-      if (ok) {
-        setProdutoSelecionadoId('')
-        setQuantidade('1')
-      }
-    } finally {
-      setEnviando(false)
     }
   }
 
@@ -335,8 +294,8 @@ export function FormularioAdicionarItemPedido({
                     type="button"
                     className="seletor-item__tile"
                     data-testid="opcao-produto-pedido"
-                    aria-pressed={produto.id === produtoSelecionadoId}
-                    onClick={() => selecionarProduto(produto)}
+                    disabled={enviando}
+                    onClick={() => void adicionarProduto(produto)}
                   >
                     <span className="seletor-item__tile-nome">{produto.nome}</span>
                     <span className="seletor-item__tile-meta">
@@ -362,8 +321,8 @@ export function FormularioAdicionarItemPedido({
                   type="button"
                   className="seletor-item__tile"
                   data-testid="opcao-produto-pedido"
-                  aria-pressed={produto.id === produtoSelecionadoId}
-                  onClick={() => selecionarProduto(produto)}
+                  disabled={enviando}
+                  onClick={() => void adicionarProduto(produto)}
                 >
                   <span className="seletor-item__tile-nome">{produto.nome}</span>
                   <span className="seletor-item__tile-meta">
@@ -377,39 +336,6 @@ export function FormularioAdicionarItemPedido({
 
         {modo === 'pizza' ? (
           <FormularioPizzaRapido tamanhos={tamanhos} onAdicionar={onAdicionarPizza} />
-        ) : null}
-
-        {produtoSelecionado && modo !== 'pizza' ? (
-          <form
-            className="seletor-item__barra-add"
-            data-testid="formulario-adicionar-item"
-            onSubmit={(evento) => void handleAdicionarProduto(evento)}
-          >
-            <div className="seletor-item__barra-add-info">
-              <strong>{produtoSelecionado.nome}</strong>
-              <span>{formatarMoeda(produtoSelecionado.precoCentavos)}</span>
-            </div>
-            <label className="busca-produtos-pedido__campo" htmlFor="quantidade-item">
-              Qtd
-              <input
-                id="quantidade-item"
-                data-testid="campo-quantidade-item"
-                type="number"
-                min={1}
-                value={quantidade}
-                onChange={(evento) => setQuantidade(evento.target.value)}
-                disabled={enviando}
-              />
-            </label>
-            <button
-              type="submit"
-              className="busca-produtos-pedido__botao-adicionar"
-              data-testid="botao-adicionar-item"
-              disabled={enviando}
-            >
-              Adicionar
-            </button>
-          </form>
         ) : null}
 
         {erroValidacao ? (

@@ -144,7 +144,50 @@ describe('pedidos', () => {
     expect(resumoAtualizado.pedido.totalCentavos).toBe(1800)
   })
 
-  it('recalcula total ao cancelar item', async () => {
+  it('abre nova linha ao adicionar o mesmo produto ja enviado para cozinha', async () => {
+    const ambiente = await prepararAmbientePedidos()
+    encerrarBanco = ambiente.encerrar
+
+    const pedido = ambiente.criarPedidoMesa({ mesaId: ambiente.mesa.id })
+    const primeiro = ambiente.adicionarItemPedido({
+      pedidoId: pedido.id,
+      produtoId: ambiente.produto.id,
+      quantidade: 1,
+    })
+    ambiente.repositorioItem.marcarEnviadosCozinha([primeiro.itens[0]!.id])
+
+    const resumo = ambiente.adicionarItemPedido({
+      pedidoId: pedido.id,
+      produtoId: ambiente.produto.id,
+      quantidade: 1,
+    })
+
+    expect(resumo.itens).toHaveLength(2)
+    expect(resumo.itens.filter((item) => !item.enviadoCozinhaEm)).toHaveLength(1)
+  })
+
+  it('incrementa quantidade ao adicionar o mesmo produto ainda nao enviado', async () => {
+    const ambiente = await prepararAmbientePedidos()
+    encerrarBanco = ambiente.encerrar
+
+    const pedido = ambiente.criarPedidoMesa({ mesaId: ambiente.mesa.id })
+    ambiente.adicionarItemPedido({
+      pedidoId: pedido.id,
+      produtoId: ambiente.produto.id,
+      quantidade: 1,
+    })
+    const resumo = ambiente.adicionarItemPedido({
+      pedidoId: pedido.id,
+      produtoId: ambiente.produto.id,
+      quantidade: 1,
+    })
+
+    expect(resumo.itens).toHaveLength(1)
+    expect(resumo.itens[0]?.quantidade).toBe(2)
+    expect(resumo.pedido.totalCentavos).toBe(1200)
+  })
+
+  it('exclui item nao enviado sem persistir cancelamento', async () => {
     const ambiente = await prepararAmbientePedidos()
     encerrarBanco = ambiente.encerrar
 
@@ -158,14 +201,14 @@ describe('pedidos', () => {
     const resumoFinal = ambiente.cancelarItemPedido({
       pedidoId: pedido.id,
       itemId: resumo.itens[0]!.id,
-      motivoCancelamento: 'Cliente desistiu',
     })
 
     expect(resumoFinal.itens).toHaveLength(0)
     expect(resumoFinal.pedido.totalCentavos).toBe(0)
+    expect(ambiente.repositorioItem.listarPorPedido(pedido.id, false)).toHaveLength(0)
   })
 
-  it('preserva item cancelado no banco com soft delete', async () => {
+  it('cancela com motivo item ja enviado para cozinha', async () => {
     const ambiente = await prepararAmbientePedidos()
     encerrarBanco = ambiente.encerrar
 
@@ -175,10 +218,12 @@ describe('pedidos', () => {
       produtoId: ambiente.produto.id,
       quantidade: 1,
     })
+    const itemId = resumo.itens[0]!.id
+    ambiente.repositorioItem.marcarEnviadosCozinha([itemId])
 
     ambiente.cancelarItemPedido({
       pedidoId: pedido.id,
-      itemId: resumo.itens[0]!.id,
+      itemId,
       motivoCancelamento: 'Erro de lancamento',
     })
 
@@ -188,6 +233,30 @@ describe('pedidos', () => {
     expect(itensPersistidos[0]?.canceladoEm).not.toBeNull()
     expect(itensPersistidos[0]?.motivoCancelamento).toBe('Erro de lancamento')
     expect(itemPedidoEstaAtivo(itensPersistidos[0]!)).toBe(false)
+  })
+
+  it('exige motivo para cancelar item enviado para cozinha', async () => {
+    const ambiente = await prepararAmbientePedidos()
+    encerrarBanco = ambiente.encerrar
+
+    const pedido = ambiente.criarPedidoMesa({ mesaId: ambiente.mesa.id })
+    const resumo = ambiente.adicionarItemPedido({
+      pedidoId: pedido.id,
+      produtoId: ambiente.produto.id,
+      quantidade: 1,
+    })
+    const itemId = resumo.itens[0]!.id
+    ambiente.repositorioItem.marcarEnviadosCozinha([itemId])
+
+    try {
+      ambiente.cancelarItemPedido({
+        pedidoId: pedido.id,
+        itemId,
+      })
+      throw new Error('deveria ter falhado')
+    } catch (erro) {
+      expect((erro as ErroPedidos).codigo).toBe(CODIGOS_ERRO_PEDIDOS.ENTRADA_INVALIDA)
+    }
   })
 
   it('inclui itens cancelados no resumo detalhado', async () => {
@@ -201,10 +270,12 @@ describe('pedidos', () => {
       produtoId: ambiente.produto.id,
       quantidade: 1,
     })
+    const itemId = resumo.itens[0]!.id
+    ambiente.repositorioItem.marcarEnviadosCozinha([itemId])
 
     ambiente.cancelarItemPedido({
       pedidoId: pedido.id,
-      itemId: resumo.itens[0]!.id,
+      itemId,
       motivoCancelamento: 'Troca de produto',
     })
 
@@ -231,6 +302,7 @@ describe('pedidos', () => {
       pedidoId: pedido.id,
       produtoId: ambiente.produto.id,
       quantidade: 2,
+      observacao: 'sem gelo',
     })
 
     const pedidoCancelado = ambiente.cancelarPedido({

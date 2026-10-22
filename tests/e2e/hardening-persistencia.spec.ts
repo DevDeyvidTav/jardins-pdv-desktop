@@ -106,9 +106,7 @@ test.describe('hardening persistencia', () => {
       await janela!.getByTestId('botao-adicionar-item-painel').click()
       await janela!.getByTestId('campo-categoria-produto-pedido').click()
       await janela!.getByTestId('opcao-categoria-pedido').first().click()
-      await janela!.getByTestId('campo-produto-pedido').click()
       await janela!.getByTestId('opcao-produto-pedido').first().click()
-      await janela!.getByTestId('botao-adicionar-item').click()
       await expect(janela!.getByTestId('item-pedido')).toHaveCount(1)
 
       await aplicativo.close()

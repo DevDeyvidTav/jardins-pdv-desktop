@@ -189,13 +189,16 @@ describe('destino da impressora', () => {
     expect(detectarPortaComAtual('Inexistente', () => '')).toBeNull()
   })
 
-  it('prioriza porta detectada sobre a configurada', () => {
+  it('usa a porta configurada do setor e nao a detectada pelo nome', () => {
     expect(
-      resolverPortaComImpressora('MP-4200 TH', 'COM10', {}, () => 'COM13'),
-    ).toBe('COM13')
+      resolverPortaComImpressora('MP-4200 TH', 'COM3', {}, () => 'COM10'),
+    ).toBe('COM3')
     expect(
       resolverPortaComImpressora('MP-4200 TH', 'COM10', {}, () => null, () => []),
     ).toBe('COM10')
+    expect(
+      resolverPortaComImpressora('MP-4200 TH', null, {}, () => 'COM13'),
+    ).toBe('COM13')
     expect(normalizarPortaCom('com11:')).toBe('COM11')
   })
 

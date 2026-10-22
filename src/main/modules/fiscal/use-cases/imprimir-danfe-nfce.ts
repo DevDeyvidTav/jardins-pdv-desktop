@@ -4,6 +4,7 @@ import { criarPagamentoPedidoRepository } from '../../pagamentos/repositories/pa
 import { obterResumoPedido } from '../../pedidos/use-cases/consultas-pedido'
 import { CODIGOS_ERRO_IMPRESSAO, ErroImpressao } from '../../impressao/errors/erros-impressao'
 import { enviarBufferImpressora } from '../../impressao/infraestrutura/enviar-impressora'
+import { resolverDestinoConta } from '../../impressao/infraestrutura/resolver-destino-impressora'
 import { codificarCupomEscPosComQr } from '../../impressao/infraestrutura/encoder-escpos'
 import {
   conteudoQrDanfe,
@@ -57,7 +58,14 @@ export function criarImprimirDanfeNfce(
     })
     const qr = conteudoQrDanfe(documento)
     const buffer = codificarCupomEscPosComQr(linhas, qr)
-    await enviarBuffer(buffer)
+    const destino = resolverDestinoConta()
+    if (destino.tipo === 'NAO_CONFIGURADO') {
+      throw new ErroImpressao(
+        CODIGOS_ERRO_IMPRESSAO.FALHA_ENVIO_IMPRESSORA,
+        'Impressora do balcão não configurada. A NFC-e imprime no setor Balcão / Caixa.',
+      )
+    }
+    await enviarBuffer(buffer, destino)
     repositorioDocumento.marcarImpresso(pedidoId, agoraEmIsoUtc())
 
     return {

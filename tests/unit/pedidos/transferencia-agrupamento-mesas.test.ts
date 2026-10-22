@@ -409,18 +409,36 @@ describe('transferencia e agrupamento de mesas', () => {
       )
     })
 
-    it('bloqueia quando secundaria possui pedido aberto', async () => {
+    it('mescla itens quando a secundaria ja tem pedido aberto', async () => {
       const ambiente = await setup()
-      const pedido = ambiente.criarPedidoMesa({ mesaId: ambiente.mesa1.id })
-      ambiente.criarPedidoMesa({ mesaId: ambiente.mesa2.id })
+      const pedidoPrincipal = ambiente.criarPedidoMesa({ mesaId: ambiente.mesa1.id })
+      ambiente.adicionarItemPedido({
+        pedidoId: pedidoPrincipal.id,
+        produtoId: ambiente.produto.id,
+        quantidade: 1,
+      })
+      const pedidoSecundario = ambiente.criarPedidoMesa({ mesaId: ambiente.mesa2.id })
+      ambiente.adicionarItemPedido({
+        pedidoId: pedidoSecundario.id,
+        produtoId: ambiente.produto.id,
+        quantidade: 2,
+      })
 
-      esperarErroMesas(
-        () =>
-          ambiente.agrupar({
-            pedidoId: pedido.id,
-            mesaIds: [ambiente.mesa1.id, ambiente.mesa2.id],
-          }),
-        CODIGOS_ERRO_MESAS.MESCLAGEM_DE_PEDIDOS_NAO_SUPORTADA,
+      const resultado = ambiente.agrupar({
+        pedidoId: pedidoPrincipal.id,
+        mesaIds: [ambiente.mesa1.id, ambiente.mesa2.id],
+      })
+
+      const resumo = ambiente.obterResumo(pedidoPrincipal.id)
+      expect(resultado.mesas).toHaveLength(2)
+      expect(resumo.itens).toHaveLength(2)
+      expect(resumo.itens.reduce((total, item) => total + item.quantidade, 0)).toBe(3)
+      expect(resumo.pedido.totalCentavos).toBe(1800)
+      expect(ambiente.repositorioPedido.buscarPorId(pedidoSecundario.id)?.status).toBe(
+        STATUS_PEDIDO.CANCELADO,
+      )
+      expect(ambiente.repositorioMesa.buscarPorId(ambiente.mesa2.id)?.status).toBe(
+        STATUS_MESA.AGRUPADA,
       )
     })
 

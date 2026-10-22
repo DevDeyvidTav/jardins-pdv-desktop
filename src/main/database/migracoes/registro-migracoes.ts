@@ -896,4 +896,11 @@ CREATE INDEX IF NOT EXISTS idx_auditoria_evento_acao
   ON auditoria_evento (acao, criado_em DESC);
 `.trim(),
   },
+  {
+    versao: 27,
+    nome: '0027-pedido-item-enviado-cozinha',
+    sql: `
+ALTER TABLE pedido_item ADD COLUMN enviado_cozinha_em TEXT;
+`.trim(),
+  },
 ]

@@ -5,7 +5,7 @@ import {
   type PagamentoInformado,
 } from '@shared/types/pagamento-pedido'
 import { converterReaisParaCentavos, formatarMoeda } from '@shared/utils/moeda'
-import { MENSAGEM_VALOR_RECEBIDO_INSUFICIENTE } from '@shared/utils/troco-dinheiro'
+import { resolverPagamentoParcial } from '@shared/utils/resolver-pagamento-parcial'
 import { CamposTrocoDinheiro } from './campos-troco-dinheiro'
 import { normalizarCpf } from '@shared/utils/cpf'
 
@@ -82,14 +82,35 @@ export function FormularioPagamentoPedido({
 
   async function confirmar(evento: FormEvent) {
     evento.preventDefault()
-    const valorCentavos = converterReaisParaCentavos(valor)
+    const valorDigitado = converterReaisParaCentavos(valor)
 
-    if (valorCentavos === null || valorCentavos <= 0) {
+    if (valorDigitado === null || valorDigitado <= 0) {
       setErro('Informe um valor maior que zero.')
       return
     }
 
-    if (valorCentavos > totalCentavos) {
+    let recebidoDigitado: number | null = null
+    if (ehDinheiro && valorRecebido.trim() !== '') {
+      recebidoDigitado = converterReaisParaCentavos(valorRecebido)
+      if (recebidoDigitado === null) {
+        setErro('Informe um valor recebido valido.')
+        return
+      }
+    }
+
+    const resolvido = resolverPagamentoParcial({
+      valorDigitadoCentavos: valorDigitado,
+      valorRecebidoCentavos: recebidoDigitado,
+      restanteCentavos: totalCentavos,
+      ehDinheiro,
+    })
+
+    if (resolvido.valorCentavos <= 0) {
+      setErro('Informe um valor maior que zero.')
+      return
+    }
+
+    if (resolvido.valorCentavos > totalCentavos) {
       setErro('Pagamento nao pode ser maior que o valor restante.')
       return
     }
@@ -102,35 +123,24 @@ export function FormularioPagamentoPedido({
       return
     }
 
-    let valorRecebidoCentavos: number | undefined
-    if (ehDinheiro && valorRecebido.trim() !== '') {
-      const recebido = converterReaisParaCentavos(valorRecebido)
-      if (recebido === null) {
-        setErro('Informe um valor recebido valido.')
-        return
-      }
-      if (recebido < valorCentavos) {
-        setErro(MENSAGEM_VALOR_RECEBIDO_INSUFICIENTE)
-        return
-      }
-      valorRecebidoCentavos = recebido
-    }
-
     setErro(null)
     setEnviando(true)
 
     try {
       const ok = await onConfirmar({
         formaPagamento,
-        valorCentavos,
-        valorRecebidoCentavos,
+        valorCentavos: resolvido.valorCentavos,
+        valorRecebidoCentavos: resolvido.valorRecebidoCentavos,
         motivoCortesia:
           formaPagamento === FORMA_PAGAMENTO.CORTESIA
             ? motivoCortesia.trim()
             : undefined,
       })
 
-      if (!ok && !erroExterno) {
+      if (ok) {
+        setMotivoCortesia('')
+        setValorRecebido('')
+      } else if (!erroExterno) {
         setErro('Nao foi possivel registrar o pagamento.')
       }
     } finally {
@@ -139,6 +149,23 @@ export function FormularioPagamentoPedido({
   }
 
   const mensagemErro = erro ?? erroExterno
+  const valorDigitado = converterReaisParaCentavos(valor)
+  const recebidoDigitado =
+    ehDinheiro && valorRecebido.trim() !== ''
+      ? converterReaisParaCentavos(valorRecebido)
+      : null
+  const valorDestePagamento =
+    valorDigitado != null && valorDigitado > 0
+      ? resolverPagamentoParcial({
+          valorDigitadoCentavos: valorDigitado,
+          valorRecebidoCentavos: recebidoDigitado,
+          restanteCentavos: totalCentavos,
+          ehDinheiro,
+        }).valorCentavos
+      : null
+  const restanteAposPagamento =
+    valorDestePagamento != null ? Math.max(0, totalCentavos - valorDestePagamento) : null
+  const ehParcial = restanteAposPagamento != null && restanteAposPagamento > 0
 
   return (
     <form
@@ -148,29 +175,35 @@ export function FormularioPagamentoPedido({
     >
       <strong>Pagamento</strong>
       <div className="formulario-pagamento__campos">
-        <select
-          data-testid="campo-forma-pagamento"
-          value={formaPagamento}
-          onChange={(evento) =>
-            setFormaPagamento(evento.target.value as PagamentoInformado['formaPagamento'])
-          }
-          disabled={enviando}
-        >
-          {formas.map((forma) => (
-            <option key={forma} value={forma}>
-              {ROTULOS_FORMA_PAGAMENTO[forma]}
-            </option>
-          ))}
-        </select>
-        <input
-          data-testid="campo-valor-pagamento"
-          value={valor}
-          onChange={(evento) => setValor(evento.target.value)}
-          placeholder="0,00"
-          inputMode="decimal"
-          disabled={enviando}
-          aria-label="Valor do pagamento"
-        />
+        <label className="formulario-pagamento__campo">
+          Forma
+          <select
+            data-testid="campo-forma-pagamento"
+            value={formaPagamento}
+            onChange={(evento) =>
+              setFormaPagamento(evento.target.value as PagamentoInformado['formaPagamento'])
+            }
+            disabled={enviando}
+          >
+            {formas.map((forma) => (
+              <option key={forma} value={forma}>
+                {ROTULOS_FORMA_PAGAMENTO[forma]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="formulario-pagamento__campo">
+          Deste pagamento
+          <input
+            data-testid="campo-valor-pagamento"
+            value={valor}
+            onChange={(evento) => setValor(evento.target.value)}
+            placeholder="0,00"
+            inputMode="decimal"
+            disabled={enviando}
+            aria-label="Valor do pagamento"
+          />
+        </label>
         {formaPagamento === FORMA_PAGAMENTO.CORTESIA ? (
           <input
             data-testid="campo-motivo-cortesia"
@@ -182,7 +215,7 @@ export function FormularioPagamentoPedido({
         ) : null}
         {ehDinheiro ? (
           <CamposTrocoDinheiro
-            valorAplicadoCentavos={converterReaisParaCentavos(valor)}
+            valorAplicadoCentavos={valorDestePagamento}
             valorRecebido={valorRecebido}
             onValorRecebidoChange={setValorRecebido}
             disabled={enviando}
@@ -224,7 +257,12 @@ export function FormularioPagamentoPedido({
           ) : null}
         </div>
       ) : null}
-      <p>Total a pagar: {formatarMoeda(totalCentavos)}</p>
+      <p>Restante: {formatarMoeda(totalCentavos)}</p>
+      {ehParcial ? (
+        <p className="formulario-pagamento__parcial" data-testid="aviso-pagamento-parcial">
+          Pagamento parcial. Ainda restará {formatarMoeda(restanteAposPagamento)}.
+        </p>
+      ) : null}
       {mensagemErro ? (
         <p role="alert" data-testid="erro-pagamento">
           {mensagemErro}

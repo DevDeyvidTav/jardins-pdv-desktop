@@ -1,4 +1,5 @@
 import type { AdicionarItemPedidoEntrada, ResumoPedido } from '@shared/types/pedido'
+import { itemPedidoEnviadoCozinha } from '@shared/types/pedido'
 import { TIPO_PEDIDO_ITEM } from '@shared/types/pizza'
 import type { ProdutoRepository } from '../../produtos/repositories/produto.repository'
 import { criarProdutoRepository } from '../../produtos/repositories/produto.repository'
@@ -69,17 +70,40 @@ export function criarAdicionarItemPedido(
         )
       }
 
-      repositorioItem.inserir({
-        pedidoId: entrada.pedidoId,
-        produtoId: produto.id,
-        tipo: TIPO_PEDIDO_ITEM.PRODUTO,
-        produtoNome: produto.nome,
-        quantidade: entrada.quantidade,
-        precoUnitarioCentavos: produto.precoCentavos,
-        descontoCentavos: descontoItemCentavos,
-        observacao: entrada.observacao?.trim() || null,
-        fiscal: snapshotFiscalDeProduto(produto),
-      })
+      const existente = repositorioItem
+        .listarPorPedido(entrada.pedidoId, true)
+        .find(
+          (item) =>
+            item.tipo === TIPO_PEDIDO_ITEM.PRODUTO &&
+            item.produtoId === produto.id &&
+            !itemPedidoEnviadoCozinha(item),
+        )
+
+      if (
+        existente &&
+        descontoItemCentavos === 0 &&
+        existente.descontoCentavos === 0 &&
+        existente.precoUnitarioCentavos === produto.precoCentavos &&
+        !entrada.observacao?.trim() &&
+        !existente.observacao
+      ) {
+        repositorioItem.atualizarQuantidade(
+          existente.id,
+          existente.quantidade + entrada.quantidade,
+        )
+      } else {
+        repositorioItem.inserir({
+          pedidoId: entrada.pedidoId,
+          produtoId: produto.id,
+          tipo: TIPO_PEDIDO_ITEM.PRODUTO,
+          produtoNome: produto.nome,
+          quantidade: entrada.quantidade,
+          precoUnitarioCentavos: produto.precoCentavos,
+          descontoCentavos: descontoItemCentavos,
+          observacao: entrada.observacao?.trim() || null,
+          fiscal: snapshotFiscalDeProduto(produto),
+        })
+      }
 
       recalcularTotaisPedido(entrada.pedidoId, repositorioPedido, repositorioItem)
 

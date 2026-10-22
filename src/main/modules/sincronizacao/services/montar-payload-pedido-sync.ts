@@ -63,6 +63,7 @@ function serializarItem(item: PedidoItem): Record<string, unknown> {
     fiscalIcmsCsosn: item.fiscalIcmsCsosn,
     fiscalPisCst: item.fiscalPisCst,
     fiscalCofinsCst: item.fiscalCofinsCst,
+    enviadoCozinhaEm: item.enviadoCozinhaEm ?? null,
   }
 }
 

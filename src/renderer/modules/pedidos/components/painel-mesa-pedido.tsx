@@ -50,7 +50,7 @@ interface PainelMesaPedidoProps {
     observacao?: string,
   ) => Promise<boolean>
   onAlterarQuantidade: (itemId: string, quantidade: number) => Promise<boolean>
-  onRemoverItem: (itemId: string, motivoCancelamento: string) => Promise<boolean>
+  onRemoverItem: (itemId: string, motivoCancelamento?: string) => Promise<boolean>
   onAplicarDesconto?: (
     descontoCentavos: number,
     motivoDesconto?: string,
@@ -68,6 +68,7 @@ interface PainelMesaPedidoProps {
   onAgruparMesas?: (mesaIds: string[], motivo?: string) => Promise<boolean>
   onEncerrarAgrupamento?: (observacao?: string) => Promise<boolean>
   onRecarregarResumo?: () => Promise<void>
+  onRecarregarPedido?: (pedidoId: string) => Promise<unknown>
   onVincularCliente?: (clienteId: string | null) => Promise<boolean>
   clientes?: Cliente[]
   erroPagamento?: string | null
@@ -100,6 +101,7 @@ export function PainelMesaPedido({
   onAgruparMesas,
   onEncerrarAgrupamento,
   onRecarregarResumo,
+  onRecarregarPedido,
   onVincularCliente,
   clientes = [],
   erroPagamento = null,
@@ -373,8 +375,9 @@ export function PainelMesaPedido({
             <div className="painel-mesa-pedido__tabela-cabecalho">
               <span>Qtde</span>
               <span>Produto</span>
-              <span>Valor</span>
-              <span>Total</span>
+              <span className="painel-mesa-pedido__tabela-num">Valor</span>
+              <span className="painel-mesa-pedido__tabela-num">Total</span>
+              <span />
             </div>
 
             <ListaItensPedido
@@ -454,9 +457,13 @@ export function PainelMesaPedido({
                         className="painel-mesa-pedido__acao-secundaria"
                         data-testid="botao-imprimir-comanda"
                         disabled={impressao.carregando}
-                        onClick={() =>
-                          void impressao.imprimirComanda(resumoPedido.pedido.id)
-                        }
+                        onClick={() => {
+                          void impressao.imprimirComanda(resumoPedido.pedido.id).then((resultado) => {
+                            if (resultado) {
+                              void onRecarregarPedido?.(resumoPedido.pedido.id)
+                            }
+                          })
+                        }}
                       >
                         Imprimir comanda
                       </button>
@@ -751,8 +758,11 @@ export function PainelMesaPedido({
                     : undefined
                 }
                 onConfirmar={async (pagamento) => {
+                  const restanteAntes = resumoPedido.pedido.valorRestanteCentavos
                   const ok = await onRegistrarPagamento(pagamento)
-                  if (ok) setMostrarPagamento(false)
+                  if (ok && pagamento.valorCentavos >= restanteAntes) {
+                    setMostrarPagamento(false)
+                  }
                   return ok
                 }}
               />

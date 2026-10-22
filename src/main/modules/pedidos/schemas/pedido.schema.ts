@@ -40,7 +40,7 @@ const motivoCancelamentoSchema = z
 export const cancelarItemPedidoSchema = z.object({
   pedidoId: z.string().trim().min(1, 'Pedido e obrigatorio.'),
   itemId: z.string().trim().min(1, 'Item e obrigatorio.'),
-  motivoCancelamento: motivoCancelamentoSchema,
+  motivoCancelamento: z.string().trim().max(500).optional(),
 })
 
 export const removerItemPedidoSchema = cancelarItemPedidoSchema

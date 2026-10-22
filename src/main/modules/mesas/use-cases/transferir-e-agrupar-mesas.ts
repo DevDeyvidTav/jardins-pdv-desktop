@@ -17,8 +17,11 @@ import {
   type TransferirPedidoMesaEntrada,
   type TransferirPedidoMesaResultado,
 } from '@shared/types/mesa'
-import { STATUS_PEDIDO, TIPO_PEDIDO } from '@shared/types/pedido'
+import { STATUS_PEDIDO, TIPO_PEDIDO, type Pedido } from '@shared/types/pedido'
 import { STATUS_SESSAO_CAIXA } from '@shared/types/sessao-caixa'
+import { pedidoPossuiDivisaoAtiva } from '../../divisao-conta/services/resumo-divisao-conta'
+import { criarPedidoItemRepository } from '../../pedidos/repositories/pedido-item.repository'
+import { recalcularTotaisPedido } from '../../pedidos/services/recalcular-totais-pedido'
 import {
   criarSessaoCaixaRepository,
   type SessaoCaixaRepository,
@@ -43,6 +46,83 @@ import {
 import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
 import { registrarEventoPedidoSync } from '../../sincronizacao/services/registrar-evento-pedido'
 import { registrarAcaoAuditoria } from '../../sincronizacao/services/registrar-acao-auditoria'
+
+function mesclarPedidoSecundarioNaConexao(
+  conexao: ConexaoSqlite,
+  pedidoPrincipal: Pedido,
+  pedidoSecundario: Pedido,
+  mesaPrincipalNumero: number,
+  agora: string,
+  repositorioPedido: PedidoRepository,
+): void {
+  if (pedidoPossuiDivisaoAtiva(pedidoPrincipal.id) || pedidoPossuiDivisaoAtiva(pedidoSecundario.id)) {
+    throw new ErroMesas(
+      CODIGOS_ERRO_MESAS.ENTRADA_INVALIDA,
+      'Nao e permitido agrupar mesas com divisao de conta ativa. Cancele a divisao antes.',
+    )
+  }
+
+  const totalCombinado =
+    pedidoPrincipal.totalCentavos + pedidoSecundario.totalCentavos
+  const quitadoCombinado =
+    pedidoPrincipal.valorPagoCentavos +
+    pedidoPrincipal.valorCortesiaCentavos +
+    pedidoSecundario.valorPagoCentavos +
+    pedidoSecundario.valorCortesiaCentavos
+
+  if (quitadoCombinado > totalCombinado) {
+    throw new ErroMesas(
+      CODIGOS_ERRO_MESAS.ENTRADA_INVALIDA,
+      'Nao e possivel agrupar: os pagamentos das duas mesas ultrapassam o total combinado.',
+    )
+  }
+
+  conexao.instancia.run(
+    `UPDATE pedido_item
+     SET pedido_id = ?, atualizado_em = ?
+     WHERE pedido_id = ? AND cancelado_em IS NULL`,
+    [pedidoPrincipal.id, agora, pedidoSecundario.id],
+  )
+  conexao.instancia.run(
+    `UPDATE pagamento_pedido
+     SET pedido_id = ?, atualizado_em = ?
+     WHERE pedido_id = ? AND cancelado_em IS NULL AND status = 'CONFIRMADO'`,
+    [pedidoPrincipal.id, agora, pedidoSecundario.id],
+  )
+
+  const descontoPedidoCentavos =
+    pedidoPrincipal.descontoPedidoCentavos + pedidoSecundario.descontoPedidoCentavos
+  conexao.instancia.run(
+    `UPDATE pedido
+     SET desconto_pedido_centavos = ?, atualizado_em = ?
+     WHERE id = ?`,
+    [descontoPedidoCentavos, agora, pedidoPrincipal.id],
+  )
+
+  if (!pedidoPrincipal.clienteId && pedidoSecundario.clienteId) {
+    conexao.instancia.run(
+      `UPDATE pedido SET cliente_id = ?, atualizado_em = ? WHERE id = ?`,
+      [pedidoSecundario.clienteId, agora, pedidoPrincipal.id],
+    )
+  }
+
+  repositorioPedido.atualizarValoresPagamento({
+    pedidoId: pedidoPrincipal.id,
+    valorPagoCentavos:
+      pedidoPrincipal.valorPagoCentavos + pedidoSecundario.valorPagoCentavos,
+    valorCortesiaCentavos:
+      pedidoPrincipal.valorCortesiaCentavos + pedidoSecundario.valorCortesiaCentavos,
+  })
+
+  const repositorioItem = criarPedidoItemRepository(conexao)
+  recalcularTotaisPedido(pedidoPrincipal.id, repositorioPedido, repositorioItem)
+
+  repositorioPedido.cancelar(
+    pedidoSecundario.id,
+    `Agrupado na mesa ${mesaPrincipalNumero}`,
+  )
+  registrarEventoPedidoSync(pedidoSecundario.id, OPERACAO_SYNC.CANCEL, conexao)
+}
 
 function garantirCaixaAberto(repositorioSessao: SessaoCaixaRepository): void {
   const sessao = repositorioSessao.buscarSessaoAberta()
@@ -350,6 +430,8 @@ export function criarAgruparMesasPedido(
       )
     }
 
+    const pedidosSecundarios = new Map<string, Pedido>()
+
     for (const secundaria of mesasSecundarias) {
       if (!secundaria.ativo || secundaria.status === STATUS_MESA.INATIVA) {
         throw new ErroMesas(
@@ -358,16 +440,28 @@ export function criarAgruparMesasPedido(
         )
       }
 
-      if (secundaria.status !== STATUS_MESA.LIVRE) {
-        if (secundaria.status === STATUS_MESA.OCUPADA) {
+      if (secundaria.status === STATUS_MESA.OCUPADA) {
+        const pedidoSecundario = repositorioPedido.buscarPedidoAbertoPorMesa(secundaria.id)
+        if (!pedidoSecundario) {
           throw new ErroMesas(
-            CODIGOS_ERRO_MESAS.MESCLAGEM_DE_PEDIDOS_NAO_SUPORTADA,
-            'Nao e permitido agrupar mesas com mais de um pedido aberto.',
+            CODIGOS_ERRO_MESAS.PEDIDO_NAO_ENCONTRADO,
+            `Mesa ${secundaria.numero} esta ocupada sem pedido aberto.`,
           )
         }
+        if (pedidoSecundario.mesaAgrupamentoId) {
+          throw new ErroMesas(
+            CODIGOS_ERRO_MESAS.PEDIDO_JA_POSSUI_AGRUPAMENTO,
+            `Mesa ${secundaria.numero} ja possui agrupamento ativo.`,
+          )
+        }
+        pedidosSecundarios.set(secundaria.id, pedidoSecundario)
+        continue
+      }
+
+      if (secundaria.status !== STATUS_MESA.LIVRE) {
         throw new ErroMesas(
           CODIGOS_ERRO_MESAS.MESA_DESTINO_NAO_ESTA_LIVRE,
-          `Mesa ${secundaria.numero} precisa estar livre.`,
+          `Mesa ${secundaria.numero} precisa estar livre ou ocupada com pedido.`,
         )
       }
     }
@@ -395,6 +489,27 @@ export function criarAgruparMesasPedido(
 
     iniciarTransacaoImediata(conexao)
     try {
+      const repositorioPedidoTx = criarPedidoRepository(conexao)
+      let pedidoPrincipalAtual = pedido
+      for (const secundaria of mesasSecundarias) {
+        const pedidoSecundario = pedidosSecundarios.get(secundaria.id)
+        if (!pedidoSecundario) {
+          continue
+        }
+        mesclarPedidoSecundarioNaConexao(
+          conexao,
+          pedidoPrincipalAtual,
+          pedidoSecundario,
+          mesaPrincipal.numero,
+          agora,
+          repositorioPedidoTx,
+        )
+        const atualizado = repositorioPedidoTx.buscarPorId(pedido.id)
+        if (atualizado) {
+          pedidoPrincipalAtual = atualizado
+        }
+      }
+
       conexao.instancia.run(
         `INSERT INTO mesa_agrupamento (
            id, pedido_id, mesa_principal_id, status, criado_em, encerrado_em, motivo_encerramento

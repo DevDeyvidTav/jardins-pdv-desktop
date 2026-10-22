@@ -245,7 +245,7 @@ function enviarViaComWindows(
 ): void {
   prepararImpressoraParaEnvioCom(nomeImpressora)
 
-  const portaAtual = resolverPortaComImpressora(nomeImpressora, porta)
+  const portaInformada = normalizarPortaCom(porta) ?? porta
   let ultimoErro: unknown
 
   const tentar = (portaAlvo: string): 'ok' | 'reenviar' | 'fatal' => {
@@ -258,7 +258,7 @@ function enviarViaComWindows(
     }
   }
 
-  const primeira = tentar(portaAtual)
+  const primeira = tentar(portaInformada)
   if (primeira === 'ok') {
     return
   }
@@ -274,8 +274,7 @@ function enviarViaComWindows(
     // limpar a fila e tentar a COM de novo
   }
 
-  const portaDepois = resolverPortaComImpressora(nomeImpressora, porta)
-  const segunda = tentar(portaDepois)
+  const segunda = tentar(portaInformada)
   if (segunda === 'ok') {
     return
   }
@@ -335,10 +334,6 @@ function escolherPortaComDisponivel(
     }
   }
 
-  if (portasSistema.length === 1) {
-    return portasSistema[0] ?? null
-  }
-
   return null
 }
 
@@ -367,7 +362,7 @@ export function detectarPortaComAtual(
   return normalizarPortaCom(consultarPortNameImpressoraWindows(nomeImpressora, executarConsulta))
 }
 
-/** Prioriza a porta detectada agora (USB pode mudar COM apos reconectar). */
+/** Porta do setor primeiro. Get-Printer só entra se o setor não tiver COM salva. */
 export function resolverPortaComImpressora(
   nomeImpressora: string,
   portaConfigurada?: string | null,
@@ -375,6 +370,11 @@ export function resolverPortaComImpressora(
   detectar = detectarPortaComAtual,
   listarPortas = listarPortasComWindows,
 ): string {
+  const configurada = normalizarPortaCom(portaConfigurada)
+  if (configurada) {
+    return configurada
+  }
+
   const detectada = detectar(nomeImpressora)
   if (detectada) {
     return detectada
@@ -382,14 +382,14 @@ export function resolverPortaComImpressora(
 
   const portasSistema = listarPortas()
   const escolhida = escolherPortaComDisponivel(
-    [portaConfigurada, obterPortaImpressoraLocal(env)],
+    [obterPortaImpressoraLocal(env)],
     portasSistema,
   )
   if (escolhida) {
     return escolhida
   }
 
-  return normalizarPortaCom(portaConfigurada) ?? obterPortaImpressoraLocal(env)
+  return obterPortaImpressoraLocal(env)
 }
 
 function enviarViaSpoolerWindows(

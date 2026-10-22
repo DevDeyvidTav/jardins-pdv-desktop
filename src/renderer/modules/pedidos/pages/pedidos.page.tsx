@@ -87,6 +87,7 @@ export function PedidosPage({
               await pedidos.selecionarDelivery(pedidos.resumoPedido.pedido.id)
             }
           }}
+          onRecarregarPedido={pedidos.recarregarPedido}
           erroPagamento={pedidos.erro}
         />
 

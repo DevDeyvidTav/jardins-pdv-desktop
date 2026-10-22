@@ -194,7 +194,58 @@ describe('resolver destino impressora', () => {
     banco.encerrar()
   })
 
-  it('usa COM quando a impressora esta em porta virtual Bematech_USB', async () => {
+  it('usa a COM salva do setor mesmo quando Get-Printer aponta para a NFC-e', async () => {
+    const banco = await prepararBancoTeste()
+    const repositorio = criarConfigImpressoraRepository(obterConexaoBancoLocal())
+
+    repositorio.salvarTodas([
+      {
+        setor: SETOR_IMPRESSAO.BALCAO,
+        nomeImpressora: 'MP-4200 TH',
+        portaCom: 'COM10',
+      },
+      {
+        setor: SETOR_IMPRESSAO.PIZZA,
+        nomeImpressora: 'MP-4200 TH',
+        portaCom: 'COM3',
+      },
+      {
+        setor: SETOR_IMPRESSAO.JAPONESA,
+        nomeImpressora: 'MP-4200 TH',
+        portaCom: 'COM5',
+      },
+    ])
+
+    vi.spyOn(enviarImpressora, 'consultarPortNameImpressoraWindows').mockReturnValue(
+      'COM10',
+    )
+
+    const env = {
+      ...process.env,
+      NODE_ENV: 'production',
+      PDV_IMPRESSORA_MOCK: '0',
+    }
+
+    expect(resolverDestinoImpressoraPorSetor(SETOR_IMPRESSAO.BALCAO, repositorio, env)).toEqual({
+      tipo: 'COM',
+      porta: 'COM10',
+      nomeImpressora: 'MP-4200 TH',
+    })
+    expect(resolverDestinoImpressoraPorSetor(SETOR_IMPRESSAO.PIZZA, repositorio, env)).toEqual({
+      tipo: 'COM',
+      porta: 'COM3',
+      nomeImpressora: 'MP-4200 TH',
+    })
+    expect(resolverDestinoImpressoraPorSetor(SETOR_IMPRESSAO.JAPONESA, repositorio, env)).toEqual({
+      tipo: 'COM',
+      porta: 'COM5',
+      nomeImpressora: 'MP-4200 TH',
+    })
+
+    banco.encerrar()
+  })
+
+  it('usa a COM salva quando a fila do Windows esta em porta virtual Bematech_USB', async () => {
     const banco = await prepararBancoTeste()
     const repositorio = criarConfigImpressoraRepository(obterConexaoBancoLocal())
 
@@ -209,8 +260,6 @@ describe('resolver destino impressora', () => {
     vi.spyOn(enviarImpressora, 'consultarPortNameImpressoraWindows').mockReturnValue(
       'Bematech_USB',
     )
-    vi.spyOn(enviarImpressora, 'detectarPortaComAtual').mockReturnValue(null)
-    vi.spyOn(enviarImpressora, 'listarPortasComWindows').mockReturnValue(['COM10'])
 
     const destino = resolverDestinoImpressoraPorSetor(
       SETOR_IMPRESSAO.BALCAO,
@@ -225,9 +274,40 @@ describe('resolver destino impressora', () => {
 
     expect(destino).toEqual({
       tipo: 'COM',
-      porta: 'COM10',
+      porta: 'COM11',
       nomeImpressora: 'MP-4200 TH',
     })
+
+    banco.encerrar()
+  })
+
+  it('usa o spooler do setor quando nao ha COM salva', async () => {
+    const banco = await prepararBancoTeste()
+    const repositorio = criarConfigImpressoraRepository(obterConexaoBancoLocal())
+
+    repositorio.salvarTodas([
+      {
+        setor: SETOR_IMPRESSAO.BALCAO,
+        nomeImpressora: 'NFC-e Caixa',
+        portaCom: null,
+      },
+    ])
+
+    vi.spyOn(enviarImpressora, 'consultarPortNameImpressoraWindows').mockReturnValue(
+      'USB001',
+    )
+
+    const destino = resolverDestinoImpressoraPorSetor(
+      SETOR_IMPRESSAO.BALCAO,
+      repositorio,
+      {
+        ...process.env,
+        NODE_ENV: 'production',
+        PDV_IMPRESSORA_MOCK: '0',
+      },
+    )
+
+    expect(destino).toEqual({ tipo: 'SPOOLER', nome: 'NFC-e Caixa' })
 
     banco.encerrar()
   })

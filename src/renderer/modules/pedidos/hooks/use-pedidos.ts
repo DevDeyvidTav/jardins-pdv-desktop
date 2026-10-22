@@ -68,7 +68,7 @@ export interface UsePedidosResultado {
     observacao?: string,
   ) => Promise<boolean>
   alterarQuantidadeItem: (itemId: string, quantidade: number) => Promise<boolean>
-  removerItem: (itemId: string, motivoCancelamento: string) => Promise<boolean>
+  removerItem: (itemId: string, motivoCancelamento?: string) => Promise<boolean>
   aplicarDescontoPedido: (descontoCentavos: number, motivoDesconto?: string) => Promise<boolean>
   cancelarPedido: (motivoCancelamento: string) => Promise<boolean>
   registrarPagamento: (pagamento: PagamentoInformado) => Promise<boolean>
@@ -91,6 +91,7 @@ export interface UsePedidosResultado {
   alternarCadastroMesas: () => void
   limparSelecaoMesa: () => void
   recarregar: () => Promise<void>
+  recarregarPedido: (pedidoId: string) => Promise<unknown>
   limparFeedback: () => void
   transferirPedidoMesa: (mesaDestinoId: string, motivo: string) => Promise<boolean>
   agruparMesasPedido: (mesaIds: string[], motivo?: string) => Promise<boolean>
@@ -569,7 +570,7 @@ export function usePedidos(): UsePedidosResultado {
   )
 
   const removerItem = useCallback(
-    async (itemId: string, motivoCancelamento: string): Promise<boolean> => {
+    async (itemId: string, motivoCancelamento?: string): Promise<boolean> => {
       if (!resumoPedido) {
         return false
       }
@@ -584,7 +585,7 @@ export function usePedidos(): UsePedidosResultado {
           motivoCancelamento,
         })
         setResumoPedido(resumo)
-        setSucesso('Item cancelado do pedido.')
+        setSucesso(motivoCancelamento ? 'Item cancelado do pedido.' : 'Item removido do pedido.')
         return true
       } catch (causa) {
         setErro(extrairMensagemErro(causa))
@@ -1041,6 +1042,7 @@ export function usePedidos(): UsePedidosResultado {
     alternarCadastroMesas,
     limparSelecaoMesa,
     recarregar: carregarDados,
+    recarregarPedido: atualizarResumo,
     limparFeedback,
     transferirPedidoMesa,
     agruparMesasPedido,

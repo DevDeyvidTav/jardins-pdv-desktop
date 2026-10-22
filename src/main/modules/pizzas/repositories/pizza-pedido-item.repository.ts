@@ -163,6 +163,21 @@ export class PizzaPedidoItemRepository {
       sabores: saboresResumo,
     }
   }
+
+  excluirPorPedidoItemId(pedidoItemId: string): void {
+    const pizza = this.buscarPorPedidoItemId(pedidoItemId)
+    if (!pizza) {
+      return
+    }
+
+    const conexao = this.obterConexao()
+    conexao.instancia.run(
+      'DELETE FROM pizza_pedido_item_sabor WHERE pizza_pedido_item_id = ?',
+      [pizza.id],
+    )
+    conexao.instancia.run('DELETE FROM pizza_pedido_item WHERE id = ?', [pizza.id])
+    persistirConexaoBanco(conexao)
+  }
 }
 
 export function criarPizzaPedidoItemRepository(

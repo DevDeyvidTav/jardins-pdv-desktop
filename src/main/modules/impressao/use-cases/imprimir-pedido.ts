@@ -5,7 +5,11 @@ import {
   type SetorComanda,
 } from '@shared/types/impressao'
 import type { SetorImpressao } from '@shared/types/config-impressora'
-import { itemPedidoEstaAtivo } from '@shared/types/pedido'
+import { itemPedidoEnviadoCozinha, itemPedidoEstaAtivo } from '@shared/types/pedido'
+import { criarPedidoItemRepository } from '../../pedidos/repositories/pedido-item.repository'
+import { obterConexaoBancoLocal } from '../../../database/inicializar-banco'
+import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
+import { registrarEventoPedidoSync } from '../../sincronizacao/services/registrar-evento-pedido'
 import { CODIGOS_ERRO_PEDIDOS, ErroPedidos } from '../../pedidos/errors/erros-pedidos'
 import { criarMesaRepository } from '../../mesas/repositories/mesa.repository'
 import { criarPagamentoPedidoRepository } from '../../pagamentos/repositories/pagamento-pedido.repository'
@@ -126,6 +130,7 @@ export function criarImprimirPedido(
   consultarSetorCategoria: ConsultarSetorCategoriaProduto = consultarSetorCategoriaProduto,
   resolverDestinoContaImpressao = resolverDestinoConta,
   resolverDestinoSetor = resolverDestinoImpressoraPorSetor,
+  marcarItensComanda: (itemIds: string[]) => void = () => undefined,
 ) {
   return function imprimirPedido(
     entrada: ImprimirPedidoEntrada,
@@ -155,18 +160,29 @@ export function criarImprimirPedido(
         ? {
             ...resumo,
             itens: resumo.itens.filter(
-              (item) => !itemPedidoNaoEntraNaComanda(item, consultarCategoria, consultarSetor),
+              (item) =>
+                !itemPedidoNaoEntraNaComanda(item, consultarCategoria, consultarSetor) &&
+                !itemPedidoEnviadoCozinha(item),
             ),
           }
         : resumo
     const itensParaImprimir = resumoDocumento.itens.filter(itemPedidoEstaAtivo)
 
     if (itensAtivos.length === 0 || itensParaImprimir.length === 0) {
+      const soItensJaEnviados =
+        tipo === TIPO_DOCUMENTO_IMPRESSAO.COMANDA &&
+        itensAtivos.some(
+          (item) =>
+            !itemPedidoNaoEntraNaComanda(item, consultarCategoria, consultarSetor) &&
+            itemPedidoEnviadoCozinha(item),
+        )
       throw new ErroImpressao(
         CODIGOS_ERRO_IMPRESSAO.PEDIDO_SEM_ITENS,
-        tipo === TIPO_DOCUMENTO_IMPRESSAO.COMANDA && itensAtivos.length > 0
-          ? 'Nao ha itens de cozinha para imprimir. Bebidas nao saem na comanda.'
-          : 'O pedido nao tem itens para imprimir.',
+        soItensJaEnviados
+          ? 'Nao ha itens novos para a cozinha. A comanda anterior ja foi enviada.'
+          : tipo === TIPO_DOCUMENTO_IMPRESSAO.COMANDA && itensAtivos.length > 0
+            ? 'Nao ha itens de cozinha para imprimir. Bebidas nao saem na comanda.'
+            : 'O pedido nao tem itens para imprimir.',
       )
     }
 
@@ -225,7 +241,26 @@ export function criarImprimirPedido(
       }
     })
 
+    marcarItensComanda(itensParaImprimir.map((item) => item.id))
     return combinarResultadosImpressao(resultados, tipo)
+  }
+}
+
+export function marcarItensEnviadosCozinha(itemIds: string[]): void {
+  if (itemIds.length === 0) {
+    return
+  }
+
+  const conexao = obterConexaoBancoLocal()
+  const repositorioItem = criarPedidoItemRepository(conexao)
+  repositorioItem.marcarEnviadosCozinha(itemIds)
+  const pedidos = new Set(
+    itemIds
+      .map((itemId) => repositorioItem.buscarPorId(itemId)?.pedidoId)
+      .filter((pedidoId): pedidoId is string => Boolean(pedidoId)),
+  )
+  for (const pedidoId of pedidos) {
+    registrarEventoPedidoSync(pedidoId, OPERACAO_SYNC.UPDATE, conexao)
   }
 }
 
@@ -256,6 +291,9 @@ function enviarDocumento(
       pedidoId,
       tipo,
       setor,
+      destinoTipo: destino.tipo,
+      destinoPorta: destino.tipo === 'COM' ? destino.porta : null,
+      destinoNome: destino.tipo === 'SPOOLER' ? destino.nome : destino.tipo === 'COM' ? destino.nomeImpressora : null,
     })
   } catch (erro) {
     aviso =
@@ -274,7 +312,17 @@ function enviarDocumento(
   return { impresso, aviso }
 }
 
-const imprimirPedido = criarImprimirPedido()
+const imprimirPedido = criarImprimirPedido(
+  obterResumoPedido,
+  enviarBufferImpressora,
+  criarMesaRepository(),
+  criarPagamentoPedidoRepository(),
+  consultarNomeCategoriaProduto,
+  consultarSetorCategoriaProduto,
+  resolverDestinoConta,
+  resolverDestinoImpressoraPorSetor,
+  marcarItensEnviadosCozinha,
+)
 
 export function criarImprimirContaPedido(
   imprimir = imprimirPedido,

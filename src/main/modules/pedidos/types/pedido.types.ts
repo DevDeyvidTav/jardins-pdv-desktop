@@ -59,6 +59,7 @@ export interface LinhaPedidoItemSql {
   fiscal_icms_csosn: string | null
   fiscal_pis_cst: string | null
   fiscal_cofins_cst: string | null
+  enviado_cozinha_em: string | null
 }
 
 const COLUNAS_PEDIDO = `
@@ -80,7 +81,8 @@ const COLUNAS_PEDIDO_ITEM = `
   total_centavos, observacao, criado_em, atualizado_em, cancelado_em,
   motivo_cancelamento,
   fiscal_ncm, fiscal_cfop, fiscal_icms_origem, fiscal_icms_csosn,
-  fiscal_pis_cst, fiscal_cofins_cst
+  fiscal_pis_cst, fiscal_cofins_cst,
+  enviado_cozinha_em
 `.trim()
 
 export function obterColunasPedido(): string {
@@ -154,6 +156,7 @@ export function mapearLinhaPedidoItem(
     fiscalIcmsCsosn: linha.fiscal_icms_csosn ?? null,
     fiscalPisCst: linha.fiscal_pis_cst ?? null,
     fiscalCofinsCst: linha.fiscal_cofins_cst ?? null,
+    enviadoCozinhaEm: linha.enviado_cozinha_em ?? null,
     pizza: null,
   }
 }

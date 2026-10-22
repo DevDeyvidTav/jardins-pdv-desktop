@@ -186,6 +186,49 @@ describe('imprimirPedido', () => {
     ).toThrowError(/nao tem itens/)
   })
 
+  it('omite itens ja enviados na comanda e marca os novos', () => {
+    const marcar = vi.fn()
+    const itemNovo = { ...resumo.itens[0]!, id: 'item-novo' }
+    const itemEnviado = {
+      ...resumo.itens[0]!,
+      id: 'item-enviado',
+      enviadoCozinhaEm: agora,
+    }
+    const imprimir = criarImprimirPedido(
+      () => ({ ...resumo, itens: [itemEnviado, itemNovo] }),
+      vi.fn(),
+      mesaMock,
+      pagamentoMock,
+      consultarCategoria,
+      undefined,
+      undefined,
+      undefined,
+      marcar,
+    )
+
+    const resultado = imprimir({ pedidoId: 'ped-1' }, TIPO_DOCUMENTO_IMPRESSAO.COMANDA)
+
+    expect(resultado.texto).toContain('COMBO 2')
+    expect(marcar).toHaveBeenCalledWith(['item-novo'])
+  })
+
+  it('nao reimprime comanda quando todos os itens da cozinha ja foram enviados', () => {
+    const imprimir = criarImprimirPedido(
+      () => ({
+        ...resumo,
+        itens: [{ ...resumo.itens[0]!, enviadoCozinhaEm: agora }],
+      }),
+      vi.fn(),
+      mesaMock,
+      pagamentoMock,
+      consultarCategoria,
+    )
+
+    expect(() =>
+      imprimir({ pedidoId: 'ped-1' }, TIPO_DOCUMENTO_IMPRESSAO.COMANDA),
+    ).toThrowError(/itens novos para a cozinha/)
+  })
+
   it('converte pedido inexistente em erro de impressao', () => {
     const imprimir = criarImprimirPedido(
       () => {

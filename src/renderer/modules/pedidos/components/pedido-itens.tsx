@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import type { CategoriaProduto } from '@shared/types/categoria-produto'
-import type { PedidoItem } from '@shared/types/pedido'
+import { itemPedidoEnviadoCozinha, type PedidoItem } from '@shared/types/pedido'
 import type { ProdutoComCategoria } from '@shared/types/produto'
 import { TIPO_PEDIDO_ITEM } from '@shared/types/pizza'
 import { formatarMoeda } from '@shared/utils/moeda'
@@ -279,7 +279,7 @@ export function BuscaProdutosPedido({
 interface ListaItensPedidoProps {
   itens: PedidoItem[]
   onAlterarQuantidade: (itemId: string, quantidade: number) => Promise<boolean>
-  onRemover: (itemId: string, motivoCancelamento: string) => Promise<boolean>
+  onRemover: (itemId: string, motivoCancelamento?: string) => Promise<boolean>
   variant?: 'lista' | 'tabela'
   editavel?: boolean
 }
@@ -304,6 +304,14 @@ export function ListaItensPedido({
     } finally {
       setCancelandoItem(false)
     }
+  }
+
+  const handleRemoverItem = (item: PedidoItem) => {
+    if (itemPedidoEnviadoCozinha(item)) {
+      setItemParaCancelar(item)
+      return
+    }
+    void onRemover(item.id)
   }
 
   if (itens.length === 0) {
@@ -334,6 +342,102 @@ export function ListaItensPedido({
           {itens.map((item) => {
             const ehPizza = item.tipo === TIPO_PEDIDO_ITEM.PIZZA
             const linhasPizza = expandirLinhasSaborPizza(item)
+            const enviadoCozinha = itemPedidoEnviadoCozinha(item)
+            const quantidade = (
+              <div className="lista-itens-pedido__quantidade">
+                {editavel && !ehPizza && !enviadoCozinha ? (
+                  <>
+                    <button
+                      type="button"
+                      data-testid="botao-diminuir-quantidade"
+                      onClick={() => void onAlterarQuantidade(item.id, item.quantidade - 1)}
+                      disabled={item.quantidade <= 1}
+                      aria-label="Diminuir quantidade"
+                    >
+                      -
+                    </button>
+                    <span data-testid="item-pedido-quantidade">{item.quantidade}</span>
+                    <button
+                      type="button"
+                      data-testid="botao-aumentar-quantidade"
+                      onClick={() => void onAlterarQuantidade(item.id, item.quantidade + 1)}
+                      aria-label="Aumentar quantidade"
+                    >
+                      +
+                    </button>
+                  </>
+                ) : (
+                  <span data-testid="item-pedido-quantidade">{item.quantidade}</span>
+                )}
+              </div>
+            )
+            const acao = (
+              <div className="lista-itens-pedido__acao">
+                {editavel ? (
+                  <button
+                    type="button"
+                    data-testid="botao-remover-item"
+                    onClick={() => handleRemoverItem(item)}
+                    aria-label={enviadoCozinha ? 'Cancelar item' : 'Excluir item'}
+                  >
+                    x
+                  </button>
+                ) : null}
+              </div>
+            )
+            const meta = (
+              <>
+                {enviadoCozinha ? (
+                  <p className="lista-itens-pedido__enviado" data-testid="item-enviado-cozinha">
+                    <span className="lista-itens-pedido__enviado-icone" aria-hidden>
+                      ✓
+                    </span>
+                    Enviado para cozinha
+                  </p>
+                ) : null}
+                {item.observacao ? <p data-testid="item-pedido-obs">{item.observacao}</p> : null}
+              </>
+            )
+
+            if (linhasPizza) {
+              return (
+                <li
+                  key={item.id}
+                  className="lista-itens-pedido__grupo"
+                  data-testid="item-pedido"
+                  data-tipo={item.tipo}
+                  data-pizza="true"
+                  data-enviado-cozinha={enviadoCozinha ? 'true' : undefined}
+                >
+                  <span className="visually-hidden" data-testid="item-pedido-nome">
+                    {linhasPizza.map((linha) => linha.nome).join(' ')}
+                  </span>
+                  {linhasPizza.map((linha, indice) => (
+                    <div key={linha.nome} className="lista-itens-pedido__sublinha">
+                      {indice === 0 ? quantidade : <div />}
+                      <div className="lista-itens-pedido__produto">
+                        <strong className="lista-itens-pedido__sabor-nome">{linha.nome}</strong>
+                        {indice === linhasPizza.length - 1 ? meta : null}
+                      </div>
+                      <div
+                        className="lista-itens-pedido__valor"
+                        data-testid={indice === 0 ? 'item-pedido-preco-unitario' : undefined}
+                      >
+                        {formatarMoeda(linha.valorCentavos)}
+                      </div>
+                      {indice === 0 ? (
+                        <span className="lista-itens-pedido__total" data-testid="item-pedido-total">
+                          {formatarMoeda(item.totalCentavos)}
+                        </span>
+                      ) : (
+                        <span />
+                      )}
+                      {indice === 0 ? acao : <div />}
+                    </div>
+                  ))}
+                </li>
+              )
+            }
 
             return (
               <li
@@ -341,65 +445,23 @@ export function ListaItensPedido({
                 className="lista-itens-pedido__linha"
                 data-testid="item-pedido"
                 data-tipo={item.tipo}
-                data-pizza={ehPizza ? 'true' : undefined}
+                data-enviado-cozinha={enviadoCozinha ? 'true' : undefined}
               >
-                <div className="lista-itens-pedido__quantidade">
-                  {editavel && !ehPizza ? (
-                    <>
-                      <button
-                        type="button"
-                        data-testid="botao-diminuir-quantidade"
-                        onClick={() => void onAlterarQuantidade(item.id, item.quantidade - 1)}
-                        disabled={item.quantidade <= 1}
-                        aria-label="Diminuir quantidade"
-                      >
-                        -
-                      </button>
-                      <span data-testid="item-pedido-quantidade">{item.quantidade}</span>
-                      <button
-                        type="button"
-                        data-testid="botao-aumentar-quantidade"
-                        onClick={() => void onAlterarQuantidade(item.id, item.quantidade + 1)}
-                        aria-label="Aumentar quantidade"
-                      >
-                        +
-                      </button>
-                    </>
-                  ) : (
-                    <span data-testid="item-pedido-quantidade">{item.quantidade}</span>
-                  )}
-                </div>
+                {quantidade}
                 <div className="lista-itens-pedido__produto">
-                  {linhasPizza ? (
-                    <ul className="lista-itens-pedido__sabores" data-testid="item-pedido-nome">
-                      {linhasPizza.map((linha) => (
-                        <li key={linha.nome} className="lista-itens-pedido__sabor">
-                          <strong>{linha.nome}</strong>
-                          <span>{formatarMoeda(linha.valorCentavos)}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <strong data-testid="item-pedido-nome">{item.produtoNome}</strong>
-                  )}
-                  {item.observacao ? <p data-testid="item-pedido-obs">{item.observacao}</p> : null}
+                  <strong data-testid="item-pedido-nome">{item.produtoNome}</strong>
+                  {meta}
                 </div>
-                <span data-testid="item-pedido-preco-unitario">
-                  {linhasPizza ? '' : formatarMoeda(item.precoUnitarioCentavos)}
+                <div
+                  className="lista-itens-pedido__valor"
+                  data-testid="item-pedido-preco-unitario"
+                >
+                  {formatarMoeda(item.precoUnitarioCentavos)}
+                </div>
+                <span className="lista-itens-pedido__total" data-testid="item-pedido-total">
+                  {formatarMoeda(item.totalCentavos)}
                 </span>
-                <div className="lista-itens-pedido__total-acoes">
-                  <span data-testid="item-pedido-total">{formatarMoeda(item.totalCentavos)}</span>
-                  {editavel ? (
-                    <button
-                      type="button"
-                      data-testid="botao-remover-item"
-                      onClick={() => setItemParaCancelar(item)}
-                      aria-label="Cancelar item"
-                    >
-                      x
-                    </button>
-                  ) : null}
-                </div>
+                {acao}
               </li>
             )
           })}
@@ -415,6 +477,7 @@ export function ListaItensPedido({
         {itens.map((item) => {
           const ehPizza = item.tipo === TIPO_PEDIDO_ITEM.PIZZA
           const linhasPizza = expandirLinhasSaborPizza(item)
+          const enviadoCozinha = itemPedidoEnviadoCozinha(item)
 
           return (
             <li
@@ -423,6 +486,7 @@ export function ListaItensPedido({
               data-testid="item-pedido"
               data-tipo={item.tipo}
               data-pizza={ehPizza ? 'true' : undefined}
+              data-enviado-cozinha={enviadoCozinha ? 'true' : undefined}
             >
               <div>
                 {linhasPizza ? (
@@ -436,13 +500,21 @@ export function ListaItensPedido({
                 ) : (
                   <strong data-testid="item-pedido-nome">{item.produtoNome}</strong>
                 )}
+                {enviadoCozinha ? (
+                  <p className="lista-itens-pedido__enviado" data-testid="item-enviado-cozinha">
+                    <span className="lista-itens-pedido__enviado-icone" aria-hidden>
+                      ✓
+                    </span>
+                    Enviado para cozinha
+                  </p>
+                ) : null}
                 {item.observacao ? <p data-testid="item-pedido-obs">{item.observacao}</p> : null}
               </div>
               <span data-testid="item-pedido-preco-unitario">
                 {linhasPizza ? '' : formatarMoeda(item.precoUnitarioCentavos)}
               </span>
               <div className="lista-itens-pedido__quantidade">
-                {editavel && !ehPizza ? (
+                {editavel && !ehPizza && !enviadoCozinha ? (
                   <>
                     <button
                       type="button"
@@ -470,7 +542,7 @@ export function ListaItensPedido({
                 <button
                   type="button"
                   data-testid="botao-remover-item"
-                  onClick={() => setItemParaCancelar(item)}
+                  onClick={() => handleRemoverItem(item)}
                 >
                   Remover
                 </button>

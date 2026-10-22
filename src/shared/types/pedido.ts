@@ -69,6 +69,8 @@ export interface PedidoItem {
   /** Preenchido quando o item e cancelado (soft delete). */
   canceladoEm: string | null
   motivoCancelamento: string | null
+  /** Preenchido quando o item ja saiu na comanda da cozinha. */
+  enviadoCozinhaEm?: string | null
   fiscalNcm: string | null
   fiscalCfop: string | null
   fiscalIcmsOrigem: number | null
@@ -81,6 +83,12 @@ export interface PedidoItem {
 
 export function itemPedidoEstaAtivo(item: PedidoItem): boolean {
   return item.canceladoEm === null
+}
+
+export function itemPedidoEnviadoCozinha(
+  item: Pick<PedidoItem, 'enviadoCozinhaEm'>,
+): boolean {
+  return Boolean(item.enviadoCozinhaEm)
 }
 
 export interface ResumoPedido {
@@ -117,7 +125,8 @@ export interface AlterarQuantidadeItemPedidoEntrada {
 export interface CancelarItemPedidoEntrada {
   pedidoId: string
   itemId: string
-  motivoCancelamento: string
+  /** Obrigatorio somente quando o item ja foi enviado para a cozinha. */
+  motivoCancelamento?: string
 }
 
 /** @deprecated Preferir CancelarItemPedidoEntrada */
