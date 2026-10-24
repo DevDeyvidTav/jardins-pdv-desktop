@@ -1,4 +1,5 @@
 import { SETOR_IMPRESSAO, type SetorImpressao } from '@shared/types/config-impressora'
+import { normalizarEnderecoImpressora } from '@shared/utils/endereco-impressora'
 
 import { criarConfigImpressoraRepository } from '../../configuracoes/repositories/config-impressora.repository'
 
@@ -22,12 +23,24 @@ export function resolverDestinoImpressoraPorSetor(
   }
 
   const config = repositorio.buscarPorSetor(setor)
-  if (!config?.nomeImpressora.trim()) {
+  const rede = normalizarEnderecoImpressora(config?.enderecoIp)
+  if (!config?.nomeImpressora.trim() && !rede) {
     return { tipo: 'NAO_CONFIGURADO' }
   }
 
-  const nome = config.nomeImpressora.trim()
-  const comSalva = normalizarPortaCom(config.portaCom)
+  const nome = config?.nomeImpressora.trim() || rede?.host || setor
+
+  // IP da cozinha vence COM e o nome da NFC-e. O cupom sai na porta 9100.
+  if (rede) {
+    return {
+      tipo: 'REDE',
+      host: rede.host,
+      porta: rede.porta,
+      nomeImpressora: nome,
+    }
+  }
+
+  const comSalva = normalizarPortaCom(config?.portaCom)
 
   // A COM do setor vence Get-Printer. No restaurante várias térmicas aparecem
   // com o mesmo nome (MP-4200 TH / NFC-e); a consulta devolve a porta da caixa

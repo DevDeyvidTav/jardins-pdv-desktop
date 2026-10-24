@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { SETOR_IMPRESSAO } from '@shared/types/config-impressora'
 import { TAMANHO_PIN_OPERADOR } from '@shared/types/operador'
+import { normalizarEnderecoImpressora } from '@shared/utils/endereco-impressora'
 
 const setorImpressaoSchema = z.enum([
   SETOR_IMPRESSAO.BALCAO,
@@ -10,11 +11,33 @@ const setorImpressaoSchema = z.enum([
   SETOR_IMPRESSAO.COZINHA,
 ])
 
-export const configImpressoraEntradaSchema = z.object({
-  setor: setorImpressaoSchema,
-  nomeImpressora: z.string().trim().min(1, 'Nome da impressora e obrigatorio.'),
-  portaCom: z.string().trim().nullable().optional(),
-})
+export const configImpressoraEntradaSchema = z
+  .object({
+    setor: setorImpressaoSchema,
+    nomeImpressora: z.string().trim().default(''),
+    portaCom: z.string().trim().nullable().optional(),
+    enderecoIp: z.string().trim().nullable().optional(),
+  })
+  .superRefine((config, contexto) => {
+    const temDestino = Boolean(
+      config.nomeImpressora || config.portaCom?.trim() || config.enderecoIp?.trim(),
+    )
+    if (!temDestino) {
+      contexto.addIssue({
+        code: 'custom',
+        message: 'Informe o nome, a porta COM ou o IP da impressora.',
+        path: ['nomeImpressora'],
+      })
+    }
+
+    if (config.enderecoIp?.trim() && !normalizarEnderecoImpressora(config.enderecoIp)) {
+      contexto.addIssue({
+        code: 'custom',
+        message: 'IP invalido. Use 10.0.70.11 ou 10.0.70.11:9100.',
+        path: ['enderecoIp'],
+      })
+    }
+  })
 
 export const salvarConfigImpressorasSchema = z.object({
   configs: z.array(configImpressoraEntradaSchema),

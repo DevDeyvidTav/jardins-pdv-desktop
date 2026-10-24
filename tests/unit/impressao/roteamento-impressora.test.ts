@@ -391,4 +391,45 @@ describe('resolver destino impressora', () => {
 
     banco.encerrar()
   })
+
+  it('manda a cozinha para o IP mesmo com COM da NFC-e preenchida', async () => {
+    const banco = await prepararBancoTeste()
+    const repositorio = criarConfigImpressoraRepository(obterConexaoBancoLocal())
+
+    repositorio.salvarTodas([
+      {
+        setor: SETOR_IMPRESSAO.BALCAO,
+        nomeImpressora: 'NFCE',
+        portaCom: 'COM3',
+      },
+      {
+        setor: SETOR_IMPRESSAO.PIZZA,
+        nomeImpressora: 'Cozinha Pizza',
+        portaCom: 'COM3',
+        enderecoIp: '10.0.70.11',
+      },
+    ])
+
+    vi.spyOn(enviarImpressora, 'consultarPortNameImpressoraWindows').mockReturnValue('COM3')
+
+    const env = {
+      ...process.env,
+      NODE_ENV: 'production',
+      PDV_IMPRESSORA_MOCK: '0',
+    }
+
+    expect(resolverDestinoImpressoraPorSetor(SETOR_IMPRESSAO.BALCAO, repositorio, env)).toEqual({
+      tipo: 'COM',
+      porta: 'COM3',
+      nomeImpressora: 'NFCE',
+    })
+    expect(resolverDestinoImpressoraPorSetor(SETOR_IMPRESSAO.PIZZA, repositorio, env)).toEqual({
+      tipo: 'REDE',
+      host: '10.0.70.11',
+      porta: 9100,
+      nomeImpressora: 'Cozinha Pizza',
+    })
+
+    banco.encerrar()
+  })
 })

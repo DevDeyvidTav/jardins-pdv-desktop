@@ -22,6 +22,12 @@ import './configuracoes.css'
 
 type AbaConfig = 'impressoras' | 'sync' | 'operador' | 'sistema'
 
+function configImpressoraPreenchida(config: ConfigImpressoraEntrada): boolean {
+  return Boolean(
+    config.nomeImpressora.trim() || config.portaCom?.trim() || config.enderecoIp?.trim(),
+  )
+}
+
 interface ConfiguracoesPageProps {
   operador: ReturnType<typeof useOperador>
 }
@@ -71,6 +77,7 @@ export function ConfiguracoesPage({ operador }: ConfiguracoesPageProps) {
           setor,
           nomeImpressora: mapa.get(setor)?.nomeImpressora ?? '',
           portaCom: mapa.get(setor)?.portaCom ?? '',
+          enderecoIp: mapa.get(setor)?.enderecoIp ?? '',
         })),
       )
       setImpressorasSistema(detectadas)
@@ -98,7 +105,7 @@ export function ConfiguracoesPage({ operador }: ConfiguracoesPageProps) {
 
     try {
       await window.pdv.config.salvarImpressoras({
-        configs: impressoras.filter((config) => config.nomeImpressora.trim()),
+        configs: impressoras.filter(configImpressoraPreenchida),
       })
 
       const resultado =
@@ -146,7 +153,7 @@ export function ConfiguracoesPage({ operador }: ConfiguracoesPageProps) {
 
     try {
       await window.pdv.config.salvarImpressoras({
-        configs: impressoras.filter((config) => config.nomeImpressora.trim()),
+        configs: impressoras.filter(configImpressoraPreenchida),
       })
       setSucesso('Impressoras salvas.')
       await carregarDados()
@@ -189,6 +196,7 @@ export function ConfiguracoesPage({ operador }: ConfiguracoesPageProps) {
               ...item,
               nomeImpressora: detectada.nome,
               portaCom: detectada.porta ?? '',
+              enderecoIp: '',
             }
           : item,
       ),
@@ -225,7 +233,7 @@ export function ConfiguracoesPage({ operador }: ConfiguracoesPageProps) {
     setImpressoras((atual) =>
       atual.map((item) =>
         item.setor === setor
-          ? { ...item, nomeImpressora: `Serial ${porta}`, portaCom: porta }
+          ? { ...item, nomeImpressora: `Serial ${porta}`, portaCom: porta, enderecoIp: '' }
           : item,
       ),
     )
@@ -464,8 +472,8 @@ export function ConfiguracoesPage({ operador }: ConfiguracoesPageProps) {
 
           <h2>Impressoras por setor</h2>
           <p className="config-impressoras__dica">
-            Cada cozinha precisa da própria porta COM (COM3, COM5…). Não coloque o nome
-            da NFC-e/caixa nas cozinhas: o teste e a comanda saem na COM daquele setor.
+            Cozinha na rede: preencha o IP (ex.: 10.0.70.11). O cupom sai direto na
+            porta 9100 e a COM desse setor é ignorada. Balcão USB continua na COM.
             Testar já salva antes de imprimir.
           </p>
           <form onSubmit={(evento) => void salvarImpressoras(evento)}>
@@ -484,6 +492,7 @@ export function ConfiguracoesPage({ operador }: ConfiguracoesPageProps) {
                 <tr>
                   <th>Setor</th>
                   <th>Nome da impressora (Windows)</th>
+                  <th>IP (rede)</th>
                   <th>Porta COM (opcional)</th>
                   <th>Teste</th>
                 </tr>
@@ -509,24 +518,51 @@ export function ConfiguracoesPage({ operador }: ConfiguracoesPageProps) {
                     </td>
                     <td>
                       <input
+                        value={config.enderecoIp ?? ''}
+                        onChange={(evento) => {
+                          const valor = evento.target.value
+                          setImpressoras((atual) =>
+                            atual.map((item, i) =>
+                              i === indice
+                                ? {
+                                    ...item,
+                                    enderecoIp: valor,
+                                    portaCom: valor.trim() ? '' : item.portaCom,
+                                  }
+                                : item,
+                            ),
+                          )
+                        }}
+                        placeholder="10.0.70.11"
+                        inputMode="decimal"
+                      />
+                    </td>
+                    <td>
+                      <input
                         list="portas-com-detectadas"
                         value={config.portaCom ?? ''}
                         onChange={(evento) => {
                           const valor = evento.target.value
                           setImpressoras((atual) =>
                             atual.map((item, i) =>
-                              i === indice ? { ...item, portaCom: valor } : item,
+                              i === indice
+                                ? {
+                                    ...item,
+                                    portaCom: valor,
+                                    enderecoIp: valor.trim() ? '' : item.enderecoIp,
+                                  }
+                                : item,
                             ),
                           )
                         }}
-                        placeholder="COM ou vazio se Bematech_USB"
+                        placeholder="COM ou vazio se rede"
                       />
                     </td>
                     <td>
                       <button
                         type="button"
                         className="config-impressoras__testar"
-                        disabled={!config.nomeImpressora.trim()}
+                        disabled={!configImpressoraPreenchida(config)}
                         onClick={() =>
                           void testarImpressaoSetor(
                             config.setor as SetorImpressoraConfig,

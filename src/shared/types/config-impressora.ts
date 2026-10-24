@@ -108,12 +108,15 @@ export interface ConfigImpressora {
   setor: SetorImpressao
   nomeImpressora: string
   portaCom: string | null
+  /** IPv4 da térmica na rede. Porta 9100 quando o texto não traz `:porta`. */
+  enderecoIp: string | null
 }
 
 export interface ConfigImpressoraEntrada {
   setor: SetorImpressao
   nomeImpressora: string
   portaCom?: string | null
+  enderecoIp?: string | null
 }
 
 export interface SalvarConfigImpressorasEntrada {

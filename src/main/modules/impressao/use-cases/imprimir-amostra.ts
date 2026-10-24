@@ -58,11 +58,16 @@ export function criarImprimirAmostra(
         tipo: entrada.tipo,
         setor: entrada.setor ?? null,
         destinoTipo: destino.tipo,
-        destinoPorta: destino.tipo === 'COM' ? destino.porta : null,
+        destinoPorta:
+          destino.tipo === 'COM'
+            ? destino.porta
+            : destino.tipo === 'REDE'
+              ? `${destino.host}:${destino.porta}`
+              : null,
         destinoNome:
           destino.tipo === 'SPOOLER'
             ? destino.nome
-            : destino.tipo === 'COM'
+            : destino.tipo === 'COM' || destino.tipo === 'REDE'
               ? destino.nomeImpressora
               : null,
       })

@@ -13,12 +13,14 @@ const TIMEOUT_SPOOLER_MS = 15_000
 const MARCADOR_BYTES_ENVIADOS = /(^|\n)\s*WROTE:\d+/
 const SCRIPT_IMPRESSORA_COM = join(tmpdir(), `pdv-impressora-com-${process.pid}.ps1`)
 const SCRIPT_SPOOLER = join(tmpdir(), `pdv-impressora-spooler-${process.pid}.ps1`)
+const SCRIPT_REDE = join(tmpdir(), `pdv-impressora-rede-${process.pid}.ps1`)
 
 /** Falha antes de qualquer byte sair: reenviar nao duplica o cupom. */
 const PREFIXO_FALHA_SEGURA = 'ABERTURA:'
 
 let scriptComInicializado = false
 let scriptSpoolerInicializado = false
+let scriptRedeInicializado = false
 let impressaoEmAndamento = false
 
 export function impressoraEstaOcupada(): boolean {
@@ -41,6 +43,7 @@ export type DestinoImpressao =
   | { tipo: 'NAO_CONFIGURADO' }
   | { tipo: 'SPOOLER'; nome: string }
   | { tipo: 'COM'; porta: string; nomeImpressora: string }
+  | { tipo: 'REDE'; host: string; porta: number; nomeImpressora: string }
 
 export function deveSimularImpressora(
   env: NodeJS.ProcessEnv = process.env,
@@ -92,6 +95,11 @@ export function enviarBufferImpressora(
   }
 
   executarComLockImpressora(() => {
+    if (destino.tipo === 'REDE') {
+      enviarViaRedeWindows(buffer, destino.host, destino.porta)
+      return
+    }
+
     if (destino.tipo === 'COM') {
       enviarViaComWindows(buffer, destino.porta, destino.nomeImpressora)
       return
@@ -235,6 +243,34 @@ export function prepararImpressoraParaEnvioCom(
     retomar(nomeImpressora)
   } catch {
     // retomar e seguir — envio serial e independente da fila virtual
+  }
+}
+
+function enviarViaRedeWindows(buffer: Buffer, host: string, porta: number): void {
+  if (!scriptRedeInicializado) {
+    writeFileSync(SCRIPT_REDE, SCRIPT_ENVIAR_REDE, 'utf8')
+    scriptRedeInicializado = true
+  }
+
+  const arquivo = criarArquivoTemporario(buffer)
+
+  try {
+    executarScriptPowerShellArquivo(
+      SCRIPT_REDE,
+      {
+        HostAddress: host,
+        Port: String(porta),
+        FilePath: arquivo,
+      },
+      TIMEOUT_SPOOLER_MS,
+    )
+  } catch (erro) {
+    const detalhe = extrairDetalhe(erro)
+    throw new Error(
+      `Nao foi possivel enviar para ${host}:${porta}. Verifique se a impressora esta ligada e na mesma rede. ${detalhe}`,
+    )
+  } finally {
+    removerArquivoTemporario(arquivo)
   }
 }
 
@@ -868,6 +904,38 @@ try {
 }
 Write-Output $saida
 exit $codigo
+`
+
+const SCRIPT_ENVIAR_REDE = `
+param(
+  [string]$HostAddress,
+  [int]$Port = 9100,
+  [string]$FilePath
+)
+$ErrorActionPreference = 'Stop'
+try {
+  $bytes = [IO.File]::ReadAllBytes($FilePath)
+  $client = New-Object System.Net.Sockets.TcpClient
+  $espera = $client.BeginConnect($HostAddress, $Port, $null, $null)
+  if (-not $espera.AsyncWaitHandle.WaitOne(8000, $false)) {
+    $client.Close()
+    throw ("A impressora " + $HostAddress + ":" + $Port + " nao respondeu.")
+  }
+  $client.EndConnect($espera)
+  $stream = $client.GetStream()
+  $stream.Write($bytes, 0, $bytes.Length)
+  $stream.Flush()
+  [Console]::Out.WriteLine("WROTE:" + $bytes.Length)
+  [Console]::Out.Flush()
+  Start-Sleep -Milliseconds 300
+  $stream.Close()
+  $client.Close()
+  Write-Output 'OK'
+  exit 0
+} catch {
+  Write-Output ("FAIL:" + $_.Exception.Message)
+  exit 1
+}
 `
 
 const SCRIPT_SPOOLER_RAW = `

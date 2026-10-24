@@ -292,8 +292,18 @@ function enviarDocumento(
       tipo,
       setor,
       destinoTipo: destino.tipo,
-      destinoPorta: destino.tipo === 'COM' ? destino.porta : null,
-      destinoNome: destino.tipo === 'SPOOLER' ? destino.nome : destino.tipo === 'COM' ? destino.nomeImpressora : null,
+      destinoPorta:
+        destino.tipo === 'COM'
+          ? destino.porta
+          : destino.tipo === 'REDE'
+            ? `${destino.host}:${destino.porta}`
+            : null,
+      destinoNome:
+        destino.tipo === 'SPOOLER'
+          ? destino.nome
+          : destino.tipo === 'COM' || destino.tipo === 'REDE'
+            ? destino.nomeImpressora
+            : null,
     })
   } catch (erro) {
     aviso =

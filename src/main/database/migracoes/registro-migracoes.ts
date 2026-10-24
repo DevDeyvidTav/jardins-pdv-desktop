@@ -903,4 +903,11 @@ CREATE INDEX IF NOT EXISTS idx_auditoria_evento_acao
 ALTER TABLE pedido_item ADD COLUMN enviado_cozinha_em TEXT;
 `.trim(),
   },
+  {
+    versao: 28,
+    nome: '0028-config-impressora-endereco-ip',
+    sql: `
+ALTER TABLE config_impressora ADD COLUMN endereco_ip TEXT;
+`.trim(),
+  },
 ]

@@ -11,6 +11,7 @@ interface LinhaConfigImpressoraSql {
   setor: string
   nome_impressora: string
   porta_com: string | null
+  endereco_ip: string | null
 }
 
 function mapearLinha(linha: LinhaConfigImpressoraSql): ConfigImpressora {
@@ -19,6 +20,7 @@ function mapearLinha(linha: LinhaConfigImpressoraSql): ConfigImpressora {
     setor: linha.setor as SetorImpressao,
     nomeImpressora: linha.nome_impressora,
     portaCom: linha.porta_com,
+    enderecoIp: linha.endereco_ip,
   }
 }
 
@@ -28,7 +30,7 @@ export class ConfigImpressoraRepository {
   listar(): ConfigImpressora[] {
     const conexao = this.obterConexao()
     const consulta = conexao.instancia.prepare(
-      `SELECT id, setor, nome_impressora, porta_com
+      `SELECT id, setor, nome_impressora, porta_com, endereco_ip
        FROM config_impressora
        ORDER BY setor ASC`,
     )
@@ -47,7 +49,7 @@ export class ConfigImpressoraRepository {
   buscarPorSetor(setor: SetorImpressao): ConfigImpressora | null {
     const conexao = this.obterConexao()
     const consulta = conexao.instancia.prepare(
-      `SELECT id, setor, nome_impressora, porta_com
+      `SELECT id, setor, nome_impressora, porta_com, endereco_ip
        FROM config_impressora
        WHERE setor = ?
        LIMIT 1`,
@@ -69,6 +71,7 @@ export class ConfigImpressoraRepository {
       setor: SetorImpressao
       nomeImpressora: string
       portaCom: string | null
+      enderecoIp?: string | null
     }>,
   ): ConfigImpressora[] {
     const conexao = this.obterConexao()
@@ -85,16 +88,18 @@ export class ConfigImpressoraRepository {
           setor: config.setor,
           nomeImpressora: config.nomeImpressora.trim(),
           portaCom: config.portaCom?.trim() || null,
+          enderecoIp: config.enderecoIp?.trim() || null,
         }
 
         conexao.instancia.run(
-          `INSERT INTO config_impressora (id, setor, nome_impressora, porta_com)
-           VALUES (?, ?, ?, ?)`,
+          `INSERT INTO config_impressora (id, setor, nome_impressora, porta_com, endereco_ip)
+           VALUES (?, ?, ?, ?, ?)`,
           [
             registro.id,
             registro.setor,
             registro.nomeImpressora,
             registro.portaCom,
+            registro.enderecoIp,
           ],
         )
 
