@@ -31,6 +31,17 @@ export const alterarQuantidadeItemPedidoSchema = z.object({
   quantidade: quantidadeSchema,
 })
 
+export const definirObservacaoItemPedidoSchema = z.object({
+  pedidoId: z.string().trim().min(1, 'Pedido e obrigatorio.'),
+  itemId: z.string().trim().min(1, 'Item e obrigatorio.'),
+  observacao: z
+    .string()
+    .trim()
+    .max(200, 'Observacao deve ter no maximo 200 caracteres.')
+    .nullable()
+    .optional(),
+})
+
 const motivoCancelamentoSchema = z
   .string()
   .trim()

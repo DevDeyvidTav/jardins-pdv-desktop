@@ -164,6 +164,17 @@ export class PizzaPedidoItemRepository {
     }
   }
 
+  atualizarObservacaoPorPedidoItemId(pedidoItemId: string, observacao: string | null): void {
+    const conexao = this.obterConexao()
+    conexao.instancia.run(
+      `UPDATE pizza_pedido_item
+       SET observacao = ?
+       WHERE pedido_item_id = ?`,
+      [observacao, pedidoItemId],
+    )
+    persistirConexaoBanco(conexao)
+  }
+
   excluirPorPedidoItemId(pedidoItemId: string): void {
     const pizza = this.buscarPorPedidoItemId(pedidoItemId)
     if (!pizza) {

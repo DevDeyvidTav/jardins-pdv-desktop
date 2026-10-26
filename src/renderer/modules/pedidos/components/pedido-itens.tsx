@@ -276,9 +276,21 @@ export function BuscaProdutosPedido({
   )
 }
 
+function IconeCaneta() {
+  return (
+    <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
+      <path
+        fill="currentColor"
+        d="M12.1 1.4a1.5 1.5 0 0 1 2.1 2.1l-8.2 8.2-2.8.7.7-2.8 8.2-8.2zM3.2 12.2l1.6-.4-1.2-1.2-.4 1.6z"
+      />
+    </svg>
+  )
+}
+
 interface ListaItensPedidoProps {
   itens: PedidoItem[]
   onAlterarQuantidade: (itemId: string, quantidade: number) => Promise<boolean>
+  onDefinirObservacao: (itemId: string, observacao: string) => Promise<boolean>
   onRemover: (itemId: string, motivoCancelamento?: string) => Promise<boolean>
   variant?: 'lista' | 'tabela'
   editavel?: boolean
@@ -287,12 +299,85 @@ interface ListaItensPedidoProps {
 export function ListaItensPedido({
   itens,
   onAlterarQuantidade,
+  onDefinirObservacao,
   onRemover,
   variant = 'lista',
   editavel = true,
 }: ListaItensPedidoProps) {
   const [itemParaCancelar, setItemParaCancelar] = useState<PedidoItem | null>(null)
   const [cancelandoItem, setCancelandoItem] = useState(false)
+  const [itemObservacaoId, setItemObservacaoId] = useState<string | null>(null)
+  const [rascunhoObservacao, setRascunhoObservacao] = useState('')
+  const [salvandoObservacao, setSalvandoObservacao] = useState(false)
+
+  const abrirObservacao = (item: PedidoItem) => {
+    setItemObservacaoId(item.id)
+    setRascunhoObservacao(item.observacao ?? '')
+  }
+
+  const salvarObservacao = async (itemId: string) => {
+    setSalvandoObservacao(true)
+    try {
+      const ok = await onDefinirObservacao(itemId, rascunhoObservacao.trim())
+      if (ok) {
+        setItemObservacaoId(null)
+      }
+    } finally {
+      setSalvandoObservacao(false)
+    }
+  }
+
+  const botaoObservacao = (item: PedidoItem) =>
+    editavel ? (
+      <button
+        type="button"
+        className="lista-itens-pedido__obs-botao"
+        data-testid="botao-observacao-item"
+        data-preenchida={item.observacao ? 'true' : undefined}
+        aria-label={item.observacao ? 'Editar observacao' : 'Adicionar observacao'}
+        onClick={() => abrirObservacao(item)}
+      >
+        <IconeCaneta />
+      </button>
+    ) : null
+
+  const corpoObservacao = (item: PedidoItem) => {
+    if (itemObservacaoId === item.id) {
+      return (
+        <form
+          className="lista-itens-pedido__obs-form"
+          onSubmit={(evento) => {
+            evento.preventDefault()
+            void salvarObservacao(item.id)
+          }}
+        >
+          <input
+            data-testid="campo-observacao-item-lista"
+            value={rascunhoObservacao}
+            maxLength={200}
+            autoFocus
+            placeholder="Ex.: sem cebola"
+            onChange={(evento) => setRascunhoObservacao(evento.target.value)}
+            onKeyDown={(evento) => {
+              if (evento.key === 'Escape') {
+                setItemObservacaoId(null)
+              }
+            }}
+          />
+          <button
+            type="submit"
+            className="lista-itens-pedido__obs-ok"
+            data-testid="botao-salvar-observacao-item"
+            disabled={salvandoObservacao}
+          >
+            Ok
+          </button>
+        </form>
+      )
+    }
+
+    return item.observacao ? <p data-testid="item-pedido-obs">{item.observacao}</p> : null
+  }
 
   const handleConfirmarCancelamentoItem = async (motivoCancelamento: string) => {
     if (!itemParaCancelar) return
@@ -395,7 +480,7 @@ export function ListaItensPedido({
                     Enviado para cozinha
                   </p>
                 ) : null}
-                {item.observacao ? <p data-testid="item-pedido-obs">{item.observacao}</p> : null}
+                {corpoObservacao(item)}
               </>
             )
 
@@ -416,7 +501,10 @@ export function ListaItensPedido({
                     <div key={linha.nome} className="lista-itens-pedido__sublinha">
                       {indice === 0 ? quantidade : <div />}
                       <div className="lista-itens-pedido__produto">
-                        <strong className="lista-itens-pedido__sabor-nome">{linha.nome}</strong>
+                        <div className="lista-itens-pedido__nome-linha">
+                          <strong className="lista-itens-pedido__sabor-nome">{linha.nome}</strong>
+                          {indice === 0 ? botaoObservacao(item) : null}
+                        </div>
                         {indice === linhasPizza.length - 1 ? meta : null}
                       </div>
                       <div
@@ -449,7 +537,10 @@ export function ListaItensPedido({
               >
                 {quantidade}
                 <div className="lista-itens-pedido__produto">
-                  <strong data-testid="item-pedido-nome">{item.produtoNome}</strong>
+                  <div className="lista-itens-pedido__nome-linha">
+                    <strong data-testid="item-pedido-nome">{item.produtoNome}</strong>
+                    {botaoObservacao(item)}
+                  </div>
                   {meta}
                 </div>
                 <div
@@ -490,15 +581,21 @@ export function ListaItensPedido({
             >
               <div>
                 {linhasPizza ? (
-                  <ul className="lista-itens-pedido__sabores" data-testid="item-pedido-nome">
-                    {linhasPizza.map((linha) => (
-                      <li key={linha.nome}>
-                        <strong>{linha.nome}</strong> {formatarMoeda(linha.valorCentavos)}
-                      </li>
-                    ))}
-                  </ul>
+                  <div className="lista-itens-pedido__nome-linha">
+                    <ul className="lista-itens-pedido__sabores" data-testid="item-pedido-nome">
+                      {linhasPizza.map((linha) => (
+                        <li key={linha.nome}>
+                          <strong>{linha.nome}</strong> {formatarMoeda(linha.valorCentavos)}
+                        </li>
+                      ))}
+                    </ul>
+                    {botaoObservacao(item)}
+                  </div>
                 ) : (
-                  <strong data-testid="item-pedido-nome">{item.produtoNome}</strong>
+                  <div className="lista-itens-pedido__nome-linha">
+                    <strong data-testid="item-pedido-nome">{item.produtoNome}</strong>
+                    {botaoObservacao(item)}
+                  </div>
                 )}
                 {enviadoCozinha ? (
                   <p className="lista-itens-pedido__enviado" data-testid="item-enviado-cozinha">
@@ -508,7 +605,7 @@ export function ListaItensPedido({
                     Enviado para cozinha
                   </p>
                 ) : null}
-                {item.observacao ? <p data-testid="item-pedido-obs">{item.observacao}</p> : null}
+                {corpoObservacao(item)}
               </div>
               <span data-testid="item-pedido-preco-unitario">
                 {linhasPizza ? '' : formatarMoeda(item.precoUnitarioCentavos)}

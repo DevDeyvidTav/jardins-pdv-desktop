@@ -68,6 +68,7 @@ export interface UsePedidosResultado {
     observacao?: string,
   ) => Promise<boolean>
   alterarQuantidadeItem: (itemId: string, quantidade: number) => Promise<boolean>
+  definirObservacaoItem: (itemId: string, observacao: string) => Promise<boolean>
   removerItem: (itemId: string, motivoCancelamento?: string) => Promise<boolean>
   aplicarDescontoPedido: (descontoCentavos: number, motivoDesconto?: string) => Promise<boolean>
   cancelarPedido: (motivoCancelamento: string) => Promise<boolean>
@@ -569,6 +570,31 @@ export function usePedidos(): UsePedidosResultado {
     [resumoPedido],
   )
 
+  const definirObservacaoItem = useCallback(
+    async (itemId: string, observacao: string): Promise<boolean> => {
+      if (!resumoPedido) {
+        return false
+      }
+
+      setErro(null)
+      setSucesso(null)
+
+      try {
+        const resumo = await window.pdv.pedidos.definirObservacaoItemPedido({
+          pedidoId: resumoPedido.pedido.id,
+          itemId,
+          observacao,
+        })
+        setResumoPedido(resumo)
+        return true
+      } catch (causa) {
+        setErro(extrairMensagemErro(causa))
+        return false
+      }
+    },
+    [resumoPedido],
+  )
+
   const removerItem = useCallback(
     async (itemId: string, motivoCancelamento?: string): Promise<boolean> => {
       if (!resumoPedido) {
@@ -1022,6 +1048,7 @@ export function usePedidos(): UsePedidosResultado {
     adicionarItem,
     adicionarPizza,
     alterarQuantidadeItem,
+    definirObservacaoItem,
     removerItem,
     aplicarDescontoPedido,
     cancelarPedido,

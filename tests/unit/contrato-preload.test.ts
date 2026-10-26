@@ -299,6 +299,7 @@ describe('contrato da API exposta pelo preload', () => {
         listarPedidosAbertos: async () => [],
         adicionarItemPedido: async () => ({ ...RESUMO_BASE, pedido: { ...PEDIDO_BASE, subtotalCentavos: 600, totalCentavos: 600, valorRestanteCentavos: 600 } }),
         alterarQuantidadeItemPedido: async () => ({ ...RESUMO_BASE, pedido: { ...PEDIDO_BASE, subtotalCentavos: 1200, totalCentavos: 1200, valorRestanteCentavos: 1200 } }),
+        definirObservacaoItemPedido: async () => RESUMO_BASE,
         cancelarItemPedido: async () => RESUMO_BASE,
         removerItemPedido: async () => RESUMO_BASE,
         obterResumoPedido: async () => RESUMO_BASE,

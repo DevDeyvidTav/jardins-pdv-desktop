@@ -122,6 +122,12 @@ export interface AlterarQuantidadeItemPedidoEntrada {
   quantidade: number
 }
 
+export interface DefinirObservacaoItemPedidoEntrada {
+  pedidoId: string
+  itemId: string
+  observacao?: string | null
+}
+
 export interface CancelarItemPedidoEntrada {
   pedidoId: string
   itemId: string

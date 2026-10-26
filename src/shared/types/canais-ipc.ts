@@ -42,6 +42,7 @@ export const CANAIS_IPC = {
   PEDIDOS_LISTAR_PEDIDOS_ABERTOS: 'pedidos:listar-pedidos-abertos',
   PEDIDOS_ADICIONAR_ITEM: 'pedidos:adicionar-item',
   PEDIDOS_ALTERAR_QUANTIDADE_ITEM: 'pedidos:alterar-quantidade-item',
+  PEDIDOS_DEFINIR_OBSERVACAO_ITEM: 'pedidos:definir-observacao-item',
   PEDIDOS_REMOVER_ITEM: 'pedidos:remover-item',
   PEDIDOS_APLICAR_DESCONTO: 'pedidos:aplicar-desconto',
   PEDIDOS_OBTER_RESUMO: 'pedidos:obter-resumo',

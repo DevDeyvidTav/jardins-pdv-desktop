@@ -6,6 +6,7 @@ import { ErroPizzas } from '../pizzas/errors/erros-pizzas'
 import {
   adicionarItemPedidoSchema,
   alterarQuantidadeItemPedidoSchema,
+  definirObservacaoItemPedidoSchema,
   aplicarDescontoPedidoSchema,
   cancelarPedidoSchema,
   criarPedidoMesaSchema,
@@ -18,6 +19,7 @@ import {
 } from './schemas/pedido.schema'
 import { adicionarItemPedido } from './use-cases/adicionar-item-pedido'
 import { alterarQuantidadeItemPedido } from './use-cases/alterar-quantidade-item-pedido'
+import { definirObservacaoItemPedido } from './use-cases/definir-observacao-item-pedido'
 import { aplicarDescontoPedido } from './use-cases/aplicar-desconto-pedido'
 import { cancelarPedido } from './use-cases/cancelar-pedido'
 import { criarPedidoBalcao } from './use-cases/criar-pedido-balcao'
@@ -98,6 +100,19 @@ export function registrarHandlersPedidos(): void {
       try {
         return alterarQuantidadeItemPedido(
           alterarQuantidadeItemPedidoSchema.parse(entradaDesconhecida),
+        )
+      } catch (erro) {
+        tratarErroPedidos(erro)
+      }
+    },
+  )
+
+  ipcMain.handle(
+    CANAIS_IPC.PEDIDOS_DEFINIR_OBSERVACAO_ITEM,
+    (_evento, entradaDesconhecida) => {
+      try {
+        return definirObservacaoItemPedido(
+          definirObservacaoItemPedidoSchema.parse(entradaDesconhecida),
         )
       } catch (erro) {
         tratarErroPedidos(erro)

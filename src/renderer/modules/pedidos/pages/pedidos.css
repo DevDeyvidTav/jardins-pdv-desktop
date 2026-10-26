@@ -1868,6 +1868,54 @@
   white-space: nowrap;
 }
 
+.lista-itens-pedido__nome-linha {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+
+.lista-itens-pedido__nome-linha strong {
+  flex: 1;
+  min-width: 0;
+}
+
+.lista-itens-pedido button.lista-itens-pedido__obs-botao {
+  width: 1.35rem;
+  height: 1.35rem;
+  min-width: 1.35rem;
+  margin-top: 0.05rem;
+  padding: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #6b7280;
+}
+
+.lista-itens-pedido button.lista-itens-pedido__obs-botao[data-preenchida='true'] {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.lista-itens-pedido__obs-form {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+}
+
+.lista-itens-pedido__obs-form input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.3rem 0.45rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 0.8125rem;
+}
+
+.lista-itens-pedido button.lista-itens-pedido__obs-ok {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+}
+
 .lista-itens-pedido__acao {
   display: flex;
   align-items: center;

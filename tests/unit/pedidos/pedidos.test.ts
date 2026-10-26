@@ -9,6 +9,8 @@ import { criarCriarPedidoMesa } from '../../../src/main/modules/pedidos/use-case
 import { criarCriarPedidoBalcao } from '../../../src/main/modules/pedidos/use-cases/criar-pedido-balcao'
 import { STATUS_MESA } from '@shared/types/mesa'
 import { itemPedidoEstaAtivo } from '@shared/types/pedido'
+import { mapearPedidoParaComanda } from '../../../src/main/modules/impressao/templates/mapear-pedido-impressao'
+import { montarComanda } from '../../../src/main/modules/impressao/templates/montar-comanda'
 import { prepararAmbientePedidos } from '../../helpers/pedido-teste'
 import { prepararBancoTeste } from '../../helpers/banco-teste'
 import { criarCriarMesasPorIntervalo } from '../../../src/main/modules/mesas/use-cases/criar-mesas-por-intervalo'
@@ -142,6 +144,40 @@ describe('pedidos', () => {
     })
 
     expect(resumoAtualizado.pedido.totalCentavos).toBe(1800)
+  })
+
+  it('grava observacao no item e ela sai na comanda', async () => {
+    const ambiente = await prepararAmbientePedidos()
+    encerrarBanco = ambiente.encerrar
+
+    const pedido = ambiente.criarPedidoMesa({ mesaId: ambiente.mesa.id })
+    const inicial = ambiente.adicionarItemPedido({
+      pedidoId: pedido.id,
+      produtoId: ambiente.produto.id,
+      quantidade: 1,
+    })
+    const itemId = inicial.itens[0]!.id
+
+    const comObservacao = ambiente.definirObservacaoItemPedido({
+      pedidoId: pedido.id,
+      itemId,
+      observacao: 'sem gelo',
+    })
+
+    expect(comObservacao.itens[0]?.observacao).toBe('sem gelo')
+
+    const texto = montarComanda(mapearPedidoParaComanda(comObservacao, ambiente.mesa)).join('\n')
+    expect(texto).toContain('OBS: sem gelo')
+
+    ambiente.repositorioItem.marcarEnviadosCozinha([itemId])
+    const reenviado = ambiente.definirObservacaoItemPedido({
+      pedidoId: pedido.id,
+      itemId,
+      observacao: 'sem gelo e sem limao',
+    })
+
+    expect(reenviado.itens[0]?.observacao).toBe('sem gelo e sem limao')
+    expect(reenviado.itens[0]?.enviadoCozinhaEm).toBeNull()
   })
 
   it('abre nova linha ao adicionar o mesmo produto ja enviado para cozinha', async () => {

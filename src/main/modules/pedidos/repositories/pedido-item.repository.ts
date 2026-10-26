@@ -225,6 +225,38 @@ export class PedidoItemRepository {
     }
   }
 
+  atualizarObservacao(
+    itemId: string,
+    observacao: string | null,
+    limparEnvioCozinha: boolean,
+  ): PedidoItem {
+    const existente = this.buscarPorId(itemId)
+
+    if (!existente) {
+      throw new Error('Item nao encontrado.')
+    }
+
+    const conexao = this.obterConexao()
+    const agora = agoraEmIsoUtc()
+    const enviadoCozinhaEm = limparEnvioCozinha ? null : existente.enviadoCozinhaEm ?? null
+
+    conexao.instancia.run(
+      `UPDATE pedido_item
+       SET observacao = ?, enviado_cozinha_em = ?, atualizado_em = ?
+       WHERE id = ?`,
+      [observacao, enviadoCozinhaEm, agora, itemId],
+    )
+
+    persistirConexaoBanco(conexao)
+
+    return {
+      ...existente,
+      observacao,
+      enviadoCozinhaEm,
+      atualizadoEm: agora,
+    }
+  }
+
   marcarEnviadosCozinha(itemIds: string[]): void {
     if (itemIds.length === 0) {
       return

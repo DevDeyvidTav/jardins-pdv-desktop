@@ -50,6 +50,7 @@ interface PainelMesaPedidoProps {
     observacao?: string,
   ) => Promise<boolean>
   onAlterarQuantidade: (itemId: string, quantidade: number) => Promise<boolean>
+  onDefinirObservacao: (itemId: string, observacao: string) => Promise<boolean>
   onRemoverItem: (itemId: string, motivoCancelamento?: string) => Promise<boolean>
   onAplicarDesconto?: (
     descontoCentavos: number,
@@ -89,6 +90,7 @@ export function PainelMesaPedido({
   onAdicionarItemPedido,
   onAdicionarPizzaPedido,
   onAlterarQuantidade,
+  onDefinirObservacao,
   onRemoverItem,
   onAplicarDesconto,
   onCancelarPedido,
@@ -383,6 +385,7 @@ export function PainelMesaPedido({
             <ListaItensPedido
               itens={resumoPedido.itens}
               onAlterarQuantidade={onAlterarQuantidade}
+              onDefinirObservacao={onDefinirObservacao}
               onRemover={onRemoverItem}
               variant="tabela"
               editavel={resumoPedido.pedido.status === 'ABERTO'}

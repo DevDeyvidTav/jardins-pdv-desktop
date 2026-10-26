@@ -69,6 +69,7 @@ export function PedidosPage({
           onAdicionarItemPedido={pedidos.adicionarItem}
           onAdicionarPizzaPedido={pedidos.adicionarPizza}
           onAlterarQuantidade={pedidos.alterarQuantidadeItem}
+          onDefinirObservacao={pedidos.definirObservacaoItem}
           onRemoverItem={pedidos.removerItem}
           onAplicarDesconto={pedidos.aplicarDescontoPedido}
           onCancelarPedido={pedidos.cancelarPedido}

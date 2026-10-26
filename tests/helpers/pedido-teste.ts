@@ -13,6 +13,7 @@ import { criarCriarPedidoMesa } from '../../src/main/modules/pedidos/use-cases/c
 import { criarCriarPedidoBalcao } from '../../src/main/modules/pedidos/use-cases/criar-pedido-balcao'
 import { criarAdicionarItemPedido } from '../../src/main/modules/pedidos/use-cases/adicionar-item-pedido'
 import { criarAlterarQuantidadeItemPedido } from '../../src/main/modules/pedidos/use-cases/alterar-quantidade-item-pedido'
+import { criarDefinirObservacaoItemPedido } from '../../src/main/modules/pedidos/use-cases/definir-observacao-item-pedido'
 import { criarCancelarItemPedido } from '../../src/main/modules/pedidos/use-cases/cancelar-item-pedido'
 import { criarCancelarPedido } from '../../src/main/modules/pedidos/use-cases/cancelar-pedido'
 import { criarInativarProduto } from '../../src/main/modules/produtos/use-cases/inativar-produto'
@@ -47,6 +48,10 @@ export async function prepararAmbientePedidos() {
     repositorioProduto,
   )
   const alterarQuantidadeItemPedido = criarAlterarQuantidadeItemPedido(
+    repositorioPedido,
+    repositorioItem,
+  )
+  const definirObservacaoItemPedido = criarDefinirObservacaoItemPedido(
     repositorioPedido,
     repositorioItem,
   )
@@ -88,6 +93,7 @@ export async function prepararAmbientePedidos() {
     criarPedidoBalcao,
     adicionarItemPedido,
     alterarQuantidadeItemPedido,
+    definirObservacaoItemPedido,
     cancelarItemPedido,
     removerItemPedido: cancelarItemPedido,
     cancelarPedido,

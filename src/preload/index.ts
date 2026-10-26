@@ -101,6 +101,8 @@ const apiPdv: PdvApi = {
       ipcRenderer.invoke(CANAIS_IPC.PEDIDOS_ADICIONAR_ITEM, entrada),
     alterarQuantidadeItemPedido: (entrada) =>
       ipcRenderer.invoke(CANAIS_IPC.PEDIDOS_ALTERAR_QUANTIDADE_ITEM, entrada),
+    definirObservacaoItemPedido: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.PEDIDOS_DEFINIR_OBSERVACAO_ITEM, entrada),
     cancelarItemPedido: (entrada) =>
       ipcRenderer.invoke(CANAIS_IPC.PEDIDOS_REMOVER_ITEM, entrada),
     removerItemPedido: (entrada) =>

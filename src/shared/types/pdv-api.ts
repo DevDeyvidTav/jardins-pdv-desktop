@@ -54,6 +54,7 @@ import type {
 import type {
   AdicionarItemPedidoEntrada,
   AlterarQuantidadeItemPedidoEntrada,
+  DefinirObservacaoItemPedidoEntrada,
   AplicarDescontoPedidoEntrada,
   CancelarPedidoEntrada,
   CriarPedidoMesaEntrada,
@@ -238,6 +239,9 @@ export interface PdvApi {
     adicionarItemPedido: (entrada: AdicionarItemPedidoEntrada) => Promise<ResumoPedido>
     alterarQuantidadeItemPedido: (
       entrada: AlterarQuantidadeItemPedidoEntrada,
+    ) => Promise<ResumoPedido>
+    definirObservacaoItemPedido: (
+      entrada: DefinirObservacaoItemPedidoEntrada,
     ) => Promise<ResumoPedido>
     cancelarItemPedido: (entrada: CancelarItemPedidoEntrada) => Promise<ResumoPedido>
     /** @deprecated Preferir cancelarItemPedido */
