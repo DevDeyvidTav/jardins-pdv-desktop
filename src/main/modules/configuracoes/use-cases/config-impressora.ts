@@ -5,7 +5,9 @@ import type {
 import {
   formatarEnderecoImpressora,
   normalizarEnderecoImpressora,
+  normalizarMacImpressora,
 } from '@shared/utils/endereco-impressora'
+import { aprenderMacImpressora } from '../../impressao/infraestrutura/descobrir-impressoras-rede'
 import { detectarPortaComAtual } from '../../impressao/infraestrutura/enviar-impressora'
 import { criarConfigImpressoraRepository } from '../repositories/config-impressora.repository'
 
@@ -31,12 +33,15 @@ export function criarSalvarConfigImpressoras(
         const portaInformada = rede ? null : config.portaCom?.trim() || null
         const portaDetectada =
           portaInformada || rede ? null : detectarPortaComAtual(nome)
+        const macInformada = normalizarMacImpressora(config.macRede)
+        const mac = rede ? macInformada ?? aprenderMacImpressora(rede.host) : null
 
         return {
           setor: config.setor,
           nomeImpressora: nome,
           portaCom: portaInformada ?? portaDetectada,
           enderecoIp: rede ? formatarEnderecoImpressora(rede) : null,
+          macRede: mac,
         }
       }),
     )

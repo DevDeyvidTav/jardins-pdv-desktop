@@ -1,5 +1,8 @@
 import { SETOR_IMPRESSAO, type SetorImpressao } from '@shared/types/config-impressora'
-import { normalizarEnderecoImpressora } from '@shared/utils/endereco-impressora'
+import {
+  normalizarEnderecoImpressora,
+  normalizarMacImpressora,
+} from '@shared/utils/endereco-impressora'
 
 import { criarConfigImpressoraRepository } from '../../configuracoes/repositories/config-impressora.repository'
 
@@ -37,6 +40,8 @@ export function resolverDestinoImpressoraPorSetor(
       host: rede.host,
       porta: rede.porta,
       nomeImpressora: nome,
+      mac: normalizarMacImpressora(config?.macRede),
+      setor,
     }
   }
 

@@ -407,6 +407,7 @@ describe('resolver destino impressora', () => {
         nomeImpressora: 'Cozinha Pizza',
         portaCom: 'COM3',
         enderecoIp: '10.0.70.11',
+        macRede: '00:1a:2b:3c:4d:5e',
       },
     ])
 
@@ -428,6 +429,8 @@ describe('resolver destino impressora', () => {
       host: '10.0.70.11',
       porta: 9100,
       nomeImpressora: 'Cozinha Pizza',
+      mac: '00-1A-2B-3C-4D-5E',
+      setor: SETOR_IMPRESSAO.PIZZA,
     })
 
     banco.encerrar()

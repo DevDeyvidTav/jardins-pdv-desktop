@@ -232,6 +232,8 @@ const apiPdv: PdvApi = {
     listarImpressoras: () => ipcRenderer.invoke(CANAIS_IPC.CONFIG_LISTAR_IMPRESSORAS),
     listarImpressorasSistema: () =>
       ipcRenderer.invoke(CANAIS_IPC.CONFIG_LISTAR_IMPRESSORAS_SISTEMA),
+    descobrirImpressorasRede: () =>
+      ipcRenderer.invoke(CANAIS_IPC.CONFIG_DESCOBRIR_IMPRESSORAS_REDE),
     instalarImpressoraGenerica: (entrada) =>
       ipcRenderer.invoke(CANAIS_IPC.CONFIG_INSTALAR_IMPRESSORA_GENERICA, entrada),
     recuperarImpressoras: () =>

@@ -32,6 +32,24 @@ export function normalizarEnderecoImpressora(
   return { host: match[1], porta }
 }
 
+/** MAC no formato do Windows: `AA-BB-CC-DD-EE-FF`. */
+export function normalizarMacImpressora(valor: string | null | undefined): string | null {
+  if (!valor?.trim()) {
+    return null
+  }
+
+  const compacto = valor.trim().toUpperCase().replace(/[^0-9A-F]/g, '')
+  if (compacto.length !== 12) {
+    return null
+  }
+
+  if (compacto === '000000000000' || compacto === 'FFFFFFFFFFFF') {
+    return null
+  }
+
+  return compacto.match(/.{2}/g)!.join('-')
+}
+
 export function formatarEnderecoImpressora(endereco: EnderecoImpressoraRede): string {
   if (endereco.porta === PORTA_REDE_IMPRESSORA_PADRAO) {
     return endereco.host

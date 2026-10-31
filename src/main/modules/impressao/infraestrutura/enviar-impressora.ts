@@ -2,6 +2,14 @@ import { execFileSync } from 'node:child_process'
 import { unlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import type { SetorImpressao } from '@shared/types/config-impressora'
+import { criarConfigImpressoraRepository } from '../../configuracoes/repositories/config-impressora.repository'
+import {
+  aprenderMacImpressora,
+  descobrirImpressorasRede,
+  lerVizinhosArp,
+} from './descobrir-impressoras-rede'
+import { escolherHostImpressoraRede } from './escolher-host-impressora-rede'
 
 /** Legado: lock em arquivo ficava orfao apos reinicio do Electron no dev. */
 const CAMINHO_LOCK_LEGADO = join(tmpdir(), 'pdv-impressora.lock')
@@ -43,7 +51,14 @@ export type DestinoImpressao =
   | { tipo: 'NAO_CONFIGURADO' }
   | { tipo: 'SPOOLER'; nome: string }
   | { tipo: 'COM'; porta: string; nomeImpressora: string }
-  | { tipo: 'REDE'; host: string; porta: number; nomeImpressora: string }
+  | {
+      tipo: 'REDE'
+      host: string
+      porta: number
+      nomeImpressora: string
+      mac: string | null
+      setor: SetorImpressao
+    }
 
 export function deveSimularImpressora(
   env: NodeJS.ProcessEnv = process.env,
@@ -96,7 +111,7 @@ export function enviarBufferImpressora(
 
   executarComLockImpressora(() => {
     if (destino.tipo === 'REDE') {
-      enviarViaRedeWindows(buffer, destino.host, destino.porta)
+      enviarRedeAcompanhandoIp(buffer, destino)
       return
     }
 
@@ -243,6 +258,64 @@ export function prepararImpressoraParaEnvioCom(
     retomar(nomeImpressora)
   } catch {
     // retomar e seguir — envio serial e independente da fila virtual
+  }
+}
+
+function lembrarEnderecoRede(
+  setor: SetorImpressao,
+  host: string,
+  porta: number,
+  mac: string | null,
+): void {
+  try {
+    const endereco = porta === 9100 ? host : `${host}:${porta}`
+    criarConfigImpressoraRepository().atualizarRede(setor, endereco, mac)
+  } catch {
+    // Falha ao gravar o IP novo nao desfaz o cupom.
+  }
+}
+
+function enviarRedeAcompanhandoIp(
+  buffer: Buffer,
+  destino: Extract<DestinoImpressao, { tipo: 'REDE' }>,
+): void {
+  const sugerido = escolherHostImpressoraRede({
+    hostSalvo: destino.host,
+    macSalva: destino.mac,
+    arp: lerVizinhosArp(),
+    encontradas: null,
+  })
+  const hostInicial = sugerido?.host ?? destino.host
+  const macInicial = sugerido?.mac ?? destino.mac
+
+  const enviar = (host: string) => enviarViaRedeWindows(buffer, host, destino.porta)
+
+  try {
+    enviar(hostInicial)
+    const mac = macInicial ?? aprenderMacImpressora(hostInicial)
+    if (hostInicial !== destino.host || (mac && mac !== destino.mac)) {
+      lembrarEnderecoRede(destino.setor, hostInicial, destino.porta, mac ?? destino.mac)
+    }
+    return
+  } catch (erroInicial) {
+    const escolhida = escolherHostImpressoraRede({
+      hostSalvo: destino.host,
+      macSalva: destino.mac,
+      arp: lerVizinhosArp(),
+      encontradas: descobrirImpressorasRede(),
+    })
+
+    if (!escolhida || escolhida.host === hostInicial) {
+      throw erroInicial
+    }
+
+    enviar(escolhida.host)
+    lembrarEnderecoRede(
+      destino.setor,
+      escolhida.host,
+      destino.porta,
+      escolhida.mac ?? destino.mac,
+    )
   }
 }
 

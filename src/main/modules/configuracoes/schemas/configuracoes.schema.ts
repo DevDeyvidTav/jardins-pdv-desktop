@@ -1,7 +1,10 @@
 import { z } from 'zod'
 import { SETOR_IMPRESSAO } from '@shared/types/config-impressora'
 import { TAMANHO_PIN_OPERADOR } from '@shared/types/operador'
-import { normalizarEnderecoImpressora } from '@shared/utils/endereco-impressora'
+import {
+  normalizarEnderecoImpressora,
+  normalizarMacImpressora,
+} from '@shared/utils/endereco-impressora'
 
 const setorImpressaoSchema = z.enum([
   SETOR_IMPRESSAO.BALCAO,
@@ -17,6 +20,7 @@ export const configImpressoraEntradaSchema = z
     nomeImpressora: z.string().trim().default(''),
     portaCom: z.string().trim().nullable().optional(),
     enderecoIp: z.string().trim().nullable().optional(),
+    macRede: z.string().trim().nullable().optional(),
   })
   .superRefine((config, contexto) => {
     const temDestino = Boolean(
@@ -35,6 +39,14 @@ export const configImpressoraEntradaSchema = z
         code: 'custom',
         message: 'IP invalido. Use 10.0.70.11 ou 10.0.70.11:9100.',
         path: ['enderecoIp'],
+      })
+    }
+
+    if (config.macRede?.trim() && !normalizarMacImpressora(config.macRede)) {
+      contexto.addIssue({
+        code: 'custom',
+        message: 'Identificacao da impressora de rede invalida.',
+        path: ['macRede'],
       })
     }
   })

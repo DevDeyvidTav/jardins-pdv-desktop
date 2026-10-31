@@ -6,6 +6,7 @@ import {
   SETORES_IMPRESSORA_CONFIG,
   type ConfigImpressoraEntrada,
   type ImpressoraDetectada,
+  type ImpressoraRedeDetectada,
   type ImpressorasSistemaResposta,
   type SetorImpressao,
   type SetorImpressoraConfig,
@@ -41,6 +42,8 @@ export function ConfiguracoesPage({ operador }: ConfiguracoesPageProps) {
     apiConfigurada: boolean
   }>({ apiUrl: null, apiConfigurada: false })
   const [impressoras, setImpressoras] = useState<ConfigImpressoraEntrada[]>([])
+  const [impressorasRede, setImpressorasRede] = useState<ImpressoraRedeDetectada[]>([])
+  const [buscandoRede, setBuscandoRede] = useState(false)
   const [impressorasSistema, setImpressorasSistema] =
     useState<ImpressorasSistemaResposta>({
       impressoras: [],
@@ -78,6 +81,7 @@ export function ConfiguracoesPage({ operador }: ConfiguracoesPageProps) {
           nomeImpressora: mapa.get(setor)?.nomeImpressora ?? '',
           portaCom: mapa.get(setor)?.portaCom ?? '',
           enderecoIp: mapa.get(setor)?.enderecoIp ?? '',
+          macRede: mapa.get(setor)?.macRede ?? '',
         })),
       )
       setImpressorasSistema(detectadas)
@@ -146,6 +150,45 @@ export function ConfiguracoesPage({ operador }: ConfiguracoesPageProps) {
     }
   }
 
+  async function buscarImpressorasRede() {
+    setErro(null)
+    setSucesso(null)
+    setBuscandoRede(true)
+
+    try {
+      const encontradas = await window.pdv.config.descobrirImpressorasRede()
+      setImpressorasRede(encontradas)
+      setSucesso(
+        encontradas.length > 0
+          ? `${encontradas.length} impressora(s) na rede. Atribua cada uma ao setor.`
+          : 'Nenhuma impressora respondeu na porta 9100.',
+      )
+    } catch (causa) {
+      setErro(extrairMensagemErroIpc(causa))
+    } finally {
+      setBuscandoRede(false)
+    }
+  }
+
+  function atribuirImpressoraRede(setor: SetorImpressoraConfig, encontrada: ImpressoraRedeDetectada) {
+    setImpressoras((atual) =>
+      atual.map((item) =>
+        item.setor === setor
+          ? {
+              ...item,
+              nomeImpressora: item.nomeImpressora.trim() || `Rede ${encontrada.host}`,
+              enderecoIp: encontrada.host,
+              macRede: encontrada.mac ?? '',
+              portaCom: '',
+            }
+          : item,
+      ),
+    )
+    setSucesso(
+      `Setor ${ROTULOS_SETOR_IMPRESSAO[setor]} apontou para ${encontrada.host}. Salve e teste. Se o IP mudar, o PDV acha essa mesma impressora.`,
+    )
+  }
+
   async function salvarImpressoras(evento: FormEvent) {
     evento.preventDefault()
     setErro(null)
@@ -197,6 +240,7 @@ export function ConfiguracoesPage({ operador }: ConfiguracoesPageProps) {
               nomeImpressora: detectada.nome,
               portaCom: detectada.porta ?? '',
               enderecoIp: '',
+              macRede: '',
             }
           : item,
       ),
@@ -233,7 +277,13 @@ export function ConfiguracoesPage({ operador }: ConfiguracoesPageProps) {
     setImpressoras((atual) =>
       atual.map((item) =>
         item.setor === setor
-          ? { ...item, nomeImpressora: `Serial ${porta}`, portaCom: porta, enderecoIp: '' }
+          ? {
+              ...item,
+              nomeImpressora: `Serial ${porta}`,
+              portaCom: porta,
+              enderecoIp: '',
+              macRede: '',
+            }
           : item,
       ),
     )
@@ -471,10 +521,54 @@ export function ConfiguracoesPage({ operador }: ConfiguracoesPageProps) {
           ) : null}
 
           <h2>Impressoras por setor</h2>
+          <div className="config-portas-com">
+            <div className="config-impressoras-detectadas__cabecalho">
+              <h3>Impressoras na rede</h3>
+              <button
+                type="button"
+                className="config-impressoras-detectadas__atualizar"
+                disabled={buscandoRede}
+                onClick={() => void buscarImpressorasRede()}
+              >
+                {buscandoRede ? 'Procurando…' : 'Buscar na rede'}
+              </button>
+            </div>
+            <p className="config-impressoras__dica">
+              O PDV memoriza a impressora, não só o IP. Se o roteador mudar o
+              endereço, a comanda procura o mesmo aparelho na rede.
+            </p>
+            {impressorasRede.length > 0 ? (
+              <ul>
+                {impressorasRede.map((encontrada) => (
+                  <li key={`${encontrada.host}-${encontrada.mac ?? ''}`}>
+                    <strong>{encontrada.host}</strong>
+                    {encontrada.mac ? ` — ${encontrada.mac}` : ''}
+                    <select
+                      defaultValue=""
+                      onChange={(evento) => {
+                        const setor = evento.target.value as SetorImpressoraConfig
+                        if (!setor) {
+                          return
+                        }
+                        atribuirImpressoraRede(setor, encontrada)
+                        evento.target.value = ''
+                      }}
+                    >
+                      <option value="">Atribuir ao setor…</option>
+                      {SETORES_IMPRESSORA_CONFIG.map((setor) => (
+                        <option key={setor} value={setor}>
+                          {ROTULOS_SETOR_IMPRESSAO[setor]}
+                        </option>
+                      ))}
+                    </select>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
           <p className="config-impressoras__dica">
-            Cozinha na rede: preencha o IP (ex.: 10.0.70.11). O cupom sai direto na
-            porta 9100 e a COM desse setor é ignorada. Balcão USB continua na COM.
-            Testar já salva antes de imprimir.
+            Cozinha na rede: use Buscar na rede ou informe o IP. A COM desse setor
+            fica vazia. Balcão USB continua na COM. Testar já salva antes de imprimir.
           </p>
           <form onSubmit={(evento) => void salvarImpressoras(evento)}>
             <datalist id="nomes-impressoras-detectadas">
@@ -527,6 +621,7 @@ export function ConfiguracoesPage({ operador }: ConfiguracoesPageProps) {
                                 ? {
                                     ...item,
                                     enderecoIp: valor,
+                                    macRede: '',
                                     portaCom: valor.trim() ? '' : item.portaCom,
                                   }
                                 : item,
@@ -536,6 +631,11 @@ export function ConfiguracoesPage({ operador }: ConfiguracoesPageProps) {
                         placeholder="10.0.70.11"
                         inputMode="decimal"
                       />
+                      {config.macRede ? (
+                        <small className="config-impressoras__dica">
+                          Aparelho {config.macRede}
+                        </small>
+                      ) : null}
                     </td>
                     <td>
                       <input
@@ -550,6 +650,7 @@ export function ConfiguracoesPage({ operador }: ConfiguracoesPageProps) {
                                     ...item,
                                     portaCom: valor,
                                     enderecoIp: valor.trim() ? '' : item.enderecoIp,
+                                    macRede: valor.trim() ? '' : item.macRede,
                                   }
                                 : item,
                             ),

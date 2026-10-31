@@ -12,6 +12,7 @@ interface LinhaConfigImpressoraSql {
   nome_impressora: string
   porta_com: string | null
   endereco_ip: string | null
+  mac_rede: string | null
 }
 
 function mapearLinha(linha: LinhaConfigImpressoraSql): ConfigImpressora {
@@ -21,6 +22,7 @@ function mapearLinha(linha: LinhaConfigImpressoraSql): ConfigImpressora {
     nomeImpressora: linha.nome_impressora,
     portaCom: linha.porta_com,
     enderecoIp: linha.endereco_ip,
+    macRede: linha.mac_rede,
   }
 }
 
@@ -30,7 +32,7 @@ export class ConfigImpressoraRepository {
   listar(): ConfigImpressora[] {
     const conexao = this.obterConexao()
     const consulta = conexao.instancia.prepare(
-      `SELECT id, setor, nome_impressora, porta_com, endereco_ip
+      `SELECT id, setor, nome_impressora, porta_com, endereco_ip, mac_rede
        FROM config_impressora
        ORDER BY setor ASC`,
     )
@@ -49,7 +51,7 @@ export class ConfigImpressoraRepository {
   buscarPorSetor(setor: SetorImpressao): ConfigImpressora | null {
     const conexao = this.obterConexao()
     const consulta = conexao.instancia.prepare(
-      `SELECT id, setor, nome_impressora, porta_com, endereco_ip
+      `SELECT id, setor, nome_impressora, porta_com, endereco_ip, mac_rede
        FROM config_impressora
        WHERE setor = ?
        LIMIT 1`,
@@ -72,6 +74,7 @@ export class ConfigImpressoraRepository {
       nomeImpressora: string
       portaCom: string | null
       enderecoIp?: string | null
+      macRede?: string | null
     }>,
   ): ConfigImpressora[] {
     const conexao = this.obterConexao()
@@ -89,17 +92,19 @@ export class ConfigImpressoraRepository {
           nomeImpressora: config.nomeImpressora.trim(),
           portaCom: config.portaCom?.trim() || null,
           enderecoIp: config.enderecoIp?.trim() || null,
+          macRede: config.macRede?.trim() || null,
         }
 
         conexao.instancia.run(
-          `INSERT INTO config_impressora (id, setor, nome_impressora, porta_com, endereco_ip)
-           VALUES (?, ?, ?, ?, ?)`,
+          `INSERT INTO config_impressora (id, setor, nome_impressora, porta_com, endereco_ip, mac_rede)
+           VALUES (?, ?, ?, ?, ?, ?)`,
           [
             registro.id,
             registro.setor,
             registro.nomeImpressora,
             registro.portaCom,
             registro.enderecoIp,
+            registro.macRede,
           ],
         )
 
@@ -113,6 +118,17 @@ export class ConfigImpressoraRepository {
       conexao.nativo.exec('ROLLBACK')
       throw erro
     }
+  }
+
+  atualizarRede(setor: SetorImpressao, enderecoIp: string, macRede: string | null): void {
+    const conexao = this.obterConexao()
+    conexao.instancia.run(
+      `UPDATE config_impressora
+       SET endereco_ip = ?, mac_rede = ?
+       WHERE setor = ?`,
+      [enderecoIp, macRede, setor],
+    )
+    persistirConexaoBanco(conexao)
   }
 }
 

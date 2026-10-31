@@ -41,6 +41,7 @@ import {
 } from './use-cases/config-impressora'
 
 import { listarImpressorasSistema } from './use-cases/listar-impressoras-sistema'
+import { descobrirImpressorasRede } from '../impressao/infraestrutura/descobrir-impressoras-rede'
 
 import { instalarImpressoraGenerica } from './use-cases/instalar-impressora-generica'
 
@@ -126,6 +127,14 @@ export function registrarHandlersConfiguracoes(): void {
 
   })
 
+
+  ipcMain.handle(CANAIS_IPC.CONFIG_DESCOBRIR_IMPRESSORAS_REDE, () => {
+    try {
+      return executarComPermissao(PERMISSAO_PDV.CONFIGURACOES, () => descobrirImpressorasRede())
+    } catch (erro) {
+      tratarErroConfiguracoes(erro)
+    }
+  })
 
   ipcMain.handle(CANAIS_IPC.CONFIG_INSTALAR_IMPRESSORA_GENERICA, (_evento, entrada) => {
 

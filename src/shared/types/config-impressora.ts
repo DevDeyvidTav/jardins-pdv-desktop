@@ -110,6 +110,14 @@ export interface ConfigImpressora {
   portaCom: string | null
   /** IPv4 da térmica na rede. Porta 9100 quando o texto não traz `:porta`. */
   enderecoIp: string | null
+  /** Identidade física. O IP pode mudar; o MAC continua o mesmo. */
+  macRede: string | null
+}
+
+export interface ImpressoraRedeDetectada {
+  host: string
+  porta: number
+  mac: string | null
 }
 
 export interface ConfigImpressoraEntrada {
@@ -117,6 +125,7 @@ export interface ConfigImpressoraEntrada {
   nomeImpressora: string
   portaCom?: string | null
   enderecoIp?: string | null
+  macRede?: string | null
 }
 
 export interface SalvarConfigImpressorasEntrada {

@@ -700,6 +700,7 @@ describe('contrato da API exposta pelo preload', () => {
       },
       config: {
         listarImpressoras: async () => [],
+        descobrirImpressorasRede: async () => [],
         listarImpressorasSistema: async () => ({
           impressoras: [],
           portasCom: [],

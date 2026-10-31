@@ -910,4 +910,11 @@ ALTER TABLE pedido_item ADD COLUMN enviado_cozinha_em TEXT;
 ALTER TABLE config_impressora ADD COLUMN endereco_ip TEXT;
 `.trim(),
   },
+  {
+    versao: 29,
+    nome: '0029-config-impressora-mac-rede',
+    sql: `
+ALTER TABLE config_impressora ADD COLUMN mac_rede TEXT;
+`.trim(),
+  },
 ]

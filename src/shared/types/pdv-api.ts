@@ -112,6 +112,7 @@ import type {
 import type {
   AtualizarSetorCategoriaEntrada,
   ConfigImpressora,
+  ImpressoraRedeDetectada,
   ImpressorasSistemaResposta,
   InstalarImpressoraGenericaEntrada,
   ResultadoInstalacaoImpressoraGenerica,
@@ -358,6 +359,7 @@ export interface PdvApi {
   config: {
     listarImpressoras: () => Promise<ConfigImpressora[]>
     listarImpressorasSistema: () => Promise<ImpressorasSistemaResposta>
+    descobrirImpressorasRede: () => Promise<ImpressoraRedeDetectada[]>
     instalarImpressoraGenerica: (
       entrada: InstalarImpressoraGenericaEntrada,
     ) => Promise<ResultadoInstalacaoImpressoraGenerica>
