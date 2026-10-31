@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { SETOR_IMPRESSAO } from '@shared/types/config-impressora'
 import { centavosSaoValidos } from '@shared/utils/moeda'
 
 const precoCentavosSchema = z
@@ -42,6 +43,15 @@ const dadosFiscaisProdutoSchema = {
     .number()
     .min(0, 'Aliquota nao pode ser negativa.')
     .max(100, 'Aliquota nao pode passar de 100%.')
+    .nullable()
+    .optional(),
+  setorImpressao: z
+    .enum([
+      SETOR_IMPRESSAO.BALCAO,
+      SETOR_IMPRESSAO.PIZZA,
+      SETOR_IMPRESSAO.JAPONESA,
+      SETOR_IMPRESSAO.CHINESA,
+    ])
     .nullable()
     .optional(),
 }

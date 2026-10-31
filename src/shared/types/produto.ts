@@ -1,3 +1,5 @@
+import type { SetorImpressao } from './config-impressora'
+
 export interface DadosFiscaisProduto {
   fiscalNcm: string | null
   fiscalCest: string | null
@@ -17,6 +19,8 @@ export interface Produto extends DadosFiscaisProduto {
   nome: string
   descricao: string | null
   precoCentavos: number
+  /** Null segue o setor da categoria. */
+  setorImpressao: SetorImpressao | null
   ativo: boolean
   criadoEm: string
   atualizadoEm: string
@@ -31,6 +35,7 @@ export interface CriarProdutoEntrada extends DadosFiscaisProdutoEntrada {
   nome: string
   descricao?: string
   precoCentavos: number
+  setorImpressao?: SetorImpressao | null
 }
 
 export interface AtualizarProdutoEntrada extends DadosFiscaisProdutoEntrada {
@@ -39,6 +44,7 @@ export interface AtualizarProdutoEntrada extends DadosFiscaisProdutoEntrada {
   nome?: string
   descricao?: string | null
   precoCentavos?: number
+  setorImpressao?: SetorImpressao | null
 }
 
 export interface ListarProdutosEntrada {
@@ -78,4 +84,5 @@ export type SalvarProdutoFormulario = {
   nome: string
   precoCentavos: number
   descricao?: string
+  setorImpressao?: SetorImpressao | null
 } & DadosFiscaisProdutoEntrada

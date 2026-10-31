@@ -62,6 +62,7 @@ export function criarCriarProduto(
       fiscalPisCst: entrada.fiscalPisCst,
       fiscalCofinsCst: entrada.fiscalCofinsCst,
       fiscalAliquotaNacional: entrada.fiscalAliquotaNacional,
+      setorImpressao: entrada.setorImpressao ?? null,
     })
     registrarProdutoSync(produto, OPERACAO_SYNC.CREATE)
     return produto

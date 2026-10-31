@@ -45,6 +45,7 @@ const PRODUTO_BASE = {
   fiscalPisCst: '07',
   fiscalCofinsCst: '07',
   fiscalAliquotaNacional: null as number | null,
+  setorImpressao: null,
   ativo: true,
   criadoEm: new Date().toISOString(),
   atualizadoEm: new Date().toISOString(),

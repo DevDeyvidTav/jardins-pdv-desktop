@@ -22,6 +22,8 @@ import { criarInativarProduto } from '../../../src/main/modules/produtos/use-cas
 import { criarReativarProduto } from '../../../src/main/modules/produtos/use-cases/reativar-produto'
 import { criarListarProdutos } from '../../../src/main/modules/produtos/use-cases/listar-produtos'
 import { criarListarCategoriasProduto } from '../../../src/main/modules/produtos/use-cases/listar-categorias-produto'
+import { SETOR_IMPRESSAO } from '../../../src/shared/types/config-impressora'
+import { consultarSetorCategoriaProduto } from '../../../src/main/modules/impressao/use-cases/imprimir-pedido'
 import { prepararAmbientePedidos } from '../../helpers/pedido-teste'
 import { prepararBancoTeste } from '../../helpers/banco-teste'
 
@@ -102,6 +104,39 @@ describe('produtos', () => {
 
     expect(produto.fiscalNcm).toBe('22030000')
     expect(produto.fiscalIcmsCsosn).toBe('500')
+  })
+
+  it('setor do item substitui o da categoria e padrao volta a seguir a categoria', async () => {
+    const { categoria, criarProduto } = await prepararCatalogo()
+    criarCategoriaProdutoRepository().atualizarSetorImpressao(
+      categoria.id,
+      SETOR_IMPRESSAO.JAPONESA,
+    )
+
+    const chines = criarProduto({
+      categoriaId: categoria.id,
+      nome: 'Yakisoba da promocao',
+      precoCentavos: 3500,
+      setorImpressao: SETOR_IMPRESSAO.CHINESA,
+    })
+    const padrao = criarProduto({
+      categoriaId: categoria.id,
+      nome: 'Sushi da promocao',
+      precoCentavos: 2800,
+    })
+
+    expect(chines.setorImpressao).toBe(SETOR_IMPRESSAO.CHINESA)
+    expect(consultarSetorCategoriaProduto(chines.id)).toBe(SETOR_IMPRESSAO.CHINESA)
+    expect(padrao.setorImpressao).toBeNull()
+    expect(consultarSetorCategoriaProduto(padrao.id)).toBe(SETOR_IMPRESSAO.JAPONESA)
+
+    const atualizado = criarAtualizarProduto()({
+      produtoId: chines.id,
+      setorImpressao: null,
+    })
+
+    expect(atualizado.setorImpressao).toBeNull()
+    expect(consultarSetorCategoriaProduto(chines.id)).toBe(SETOR_IMPRESSAO.JAPONESA)
   })
 
   it('impede produto com nome vazio', async () => {

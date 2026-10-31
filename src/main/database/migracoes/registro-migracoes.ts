@@ -917,4 +917,11 @@ ALTER TABLE config_impressora ADD COLUMN endereco_ip TEXT;
 ALTER TABLE config_impressora ADD COLUMN mac_rede TEXT;
 `.trim(),
   },
+  {
+    versao: 30,
+    nome: '0030-produto-setor-impressao',
+    sql: `
+ALTER TABLE produto ADD COLUMN setor_impressao TEXT;
+`.trim(),
+  },
 ]

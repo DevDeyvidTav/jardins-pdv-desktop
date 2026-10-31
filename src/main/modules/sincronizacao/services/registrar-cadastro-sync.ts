@@ -47,6 +47,7 @@ export function serializarProduto(produto: Produto): Record<string, unknown> {
     fiscalPisCst: produto.fiscalPisCst,
     fiscalCofinsCst: produto.fiscalCofinsCst,
     fiscalAliquotaNacional: produto.fiscalAliquotaNacional,
+    setorImpressao: produto.setorImpressao,
     ativo: produto.ativo,
     criadoEm: produto.criadoEm,
     atualizadoEm: produto.atualizadoEm,

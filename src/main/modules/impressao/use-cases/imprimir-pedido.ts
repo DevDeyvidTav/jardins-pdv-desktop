@@ -65,6 +65,10 @@ export function consultarSetorCategoriaProduto(
       return null
     }
 
+    if (produto.setorImpressao) {
+      return produto.setorImpressao
+    }
+
     return repositorioCategoria.buscarPorId(produto.categoriaId)?.setorImpressao ?? null
   } catch {
     return null

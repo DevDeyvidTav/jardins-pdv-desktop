@@ -6,6 +6,7 @@ import {
 import { obterConexaoBancoLocal } from '../../../database/inicializar-banco'
 import { agoraEmIsoUtc } from '@shared/utils/data-hora'
 import { resolverDadosFiscaisProduto } from '@shared/utils/fiscal-produto'
+import type { SetorImpressao } from '@shared/types/config-impressora'
 import type { DadosFiscaisProdutoEntrada, Produto, ProdutoComCategoria } from '@shared/types/produto'
 import {
   mapearLinhaProduto,
@@ -26,6 +27,7 @@ type DadosProdutoPersistencia = {
   nome: string
   descricao: string | null
   precoCentavos: number
+  setorImpressao?: SetorImpressao | null
 } & DadosFiscaisProdutoEntrada
 
 export class ProdutoRepository {
@@ -121,6 +123,7 @@ export class ProdutoRepository {
       descricao: dados.descricao,
       precoCentavos: dados.precoCentavos,
       ...fiscal,
+      setorImpressao: dados.setorImpressao ?? null,
       ativo: true,
       criadoEm: agora,
       atualizadoEm: agora,
@@ -131,8 +134,8 @@ export class ProdutoRepository {
          id, categoria_id, nome, descricao, preco_centavos,
          fiscal_ncm, fiscal_cest, fiscal_cfop, fiscal_icms_origem, fiscal_icms_csosn,
          fiscal_pis_cst, fiscal_cofins_cst, fiscal_aliquota_nacional,
-         ativo, criado_em, atualizado_em
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         setor_impressao, ativo, criado_em, atualizado_em
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         produto.id,
         produto.categoriaId,
@@ -147,6 +150,7 @@ export class ProdutoRepository {
         produto.fiscalPisCst,
         produto.fiscalCofinsCst,
         produto.fiscalAliquotaNacional,
+        produto.setorImpressao,
         1,
         produto.criadoEm,
         produto.atualizadoEm,
@@ -163,6 +167,7 @@ export class ProdutoRepository {
     nome?: string
     descricao?: string | null
     precoCentavos?: number
+    setorImpressao?: SetorImpressao | null
   } & DadosFiscaisProdutoEntrada): Produto {
     const conexao = this.obterConexao()
     const existente = this.buscarPorId(dados.produtoId)
@@ -192,6 +197,8 @@ export class ProdutoRepository {
       descricao: dados.descricao !== undefined ? dados.descricao : existente.descricao,
       precoCentavos: dados.precoCentavos ?? existente.precoCentavos,
       ...fiscal,
+      setorImpressao:
+        dados.setorImpressao !== undefined ? dados.setorImpressao : existente.setorImpressao,
       atualizadoEm: agora,
     }
 
@@ -199,8 +206,8 @@ export class ProdutoRepository {
       `UPDATE produto
        SET categoria_id = ?, nome = ?, descricao = ?, preco_centavos = ?,
            fiscal_ncm = ?, fiscal_cest = ?, fiscal_cfop = ?, fiscal_icms_origem = ?,
-           fiscal_icms_csosn = ?, fiscal_pis_cst = ?, fiscal_cofins_cst = ?,
-           fiscal_aliquota_nacional = ?, atualizado_em = ?
+           fiscal_icms_csosn = ?,            fiscal_pis_cst = ?, fiscal_cofins_cst = ?,
+           fiscal_aliquota_nacional = ?, setor_impressao = ?, atualizado_em = ?
        WHERE id = ?`,
       [
         atualizado.categoriaId,
@@ -215,6 +222,7 @@ export class ProdutoRepository {
         atualizado.fiscalPisCst,
         atualizado.fiscalCofinsCst,
         atualizado.fiscalAliquotaNacional,
+        atualizado.setorImpressao,
         agora,
         dados.produtoId,
       ],

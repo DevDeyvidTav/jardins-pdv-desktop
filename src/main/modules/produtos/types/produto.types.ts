@@ -41,6 +41,7 @@ export interface LinhaProdutoSql {
   fiscal_pis_cst: string
   fiscal_cofins_cst: string
   fiscal_aliquota_nacional: number | null
+  setor_impressao: string | null
   ativo: number
   criado_em: string
   atualizado_em: string
@@ -58,7 +59,7 @@ const COLUNAS_PRODUTO = `
   id, categoria_id, nome, descricao, preco_centavos,
   fiscal_ncm, fiscal_cest, fiscal_cfop, fiscal_icms_origem, fiscal_icms_csosn,
   fiscal_pis_cst, fiscal_cofins_cst, fiscal_aliquota_nacional,
-  ativo, criado_em, atualizado_em
+  setor_impressao, ativo, criado_em, atualizado_em
 `.trim()
 
 export function obterColunasCategoriaProduto(): string {
@@ -99,6 +100,21 @@ function mapearDadosFiscaisSql(
   }
 }
 
+function mapearSetorImpressaoSql(
+  valor: string | null | undefined,
+): import('@shared/types/config-impressora').SetorImpressao | null {
+  if (
+    valor === 'BALCAO' ||
+    valor === 'PIZZA' ||
+    valor === 'JAPONESA' ||
+    valor === 'CHINESA'
+  ) {
+    return valor
+  }
+
+  return null
+}
+
 export function mapearLinhaCategoriaProduto(
   linha: LinhaCategoriaProdutoSql,
 ): import('@shared/types/categoria-produto').CategoriaProduto {
@@ -123,6 +139,7 @@ export function mapearLinhaProduto(
     descricao: linha.descricao,
     precoCentavos: linha.preco_centavos,
     ...mapearDadosFiscaisSql(linha),
+    setorImpressao: mapearSetorImpressaoSql(linha.setor_impressao),
     ativo: linha.ativo === 1,
     criadoEm: linha.criado_em,
     atualizadoEm: linha.atualizado_em,

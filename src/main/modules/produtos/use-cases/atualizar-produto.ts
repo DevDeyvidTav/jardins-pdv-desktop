@@ -79,6 +79,7 @@ export function criarAtualizarProduto(
       fiscalPisCst: entrada.fiscalPisCst,
       fiscalCofinsCst: entrada.fiscalCofinsCst,
       fiscalAliquotaNacional: entrada.fiscalAliquotaNacional,
+      setorImpressao: entrada.setorImpressao,
     })
     if (entrada.precoCentavos !== undefined && entrada.precoCentavos !== precoAntes) {
       registrarAcaoAuditoria({

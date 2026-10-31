@@ -25,6 +25,27 @@ function inteiro(valor: unknown, fallback = 0): number {
   return Number.isFinite(n) ? n : fallback
 }
 
+function setorImpressaoDoPayload(payload: Record<string, unknown>): {
+  informado: boolean
+  setor: string | null
+} {
+  if (!Object.prototype.hasOwnProperty.call(payload, 'setorImpressao')) {
+    return { informado: false, setor: null }
+  }
+
+  const valor = payload.setorImpressao
+  if (
+    valor === 'BALCAO' ||
+    valor === 'PIZZA' ||
+    valor === 'JAPONESA' ||
+    valor === 'CHINESA'
+  ) {
+    return { informado: true, setor: valor }
+  }
+
+  return { informado: true, setor: null }
+}
+
 function flag(valor: unknown, fallback = true): number {
   if (valor === undefined || valor === null) {
     return fallback ? 1 : 0
@@ -277,6 +298,7 @@ function aplicarUpsert(
     if (!categoriaId) {
       return 'ignorado'
     }
+    const setor = setorImpressaoDoPayload(payload)
     const fiscal = resolverDadosFiscaisProduto({
       fiscalNcm: payload.fiscalNcm as string | null | undefined,
       fiscalCest: payload.fiscalCest as string | null | undefined,
@@ -295,8 +317,8 @@ function aplicarUpsert(
          id, categoria_id, nome, descricao, preco_centavos,
          fiscal_ncm, fiscal_cest, fiscal_cfop, fiscal_icms_origem, fiscal_icms_csosn,
          fiscal_pis_cst, fiscal_cofins_cst, fiscal_aliquota_nacional,
-         ativo, criado_em, atualizado_em
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         setor_impressao, ativo, criado_em, atualizado_em
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET
          categoria_id = excluded.categoria_id,
          nome = excluded.nome,
@@ -310,6 +332,7 @@ function aplicarUpsert(
          fiscal_pis_cst = excluded.fiscal_pis_cst,
          fiscal_cofins_cst = excluded.fiscal_cofins_cst,
          fiscal_aliquota_nacional = excluded.fiscal_aliquota_nacional,
+         setor_impressao = CASE WHEN ? = 1 THEN excluded.setor_impressao ELSE produto.setor_impressao END,
          ativo = excluded.ativo,
          atualizado_em = excluded.atualizado_em`,
       [
@@ -326,9 +349,11 @@ function aplicarUpsert(
         fiscal.fiscalPisCst,
         fiscal.fiscalCofinsCst,
         fiscal.fiscalAliquotaNacional,
+        setor.setor,
         flag(payload.ativo),
         criadoEm,
         atualizadoEm,
+        setor.informado ? 1 : 0,
       ],
     )
     return 'aplicado'

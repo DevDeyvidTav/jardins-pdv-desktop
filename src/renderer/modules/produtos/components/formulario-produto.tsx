@@ -1,5 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import type { CategoriaProduto } from '@shared/types/categoria-produto'
+import {
+  ROTULOS_SETOR_IMPRESSAO,
+  SETORES_IMPRESSORA_CONFIG,
+  type SetorImpressoraConfig,
+} from '@shared/types/config-impressora'
 import type { ProdutoComCategoria, SalvarProdutoFormulario } from '@shared/types/produto'
 import { FISCAL_PRODUTO_PADRAO } from '@shared/utils/fiscal-produto'
 import { converterReaisParaCentavos, formatarMoeda } from '@shared/utils/moeda'
@@ -81,6 +86,11 @@ export function FormularioProduto({
   const [preco, setPreco] = useState(
     produtoInicial ? formatarCentavosParaInput(produtoInicial.precoCentavos) : '',
   )
+  const [setorImpressao, setSetorImpressao] = useState<'' | SetorImpressoraConfig>(
+    produtoInicial?.setorImpressao && produtoInicial.setorImpressao !== 'COZINHA'
+      ? produtoInicial.setorImpressao
+      : '',
+  )
   const [fiscalNcm, setFiscalNcm] = useState(produtoInicial?.fiscalNcm ?? '')
   const [fiscalCest, setFiscalCest] = useState(produtoInicial?.fiscalCest ?? '')
   const [fiscalCfop, setFiscalCfop] = useState(
@@ -123,6 +133,11 @@ export function FormularioProduto({
       setNome(produtoInicial.nome)
       setDescricao(produtoInicial.descricao ?? '')
       setPreco(formatarCentavosParaInput(produtoInicial.precoCentavos))
+      setSetorImpressao(
+        produtoInicial.setorImpressao && produtoInicial.setorImpressao !== 'COZINHA'
+          ? produtoInicial.setorImpressao
+          : '',
+      )
       setFiscalNcm(produtoInicial.fiscalNcm ?? '')
       setFiscalCest(produtoInicial.fiscalCest ?? '')
       setFiscalCfop(produtoInicial.fiscalCfop)
@@ -138,6 +153,7 @@ export function FormularioProduto({
     setNome('')
     setDescricao('')
     setPreco('')
+    setSetorImpressao('')
     resetarCamposFiscaisPadrao()
     setErroValidacao(null)
 
@@ -274,6 +290,7 @@ export function FormularioProduto({
         nome,
         precoCentavos,
         descricao: descricao.trim() || undefined,
+        setorImpressao: setorImpressao === '' ? null : setorImpressao,
         ...dadosFiscais,
       })
 
@@ -281,6 +298,7 @@ export function FormularioProduto({
         setNome('')
         setDescricao('')
         setPreco('')
+        setSetorImpressao('')
         resetarCamposFiscaisPadrao()
       }
     } finally {
@@ -289,6 +307,7 @@ export function FormularioProduto({
   }
 
   const precoPreview = converterReaisParaCentavos(preco)
+  const setorDaCategoria = categorias.find((categoria) => categoria.id === categoriaId)?.setorImpressao
 
   return (
     <form
@@ -316,6 +335,28 @@ export function FormularioProduto({
             ))
           )}
         </select>
+      </label>
+
+      <label className="formulario-produto__campo" htmlFor="setor-impressao-produto">
+        Onde imprime
+        <select
+          id="setor-impressao-produto"
+          data-testid="campo-setor-impressao-produto"
+          value={setorImpressao}
+          onChange={(evento) => setSetorImpressao(evento.target.value as '' | SetorImpressoraConfig)}
+          disabled={enviando}
+        >
+          <option value="">Padrão</option>
+          {SETORES_IMPRESSORA_CONFIG.map((setor) => (
+            <option key={setor} value={setor}>
+              {ROTULOS_SETOR_IMPRESSAO[setor]}
+            </option>
+          ))}
+        </select>
+        <span className="formulario-produto__fiscal-ajuda">
+          Padrão segue o setor da categoria
+          {setorDaCategoria ? ` (${ROTULOS_SETOR_IMPRESSAO[setorDaCategoria]}).` : '.'}
+        </span>
       </label>
 
       <label className="formulario-produto__campo" htmlFor="nome-produto">
