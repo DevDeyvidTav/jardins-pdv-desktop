@@ -96,9 +96,12 @@ export function useProdutos(): UseProdutosResultado {
   }, [carregarDados])
 
   useEffect(() => {
-    return window.pdv.sync.onCatalogoAtualizado(() => {
+    const cancelar = window.pdv?.sync?.onCatalogoAtualizado(() => {
       void carregarDados()
     })
+    return () => {
+      cancelar?.()
+    }
   }, [carregarDados])
 
   const criarCategoria = useCallback(

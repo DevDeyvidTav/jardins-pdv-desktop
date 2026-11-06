@@ -170,7 +170,7 @@ test.describe('clientes, talão e delivery opcional', () => {
     }
   })
 
-  test('cria delivery sem nome e com endereco', async () => {
+  test('abre delivery a partir de posicao cadastrada como delivery', async () => {
     const diretorioDados = mkdtempSync(join(tmpdir(), 'pdv-e2e-deliv-'))
 
     try {
@@ -182,14 +182,21 @@ test.describe('clientes, talão e delivery opcional', () => {
       await janela.getByTestId('nav-pedidos').click()
       await expect(janela.getByTestId('pagina-pedidos')).toBeVisible({ timeout: 15_000 })
 
-      await janela.getByTestId('botao-pedido-delivery').click()
-      await expect(janela.getByTestId('formulario-delivery')).toBeVisible()
-      await janela.getByTestId('delivery-endereco').fill('Rua das Flores, 100')
-      await janela.getByTestId('delivery-confirmar').click()
+      await janela.getByTestId('botao-cadastrar-mesas').click()
+      await expect(janela.getByTestId('formulario-mesa')).toBeVisible()
+      await janela.getByTestId('campo-numero-inicial-mesa').fill('900')
+      await janela.getByTestId('campo-numero-final-mesa').fill('900')
+      await janela.locator('input[name="tipo-uso-mesa"][value="DELIVERY"]').check()
+      await janela.getByTestId('botao-criar-mesas').click()
+
+      await expect(janela.getByTestId('item-mesa').filter({ hasText: '900' })).toBeVisible({
+        timeout: 10_000,
+      })
+      await janela.getByTestId('item-mesa').filter({ hasText: '900' }).click()
+      await janela.getByTestId('botao-abrir-mesa').click()
 
       await expect(janela.getByTestId('dados-entrega')).toBeVisible({ timeout: 10_000 })
-      await expect(janela.getByTestId('entrega-cliente-nome')).toHaveText(/Não informado/)
-      await expect(janela.getByTestId('entrega-endereco')).toHaveText('Rua das Flores, 100')
+      await expect(janela.getByTestId('entrega-cliente-nome')).toHaveText(/Delivery 900/)
 
       await aplicativo.close()
     } finally {

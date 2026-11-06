@@ -37,13 +37,34 @@ export function criarJanelaPrincipal(): BrowserWindow {
     configurarServicoAtualizacao(janela)
   })
 
+  janela.webContents.on('console-message', (_evento, nivel, mensagem, linha, fonte) => {
+    if (nivel >= 2) {
+      console.error(`[renderer:${nivel}] ${mensagem} (${fonte}:${linha})`)
+    }
+  })
+
+  janela.webContents.on('did-fail-load', (_evento, codigo, descricao, url) => {
+    console.error('[renderer] did-fail-load', { codigo, descricao, url })
+  })
+
+  janela.webContents.on('render-process-gone', (_evento, detalhes) => {
+    console.error('[renderer] render-process-gone', detalhes)
+  })
+
   if (process.env.ELECTRON_RENDERER_URL) {
-    janela.loadURL(process.env.ELECTRON_RENDERER_URL)
+    void janela.loadURL(process.env.ELECTRON_RENDERER_URL)
+    if (!appEmProducao()) {
+      janela.webContents.openDevTools({ mode: 'detach' })
+    }
   } else {
-    janela.loadFile(join(__dirname, '../renderer/index.html'))
+    void janela.loadFile(join(__dirname, '../renderer/index.html'))
   }
 
   return janela
+}
+
+function appEmProducao(): boolean {
+  return process.env.NODE_ENV === 'production'
 }
 
 export { CONFIGURACAO_SEGURANCA }

@@ -64,7 +64,7 @@ test.describe('impressao no pedido', () => {
       await garantirCaixaAberto(janela)
       await janela.getByTestId('nav-pedidos').click()
       await expect(janela.getByTestId('pagina-pedidos')).toBeVisible({ timeout: 15_000 })
-      await expect(janela.getByTestId('botao-pedido-balcao')).toBeVisible()
+      await expect(janela.getByTestId('botao-cadastrar-mesas')).toBeVisible()
       await expect(janela.getByTestId('botao-amostra-conta')).toHaveCount(0)
       await expect(janela.getByTestId('amostras-impressao')).toHaveCount(0)
 

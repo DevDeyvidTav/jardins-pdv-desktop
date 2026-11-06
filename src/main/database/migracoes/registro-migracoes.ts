@@ -924,4 +924,11 @@ ALTER TABLE config_impressora ADD COLUMN mac_rede TEXT;
 ALTER TABLE produto ADD COLUMN setor_impressao TEXT;
 `.trim(),
   },
+  {
+    versao: 31,
+    nome: '0031-mesa-tipo-uso',
+    sql: `
+ALTER TABLE mesa ADD COLUMN tipo_uso TEXT NOT NULL DEFAULT 'COMUM';
+`.trim(),
+  },
 ]

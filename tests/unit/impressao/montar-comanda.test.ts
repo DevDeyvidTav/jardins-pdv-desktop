@@ -4,14 +4,13 @@ import { criarDocumentoComandaAmostra } from '../../../src/main/modules/impressa
 import { montarComanda } from '../../../src/main/modules/impressao/templates/montar-comanda'
 
 describe('montarComanda', () => {
-  it('imprime comanda de pizza sem precos e com setor no cabecalho', () => {
-    const texto = montarComanda(criarDocumentoComandaAmostra(SETOR_COZINHA.PIZZA)).join(
-      '\n',
-    )
+  it('imprime comanda de pizza sem precos e com origem no topo', () => {
+    const linhas = montarComanda(criarDocumentoComandaAmostra(SETOR_COZINHA.PIZZA))
+    const texto = linhas.join('\n')
 
+    expect(linhas[0]?.trim()).toBe('Mesa 12')
+    expect(linhas[1]?.trim()).toBe('#104')
     expect(texto).toContain('PIZZA')
-    expect(texto).toContain('Mesa 12')
-    expect(texto).toContain('#104')
     expect(texto).toContain('1x PIZZA G')
     expect(texto).toContain('- Calabresa')
     expect(texto).toContain('- Mussarela')

@@ -116,13 +116,13 @@ describe('roteamento de impressao por categoria', () => {
 
     const comandaJaponesa = mapearPedidoParaComanda(
       criarResumoBasico(),
-      { id: 'mesa-1', numero: 3, nome: '3', status: 'OCUPADA', ativo: true, criadoEm: agora, atualizadoEm: agora },
+      { id: 'mesa-1', numero: 3, nome: '3', status: 'OCUPADA', tipoUso: 'COMUM', ativo: true, criadoEm: agora, atualizadoEm: agora },
       consultarSetor,
       SETOR_COMANDA.JAPONESA,
     )
     const comandaPizza = mapearPedidoParaComanda(
       criarResumoBasico(),
-      { id: 'mesa-1', numero: 3, nome: '3', status: 'OCUPADA', ativo: true, criadoEm: agora, atualizadoEm: agora },
+      { id: 'mesa-1', numero: 3, nome: '3', status: 'OCUPADA', tipoUso: 'COMUM', ativo: true, criadoEm: agora, atualizadoEm: agora },
       consultarSetor,
       SETOR_COMANDA.PIZZA,
     )

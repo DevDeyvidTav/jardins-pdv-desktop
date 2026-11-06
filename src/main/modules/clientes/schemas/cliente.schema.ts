@@ -38,6 +38,7 @@ export const listarClientesSchema = z
   .optional()
 
 export const inativarClienteSchema = obterClienteSchema
+export const excluirClienteSchema = obterClienteSchema
 export const reativarClienteSchema = obterClienteSchema
 
 export const vincularClientePedidoSchema = z.object({

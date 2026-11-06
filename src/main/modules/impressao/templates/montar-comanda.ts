@@ -7,13 +7,17 @@ import {
   rotuloOrigemPedido,
 } from './formatar-cupom'
 
+/** Largura efetiva com fonte larga (dupla largura ESC/POS ≈ 24 colunas). */
+const LARGURA_ORIGEM_COMANDA = 24
+
 export function montarComanda(documento: DocumentoComandaImpressao): string[] {
   const { hora } = formatarDataHoraCupom(documento.emitidoEm)
   const origem = rotuloOrigemPedido(documento.tipoPedido, documento.mesaNumero)
   const linhas: string[] = [
+    centralizarLinha(origem, LARGURA_ORIGEM_COMANDA),
+    centralizarLinha(`#${documento.referencia}`, LARGURA_ORIGEM_COMANDA),
     centralizarLinha(documento.setor),
-    `${origem.padEnd(22)}#${documento.referencia}`,
-    hora,
+    centralizarLinha(hora),
     linhaSeparadora(),
   ]
 

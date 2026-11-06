@@ -1,0 +1,8 @@
+export const FILTRO_STATUS_HISTORICO_PEDIDO = {
+  TODOS: 'TODOS',
+  FINALIZADO: 'FINALIZADO',
+  CANCELADO: 'CANCELADO',
+} as const
+
+export type FiltroStatusHistoricoPedido =
+  (typeof FILTRO_STATUS_HISTORICO_PEDIDO)[keyof typeof FILTRO_STATUS_HISTORICO_PEDIDO]

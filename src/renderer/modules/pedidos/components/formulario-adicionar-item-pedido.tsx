@@ -80,12 +80,12 @@ export function FormularioAdicionarItemPedido({
     }
 
     void carregarPizzas()
-    const cancelar = window.pdv.sync.onCatalogoAtualizado(() => {
+    const cancelar = window.pdv?.sync?.onCatalogoAtualizado(() => {
       void carregarPizzas()
     })
     return () => {
       cancelado = true
-      cancelar()
+      cancelar?.()
     }
   }, [])
 

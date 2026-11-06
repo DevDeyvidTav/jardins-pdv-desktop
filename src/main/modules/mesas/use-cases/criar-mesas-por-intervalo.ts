@@ -1,4 +1,5 @@
 import type { CriarMesasPorIntervaloEntrada, Mesa } from '@shared/types/mesa'
+import { TIPO_USO_MESA } from '@shared/types/mesa'
 import { CODIGOS_ERRO_MESAS, ErroMesas } from '../errors/erros-mesas'
 import type { MesaRepository } from '../repositories/mesa.repository'
 import { criarMesaRepository } from '../repositories/mesa.repository'
@@ -25,6 +26,7 @@ export function criarCriarMesasPorIntervalo(
       )
     }
 
+    const tipoUso = entrada.tipoUso ?? TIPO_USO_MESA.COMUM
     const mesasCriadas: Mesa[] = []
 
     for (let numero = entrada.numeroInicial; numero <= entrada.numeroFinal; numero++) {
@@ -34,7 +36,7 @@ export function criarCriarMesasPorIntervalo(
         continue
       }
 
-      const mesa = repositorio.inserir({ numero })
+      const mesa = repositorio.inserir({ numero, tipoUso })
       registrarMesaSync(mesa, OPERACAO_SYNC.CREATE)
       mesasCriadas.push(mesa)
     }

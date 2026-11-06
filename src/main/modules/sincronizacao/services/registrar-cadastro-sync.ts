@@ -60,6 +60,7 @@ export function serializarMesa(mesa: Mesa): Record<string, unknown> {
     numero: mesa.numero,
     nome: mesa.nome,
     status: mesa.status,
+    tipoUso: mesa.tipoUso,
     ativo: mesa.ativo,
     criadoEm: mesa.criadoEm,
     atualizadoEm: mesa.atualizadoEm,

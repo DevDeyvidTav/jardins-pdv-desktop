@@ -270,7 +270,11 @@ export function PainelMesaPedido({
               disabled={carregandoPedido}
               onClick={onAbrirPedido}
             >
-              Criar pedido
+              {mesaSelecionada.tipoUso === 'BALCAO'
+                ? 'Criar balcao'
+                : mesaSelecionada.tipoUso === 'DELIVERY'
+                  ? 'Criar delivery'
+                  : 'Criar pedido'}
             </button>
           ) : null}
 

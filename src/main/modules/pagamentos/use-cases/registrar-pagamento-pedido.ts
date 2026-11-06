@@ -215,33 +215,38 @@ export function criarRegistrarPagamentoPedido(
 
           repositorioPedido.finalizar(pedido.id)
 
-          if (pedido.tipo === TIPO_PEDIDO.MESA && pedido.mesaId) {
+          if (pedido.mesaId) {
             const mesaAntes = repositorioMesa.buscarPorId(pedido.mesaId)
-            const encerrado = encerrarAgrupamentoAtivoNaConexao(conexao, {
-              pedidoId: pedido.id,
-              motivo: MOTIVO_ENCERRAMENTO_AGRUPAMENTO.PEDIDO_FINALIZADO,
-              liberarMesaPrincipal: true,
-            })
+            const encerrado =
+              pedido.tipo === TIPO_PEDIDO.MESA
+                ? encerrarAgrupamentoAtivoNaConexao(conexao, {
+                    pedidoId: pedido.id,
+                    motivo: MOTIVO_ENCERRAMENTO_AGRUPAMENTO.PEDIDO_FINALIZADO,
+                    liberarMesaPrincipal: true,
+                  })
+                : null
 
             if (!encerrado) {
               atualizarStatusMesaNaConexao(conexao, pedido.mesaId, STATUS_MESA.LIVRE)
             }
 
-            inserirMovimentacaoNaConexao(conexao, {
-              pedidoId: pedido.id,
-              tipo: TIPO_MOVIMENTACAO_MESA.PEDIDO_FINALIZADO,
-              mesaOrigemId: pedido.mesaId,
-              mesaAgrupamentoId: pedido.mesaAgrupamentoId,
-              dadosAntes: {
+            if (pedido.tipo === TIPO_PEDIDO.MESA) {
+              inserirMovimentacaoNaConexao(conexao, {
                 pedidoId: pedido.id,
-                status: pedido.status,
-                mesa: mesaAntes ? snapshotMesa(mesaAntes) : null,
-              },
-              dadosDepois: {
-                pedidoId: pedido.id,
-                status: STATUS_PEDIDO.FINALIZADO,
-              },
-            })
+                tipo: TIPO_MOVIMENTACAO_MESA.PEDIDO_FINALIZADO,
+                mesaOrigemId: pedido.mesaId,
+                mesaAgrupamentoId: pedido.mesaAgrupamentoId,
+                dadosAntes: {
+                  pedidoId: pedido.id,
+                  status: pedido.status,
+                  mesa: mesaAntes ? snapshotMesa(mesaAntes) : null,
+                },
+                dadosDepois: {
+                  pedidoId: pedido.id,
+                  status: STATUS_PEDIDO.FINALIZADO,
+                },
+              })
+            }
           }
         }
 

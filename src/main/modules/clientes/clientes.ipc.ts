@@ -5,6 +5,7 @@ import { CODIGOS_ERRO_CLIENTES, ErroClientes } from './errors/erros-clientes'
 import {
   atualizarClienteSchema,
   criarClienteSchema,
+  excluirClienteSchema,
   inativarClienteSchema,
   listarClientesSchema,
   listarContasTalaoSchema,
@@ -22,6 +23,7 @@ import {
   obterCliente,
   reativarCliente,
 } from './use-cases/consultar-atualizar-cliente'
+import { excluirCliente } from './use-cases/excluir-cliente'
 import { vincularClientePedido } from './use-cases/vincular-cliente-pedido'
 import {
   listarContasTalao,
@@ -78,6 +80,14 @@ export function registrarHandlersClientes(): void {
   ipcMain.handle(CANAIS_IPC.CLIENTES_INATIVAR, (_evento, entrada) => {
     try {
       return inativarCliente(inativarClienteSchema.parse(entrada))
+    } catch (erro) {
+      tratarErroClientes(erro)
+    }
+  })
+
+  ipcMain.handle(CANAIS_IPC.CLIENTES_EXCLUIR, (_evento, entrada) => {
+    try {
+      return excluirCliente(excluirClienteSchema.parse(entrada))
     } catch (erro) {
       tratarErroClientes(erro)
     }

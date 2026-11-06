@@ -183,6 +183,25 @@ export class ClienteRepository {
     persistirConexaoBanco(this.obterConexao())
     return { ...existente, ativo, atualizadoEm: agora }
   }
+
+  estaReferenciado(clienteId: string): boolean {
+    const conexao = this.obterConexao()
+    const consulta = conexao.instancia.prepare(
+      `SELECT 1 AS ok WHERE EXISTS (SELECT 1 FROM pedido WHERE cliente_id = ?)
+       OR EXISTS (SELECT 1 FROM talao_baixa WHERE cliente_id = ?)
+       LIMIT 1`,
+    )
+    consulta.bind([clienteId, clienteId])
+    const existe = consulta.step()
+    consulta.free()
+    return existe
+  }
+
+  excluir(clienteId: string): void {
+    const conexao = this.obterConexao()
+    conexao.instancia.run(`DELETE FROM cliente WHERE id = ?`, [clienteId])
+    persistirConexaoBanco(conexao)
+  }
 }
 
 export function criarClienteRepository(conexao?: ConexaoSqlite): ClienteRepository {

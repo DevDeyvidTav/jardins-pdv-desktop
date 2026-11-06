@@ -155,17 +155,13 @@ export interface CancelarPedidoEntrada {
   motivoCancelamento: string
 }
 
-export const FILTRO_STATUS_HISTORICO_PEDIDO = {
-  TODOS: 'TODOS',
-  FINALIZADO: 'FINALIZADO',
-  CANCELADO: 'CANCELADO',
-} as const
-
-export type FiltroStatusHistoricoPedido =
-  (typeof FILTRO_STATUS_HISTORICO_PEDIDO)[keyof typeof FILTRO_STATUS_HISTORICO_PEDIDO]
+export {
+  FILTRO_STATUS_HISTORICO_PEDIDO,
+  type FiltroStatusHistoricoPedido,
+} from './filtro-historico-pedido'
 
 export interface ListarHistoricoPedidosEntrada {
-  status?: FiltroStatusHistoricoPedido
+  status?: import('./filtro-historico-pedido').FiltroStatusHistoricoPedido
   formaPagamento?: import('./pagamento-pedido').FormaPagamento | ''
 }
 

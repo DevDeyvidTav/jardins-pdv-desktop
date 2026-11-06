@@ -9,15 +9,18 @@ import {
 } from './formatar-cupom'
 import { itemEntraNaContaImpressao } from './mapear-pedido-impressao'
 
+/** Largura efetiva com fonte larga (dupla largura ESC/POS ≈ 24 colunas). */
+const LARGURA_ORIGEM_CONTA = 24
+
 export function montarConta(documento: DocumentoContaImpressao): string[] {
   const { data, hora } = formatarDataHoraCupom(documento.emitidoEm)
   const origem = rotuloOrigemPedido(documento.tipoPedido, documento.mesaNumero)
   const linhas: string[] = [
-    centralizarLinha(documento.estabelecimento),
-    centralizarLinha('**********************'),
-    centralizarLinha('CONTA'),
-    `${origem.padEnd(22)}#${documento.referencia}`,
-    `${data}  ${hora}`,
+    centralizarLinha(documento.estabelecimento, LARGURA_ORIGEM_CONTA),
+    centralizarLinha('CONTA', LARGURA_ORIGEM_CONTA),
+    centralizarLinha(origem, LARGURA_ORIGEM_CONTA),
+    centralizarLinha(`#${documento.referencia}`, LARGURA_ORIGEM_CONTA),
+    centralizarLinha(`${data} ${hora}`, LARGURA_ORIGEM_CONTA),
     linhaSeparadora(),
   ]
 
@@ -76,7 +79,7 @@ export function montarConta(documento: DocumentoContaImpressao): string[] {
     linhas.push(linhaSeparadora())
   }
 
-  linhas.push(centralizarLinha('Nao e documento fiscal'))
+  linhas.push(centralizarLinha('Nao e documento fiscal', LARGURA_ORIGEM_CONTA))
 
   return linhas
 }

@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react'
 import { FormularioMesa } from '../components/formulario-mesa'
+import { ListaSequenciasMesas } from '../components/lista-sequencias-mesas'
 import { GradeMesas } from '../components/grade-mesas'
 import { FiltrosStatusMesas } from '../components/filtros-status-mesas'
 import { FiltrosHistoricoPedidos } from '../components/filtros-historico-pedidos'
 import { HistoricoPedidosLista } from '../components/historico-pedidos-lista'
 import { PainelMesaPedido } from '../components/painel-mesa-pedido'
 import { ModalTaxaEntregaPadrao } from '../components/modal-taxa-entrega-padrao'
-import { FormularioDelivery } from '../../delivery/components/formulario-delivery'
-import { ListaDeliveries } from '../../delivery/components/lista-deliveries'
 import type { UsePedidosResultado } from '../hooks/use-pedidos'
 import './pedidos.css'
 import '../../delivery/pages/delivery.css'
@@ -21,7 +20,6 @@ export function PedidosPage({
   pedidos,
   permitirAlterarTaxaEntrega = false,
 }: PedidosPageProps) {
-  const [exibirFormDelivery, setExibirFormDelivery] = useState(false)
   const [exibirTaxaPadrao, setExibirTaxaPadrao] = useState(false)
 
   useEffect(() => {
@@ -138,29 +136,6 @@ export function PedidosPage({
                     Taxa entrega
                   </button>
                 ) : null}
-                <button
-                  type="button"
-                  data-testid="botao-pedido-balcao"
-                  onClick={() => void pedidos.abrirPedidoBalcao()}
-                >
-                  Pedido balcao
-                </button>
-                <button
-                  type="button"
-                  className="pedidos-operacao__botao-delivery"
-                  data-testid="botao-pedido-delivery"
-                  onClick={() => {
-                    setExibirFormDelivery(true)
-                    pedidos.limparFeedback()
-                  }}
-                >
-                  <span className="pedidos-operacao__icone-delivery" aria-hidden>
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-                      <path d="M19.15 8.15a1.5 1.5 0 0 0-1.1-.48H15V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v9a1 1 0 0 0 1 1h1.18a2.5 2.5 0 0 0 4.64 0h5.36a2.5 2.5 0 0 0 4.64 0H21a1 1 0 0 0 1-1v-3.17a3 3 0 0 0-.85-2.05l-2-2.03ZM6.5 16.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm10 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2ZM15 9.67h2.67L19.5 11.5H15V9.67Z" />
-                    </svg>
-                  </span>
-                  Delivery
-                </button>
               </div>
             ) : null}
           </header>
@@ -201,6 +176,11 @@ export function PedidosPage({
                     carregando={pedidos.carregando}
                     onCriarIntervalo={pedidos.criarMesasPorIntervalo}
                   />
+                  <ListaSequenciasMesas
+                    mesas={pedidos.mesas}
+                    carregando={pedidos.carregando}
+                    onExcluirSequencia={pedidos.excluirSequenciaMesas}
+                  />
                 </section>
               ) : null}
 
@@ -211,20 +191,6 @@ export function PedidosPage({
                   filtroStatus={pedidos.filtroStatusMesas}
                   onSelecionar={(mesa) => void pedidos.selecionarMesaNoGrid(mesa)}
                 />
-
-                {pedidos.deliveriesAbertos.length > 0 ? (
-                  <section
-                    className="pedidos-operacao__deliveries"
-                    data-testid="lista-deliveries-abertos"
-                  >
-                    <h2 className="pedidos-operacao__deliveries-titulo">Deliveries</h2>
-                    <ListaDeliveries
-                      itens={pedidos.deliveriesAbertos}
-                      pedidoSelecionadoId={pedidos.resumoPedido?.pedido.id ?? null}
-                      onSelecionar={(id) => void pedidos.selecionarDelivery(id)}
-                    />
-                  </section>
-                ) : null}
               </div>
 
               <FiltrosStatusMesas
@@ -235,27 +201,6 @@ export function PedidosPage({
           )}
         </section>
       </div>
-
-      {exibirFormDelivery ? (
-        <div className="modal-pagamento" data-testid="modal-novo-delivery">
-          <div
-            className="modal-pagamento__backdrop"
-            onClick={() => setExibirFormDelivery(false)}
-          />
-          <div className="modal-pagamento__conteudo" role="dialog" aria-modal="true">
-            <FormularioDelivery
-              carregando={pedidos.carregandoPedido}
-              taxaPadraoCentavos={pedidos.taxaEntregaPadraoCentavos}
-              clientes={pedidos.clientes}
-              onCriar={async (entrada) => {
-                const ok = await pedidos.criarPedidoDelivery(entrada)
-                if (ok) setExibirFormDelivery(false)
-              }}
-              onCancelar={() => setExibirFormDelivery(false)}
-            />
-          </div>
-        </div>
-      ) : null}
 
       {exibirTaxaPadrao ? (
         <ModalTaxaEntregaPadrao

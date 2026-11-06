@@ -6,6 +6,9 @@ import { formatarMoeda } from '@shared/utils/moeda'
  * (fonte normal, sem modo condensado) e de 48 colunas — ver "Table 1 -
  * Characters Per Line" do manual da impressora. Usar menos que isso deixa
  * uma faixa em branco do lado direito do cupom.
+ *
+ * Corpo da conta/comanda usa altura dupla (sem largura dupla), entao
+ * continua em 48 cols. Origem/títulos com largura dupla usam ~24 cols.
  */
 export const LARGURA_CUPOM = 48
 
@@ -187,8 +190,12 @@ export function rotuloOrigemPedido(
   }
 
   if (tipoPedido === 'BALCAO') {
-    return 'Balcao'
+    return 'BALCAO'
   }
 
-  return 'Delivery'
+  if (tipoPedido === 'DELIVERY') {
+    return 'DELIVERY'
+  }
+
+  return 'MESA'
 }

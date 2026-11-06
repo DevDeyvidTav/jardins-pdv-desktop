@@ -8,7 +8,7 @@ import type {
   Pedido,
   ResumoPedido,
 } from '@shared/types/pedido'
-import { FILTRO_STATUS_HISTORICO_PEDIDO } from '@shared/types/pedido'
+import { FILTRO_STATUS_HISTORICO_PEDIDO } from '@shared/types/filtro-historico-pedido'
 import type { ProdutoComCategoria } from '@shared/types/produto'
 import type { CategoriaProduto } from '@shared/types/categoria-produto'
 import type { Cliente } from '@shared/types/cliente'
@@ -18,7 +18,7 @@ import type {
   PedidoDivisaoMovimentacao,
 } from '@shared/types/divisao-conta'
 import type { SessaoCaixa } from '@shared/types/sessao-caixa'
-import { STATUS_MESA } from '@shared/types/mesa'
+import { STATUS_MESA, TIPO_USO_MESA, type TipoUsoMesa } from '@shared/types/mesa'
 import {
   FILTROS_STATUS_MESA,
   type FiltroStatusMesa,
@@ -47,7 +47,16 @@ export interface UsePedidosResultado {
   filtroHistoricoFormaPagamento: FormaPagamento | ''
   erro: string | null
   sucesso: string | null
-  criarMesasPorIntervalo: (numeroInicial: number, numeroFinal: number) => Promise<boolean>
+  criarMesasPorIntervalo: (
+    numeroInicial: number,
+    numeroFinal: number,
+    tipoUso?: TipoUsoMesa,
+  ) => Promise<boolean>
+  excluirSequenciaMesas: (
+    numeroInicial: number,
+    numeroFinal: number,
+    tipoUso: TipoUsoMesa,
+  ) => Promise<boolean>
   abrirPedidoMesa: (mesaId: string) => Promise<boolean>
   abrirPedidoBalcao: () => Promise<boolean>
   criarPedidoDelivery: (entrada: CriarPedidoDeliveryEntrada) => Promise<boolean>
@@ -202,9 +211,12 @@ export function usePedidos(): UsePedidosResultado {
   }, [carregarDados])
 
   useEffect(() => {
-    return window.pdv.sync.onCatalogoAtualizado(() => {
+    const cancelar = window.pdv?.sync?.onCatalogoAtualizado(() => {
       void carregarDados()
     })
+    return () => {
+      cancelar?.()
+    }
   }, [carregarDados])
 
   useEffect(() => {
@@ -274,7 +286,11 @@ export function usePedidos(): UsePedidosResultado {
   }, [carregarContextoPedidoMesa])
 
   const criarMesasPorIntervalo = useCallback(
-    async (numeroInicial: number, numeroFinal: number): Promise<boolean> => {
+      async (
+      numeroInicial: number,
+      numeroFinal: number,
+      tipoUso: TipoUsoMesa = TIPO_USO_MESA.COMUM,
+    ): Promise<boolean> => {
       setErro(null)
       setSucesso(null)
 
@@ -282,14 +298,20 @@ export function usePedidos(): UsePedidosResultado {
         const mesasCriadas = await window.pdv.mesas.criarMesasPorIntervalo({
           numeroInicial,
           numeroFinal,
+          tipoUso,
         })
         await carregarDados()
+        const rotulo =
+          tipoUso === TIPO_USO_MESA.BALCAO
+            ? 'balcao'
+            : tipoUso === TIPO_USO_MESA.DELIVERY
+              ? 'delivery'
+              : 'mesa'
         setSucesso(
           mesasCriadas.length > 0
-            ? `${mesasCriadas.length} mesa(s) criada(s) com sucesso.`
-            : 'Nenhuma mesa nova foi criada. Os numeros informados ja existem.',
+            ? `${mesasCriadas.length} ${rotulo}(s) criado(s) com sucesso.`
+            : 'Nenhuma posicao nova foi criada. Os numeros informados ja existem.',
         )
-        setExibirCadastroMesas(false)
         return true
       } catch (causa) {
         setErro(extrairMensagemErro(causa))
@@ -297,6 +319,45 @@ export function usePedidos(): UsePedidosResultado {
       }
     },
     [carregarDados],
+  )
+
+  const excluirSequenciaMesas = useCallback(
+    async (
+      numeroInicial: number,
+      numeroFinal: number,
+      tipoUso: TipoUsoMesa,
+    ): Promise<boolean> => {
+      setErro(null)
+      setSucesso(null)
+
+      try {
+        const resultado = await window.pdv.mesas.excluirMesasPorIntervalo({
+          numeroInicial,
+          numeroFinal,
+          tipoUso,
+        })
+        await carregarDados()
+        if (
+          mesaSelecionada &&
+          mesaSelecionada.numero >= numeroInicial &&
+          mesaSelecionada.numero <= numeroFinal &&
+          (mesaSelecionada.tipoUso ?? TIPO_USO_MESA.COMUM) === tipoUso
+        ) {
+          setMesaSelecionada(null)
+          setResumoPedido(null)
+        }
+        setSucesso(
+          resultado.excluidas === 1
+            ? '1 posicao apagada com sucesso.'
+            : `${resultado.excluidas} posicoes apagadas com sucesso.`,
+        )
+        return true
+      } catch (causa) {
+        setErro(extrairMensagemErro(causa))
+        return false
+      }
+    },
+    [carregarDados, mesaSelecionada],
   )
 
   const abrirPedidoMesa = useCallback(
@@ -316,7 +377,13 @@ export function usePedidos(): UsePedidosResultado {
         await carregarDados()
         await atualizarResumo(pedido.id)
         setExibirFormularioItem(false)
-        setSucesso('Pedido de mesa aberto.')
+        setSucesso(
+          pedido.tipo === 'BALCAO'
+            ? 'Pedido de balcao aberto.'
+            : pedido.tipo === 'DELIVERY'
+              ? 'Pedido delivery aberto.'
+              : 'Pedido de mesa aberto.',
+        )
         return true
       } catch (causa) {
         setErro(extrairMensagemErro(causa))
@@ -1036,6 +1103,7 @@ export function usePedidos(): UsePedidosResultado {
     erro,
     sucesso,
     criarMesasPorIntervalo,
+    excluirSequenciaMesas,
     abrirPedidoMesa,
     abrirPedidoBalcao,
     criarPedidoDelivery,

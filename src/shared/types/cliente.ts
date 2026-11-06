@@ -41,9 +41,15 @@ export interface InativarClienteEntrada {
   clienteId: string
 }
 
+export interface ExcluirClienteEntrada {
+  clienteId: string
+}
+
 export interface ReativarClienteEntrada {
   clienteId: string
 }
+
+export type { ResultadoRemocaoCatalogo } from './produto'
 
 export interface VincularClientePedidoEntrada {
   pedidoId: string

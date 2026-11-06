@@ -102,7 +102,7 @@ describe('montarConta', () => {
     const linhaItem = linhas.find((linha) => linha.includes('Pizza Grande'))
 
     expect(linhaItem).toContain('R$ 59,90')
-    expect(linhas.join('\n')).toContain('Calabresa / Frango c/ Catupiry')
+    expect(linhas.join('\n')).toMatch(/Calabresa\s*\/\s*Frango/)
     expect(linhas.join('\n')).toContain('Queijos')
     expect(linhas.find((linha) => linha.includes('Calabresa'))).not.toContain('R$ 59,90')
   })

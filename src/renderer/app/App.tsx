@@ -1,15 +1,11 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { LogoMarca } from '../componentes/logo-marca'
 import '../componentes/logo-marca.css'
 import { AberturaCaixaPage } from '../modules/caixa/pages/abertura-caixa.page'
 import { CaixaAtualPage } from '../modules/caixa/pages/caixa-atual.page'
 import { FechamentoCaixaPage } from '../modules/caixa/pages/fechamento-caixa.page'
 import { PosFechamentoCaixaPage } from '../modules/caixa/pages/pos-fechamento-caixa.page'
-import { CardapioPage } from '../modules/produtos/pages/cardapio.page'
-import { PedidosPage } from '../modules/pedidos/pages/pedidos.page'
 import { ModalEmissaoNfce } from '../modules/fiscal/components/modal-emissao-nfce'
-import { ClientesPage } from '../modules/clientes/pages/clientes.page'
-import { ConfiguracoesPage } from '../modules/configuracoes/pages/configuracoes.page'
 import { TelaLoginOperador } from '../modules/configuracoes/pages/tela-login-operador'
 import { ModalAtualizacao } from '../modules/configuracoes/components/modal-atualizacao'
 import { useOperador } from '../modules/configuracoes/hooks/use-operador'
@@ -26,6 +22,21 @@ import '../modules/pedidos/pages/pedidos.css'
 import '../modules/pizzas/pages/pizzas.css'
 import '../modules/clientes/pages/clientes.css'
 import '../modules/configuracoes/pages/configuracoes.css'
+
+const CardapioPage = lazy(() =>
+  import('../modules/produtos/pages/cardapio.page').then((m) => ({ default: m.CardapioPage })),
+)
+const PedidosPage = lazy(() =>
+  import('../modules/pedidos/pages/pedidos.page').then((m) => ({ default: m.PedidosPage })),
+)
+const ClientesPage = lazy(() =>
+  import('../modules/clientes/pages/clientes.page').then((m) => ({ default: m.ClientesPage })),
+)
+const ConfiguracoesPage = lazy(() =>
+  import('../modules/configuracoes/pages/configuracoes.page').then((m) => ({
+    default: m.ConfiguracoesPage,
+  })),
+)
 
 type SecaoApp = 'caixa' | 'produtos' | 'pedidos' | 'clientes' | 'configuracoes'
 
@@ -91,7 +102,11 @@ function NavegacaoPrincipal({
   )
 }
 
-function FluxoCaixa({ operadorAtivo }: { operadorAtivo: import('@shared/types/operador').OperadorConfig | null }) {
+function FluxoCaixa({
+  operadorAtivo,
+}: {
+  operadorAtivo: import('@shared/types/operador').OperadorConfig | null
+}) {
   const caixa = useCaixa(operadorAtivo)
 
   if (caixa.carregando) {
@@ -121,32 +136,30 @@ function FluxoCaixa({ operadorAtivo }: { operadorAtivo: import('@shared/types/op
   return <CaixaAtualPage caixa={caixa} />
 }
 
-export function App() {
+function CarregandoSecao() {
+  return (
+    <main className="app-carregando" data-testid="app-carregando-secao">
+      <p>Carregando...</p>
+    </main>
+  )
+}
+
+function AppAutenticado({ operador }: { operador: UseOperadorResultado }) {
   const [secaoAtiva, setSecaoAtiva] = useState<SecaoApp>('caixa')
-  const operador = useOperador()
   const produtos = useProdutos()
   const pizzas = usePizzas()
   const pedidos = usePedidos()
   const clientes = useClientes()
-  const operadorAtivo = operador.autenticado ? operador.operador : null
   const podeConfigurar = operador.temPermissao(PERMISSAO_PDV.CONFIGURACOES)
   const podeEditarFiscal = operador.temPermissao(PERMISSAO_PDV.FISCAL_PRODUTO)
   const podeEditarCatalogoPizza = operador.temPermissao(PERMISSAO_PDV.CATALOGO_PIZZA)
   const podeAlterarTaxaEntrega = operador.temPermissao(PERMISSAO_PDV.TAXA_ENTREGA_PADRAO)
 
   useEffect(() => {
-    if (!operador.autenticado) {
-      return
-    }
-
     if (secaoAtiva === 'configuracoes' && !podeConfigurar) {
       setSecaoAtiva('caixa')
     }
-  }, [operador.autenticado, podeConfigurar, secaoAtiva])
-
-  if (!operador.autenticado) {
-    return <TelaLoginOperador operador={operador} />
-  }
+  }, [podeConfigurar, secaoAtiva])
 
   return (
     <>
@@ -155,25 +168,27 @@ export function App() {
         onMudarSecao={setSecaoAtiva}
         operador={operador}
       />
-      {secaoAtiva === 'produtos' ? (
-        <CardapioPage
-          produtos={produtos}
-          pizzas={pizzas}
-          permitirFiscal={podeEditarFiscal}
-          permitirCatalogoPizza={podeEditarCatalogoPizza}
-        />
-      ) : secaoAtiva === 'pedidos' ? (
-        <PedidosPage
-          pedidos={pedidos}
-          permitirAlterarTaxaEntrega={podeAlterarTaxaEntrega}
-        />
-      ) : secaoAtiva === 'clientes' ? (
-        <ClientesPage clientes={clientes} />
-      ) : secaoAtiva === 'configuracoes' && podeConfigurar ? (
-        <ConfiguracoesPage operador={operador} />
-      ) : (
-        <FluxoCaixa operadorAtivo={operadorAtivo} />
-      )}
+      <Suspense fallback={<CarregandoSecao />}>
+        {secaoAtiva === 'produtos' ? (
+          <CardapioPage
+            produtos={produtos}
+            pizzas={pizzas}
+            permitirFiscal={podeEditarFiscal}
+            permitirCatalogoPizza={podeEditarCatalogoPizza}
+          />
+        ) : secaoAtiva === 'pedidos' ? (
+          <PedidosPage
+            pedidos={pedidos}
+            permitirAlterarTaxaEntrega={podeAlterarTaxaEntrega}
+          />
+        ) : secaoAtiva === 'clientes' ? (
+          <ClientesPage clientes={clientes} />
+        ) : secaoAtiva === 'configuracoes' && podeConfigurar ? (
+          <ConfiguracoesPage operador={operador} />
+        ) : (
+          <FluxoCaixa operadorAtivo={operador.operador} />
+        )}
+      </Suspense>
       {pedidos.emissaoNfcePedidoId ? (
         <ModalEmissaoNfce
           pedidoId={pedidos.emissaoNfcePedidoId}
@@ -183,4 +198,14 @@ export function App() {
       <ModalAtualizacao />
     </>
   )
+}
+
+export function App() {
+  const operador = useOperador()
+
+  if (!operador.autenticado) {
+    return <TelaLoginOperador operador={operador} />
+  }
+
+  return <AppAutenticado operador={operador} />
 }

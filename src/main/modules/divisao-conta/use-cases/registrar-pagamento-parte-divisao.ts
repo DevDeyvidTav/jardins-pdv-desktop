@@ -360,7 +360,7 @@ export function criarRegistrarPagamentoParteDivisao(
         }
 
         repositorioPedido.finalizar(pedido.id)
-        if (pedido.tipo === TIPO_PEDIDO.MESA && pedido.mesaId) {
+        if (pedido.mesaId) {
           const mesaAntes = repositorioMesa.buscarPorId(pedido.mesaId)
           const encerrado = encerrarAgrupamentoAtivoNaConexao(conexao, {
             pedidoId: pedido.id,

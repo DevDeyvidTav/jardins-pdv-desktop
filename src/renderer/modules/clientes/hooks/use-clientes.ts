@@ -26,6 +26,7 @@ export interface UseClientesResultado {
     liberaTalao: boolean
   }) => Promise<boolean>
   inativarCliente: () => Promise<boolean>
+  excluirCliente: () => Promise<boolean>
   reativarCliente: () => Promise<boolean>
   selecionarCliente: (cliente: Cliente | null) => Promise<void>
   registrarBaixa: (entrada: {
@@ -192,6 +193,35 @@ export function useClientes(): UseClientesResultado {
     }
   }, [carregarDados, clienteSelecionado])
 
+  const excluirCliente = useCallback(async (): Promise<boolean> => {
+    if (!clienteSelecionado) return false
+    setErro(null)
+    setSucesso(null)
+    try {
+      const resultado = await window.pdv.clientes.excluir({
+        clienteId: clienteSelecionado.id,
+      })
+      await carregarDados()
+      if (resultado.modo === 'EXCLUIDO') {
+        setClienteSelecionado(null)
+        setConta(null)
+        setSucesso('Cliente excluido.')
+      } else {
+        const atualizado = await window.pdv.clientes.obter({
+          clienteId: clienteSelecionado.id,
+        })
+        setClienteSelecionado(atualizado)
+        setSucesso(
+          'Cliente inativado: ja possui pedido ou historico de talao e nao pode ser removido.',
+        )
+      }
+      return true
+    } catch (causa) {
+      setErro(extrairMensagemErro(causa))
+      return false
+    }
+  }, [carregarDados, clienteSelecionado])
+
   const reativarCliente = useCallback(async (): Promise<boolean> => {
     if (!clienteSelecionado) return false
     setErro(null)
@@ -268,6 +298,7 @@ export function useClientes(): UseClientesResultado {
     criarCliente,
     atualizarCliente,
     inativarCliente,
+    excluirCliente,
     reativarCliente,
     selecionarCliente,
     registrarBaixa,

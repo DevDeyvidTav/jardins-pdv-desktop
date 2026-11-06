@@ -7,11 +7,21 @@ export const STATUS_MESA = {
 
 export type StatusMesa = (typeof STATUS_MESA)[keyof typeof STATUS_MESA]
 
+/** Uso operacional da “mesa” no grid — balcão/delivery não agrupam nem transferem. */
+export const TIPO_USO_MESA = {
+  COMUM: 'COMUM',
+  BALCAO: 'BALCAO',
+  DELIVERY: 'DELIVERY',
+} as const
+
+export type TipoUsoMesa = (typeof TIPO_USO_MESA)[keyof typeof TIPO_USO_MESA]
+
 export interface Mesa {
   id: string
   numero: number
   nome: string
   status: StatusMesa
+  tipoUso: TipoUsoMesa
   ativo: boolean
   criadoEm: string
   atualizadoEm: string
@@ -20,16 +30,36 @@ export interface Mesa {
 export interface CriarMesasPorIntervaloEntrada {
   numeroInicial: number
   numeroFinal: number
+  tipoUso?: TipoUsoMesa
 }
 
 export interface AtualizarMesaEntrada {
   mesaId: string
   numero?: number
   nome?: string
+  tipoUso?: TipoUsoMesa
 }
 
 export interface InativarMesaEntrada {
   mesaId: string
+}
+
+export interface ExcluirMesasPorIntervaloEntrada {
+  numeroInicial: number
+  numeroFinal: number
+  tipoUso: TipoUsoMesa
+}
+
+export interface ExcluirMesasPorIntervaloResultado {
+  excluidas: number
+}
+
+export interface SequenciaMesas {
+  tipoUso: TipoUsoMesa
+  numeroInicial: number
+  numeroFinal: number
+  quantidade: number
+  mesaIds: string[]
 }
 
 export const STATUS_AGRUPAMENTO_MESA = {

@@ -266,11 +266,17 @@ export function ClientesPage({ clientes }: ClientesPageProps) {
               {selecionado?.ativo ? (
                 <button
                   type="button"
-                  className="clientes__botao-secundario"
-                  data-testid="botao-inativar-cliente"
-                  onClick={() => void clientes.inativarCliente()}
+                  className="clientes__botao-excluir"
+                  data-testid="botao-excluir-cliente"
+                  onClick={() => {
+                    const ok = window.confirm(
+                      `Excluir o cliente "${selecionado.nome}"? Se ja tiver pedido ou talao, ele sera apenas inativado.`,
+                    )
+                    if (!ok) return
+                    void clientes.excluirCliente()
+                  }}
                 >
-                  Inativar
+                  Excluir
                 </button>
               ) : null}
               {selecionado && !selecionado.ativo ? (
@@ -394,7 +400,7 @@ export function ClientesPage({ clientes }: ClientesPageProps) {
                       </select>
                     </label>
                     <label>
-                      Valor (R$)
+                      Valor a abater (R$)
                       <input
                         data-testid="campo-valor-baixa-talao"
                         value={valorBaixa}

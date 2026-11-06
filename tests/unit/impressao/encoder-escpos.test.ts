@@ -9,12 +9,15 @@ import {
 } from '../../../src/main/modules/impressao/infraestrutura/encoder-escpos'
 
 describe('encoder ESC/POS', () => {
-  it('inicia, destaca o setor e finaliza com avanco e corte Bematech', () => {
-    const buffer = codificarCupomEscPos(['          PIZZA', 'Mesa 12'])
+  it('inicia, usa fonte maior no corpo e destaca origem/setor', () => {
+    const buffer = codificarCupomEscPos(['          Mesa 12', '          PIZZA', '1x YAKISOBA'])
 
     expect(buffer[0]).toBe(0x1b)
     expect(buffer[1]).toBe(0x40)
     expect(buffer.includes(Buffer.from([0x1b, 0x74, 0x02]))).toBe(true)
+    expect(buffer.includes(Buffer.from([0x1b, 0x21, 0x38]))).toBe(true)
+    expect(buffer.includes(Buffer.from([0x1b, 0x21, 0x30]))).toBe(true)
+    expect(buffer.includes(Buffer.from([0x1b, 0x21, 0x18]))).toBe(true)
     expect(buffer.includes(Buffer.from('Mesa 12', 'latin1'))).toBe(true)
     expect(buffer.subarray(-7).equals(montarFinalizacaoCupomEscPos())).toBe(true)
   })

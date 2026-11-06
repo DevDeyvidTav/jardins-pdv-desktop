@@ -62,10 +62,9 @@ export function criarCancelarPedido(
         )
       }
 
-      const mesaAntes =
-        pedido.tipo === TIPO_PEDIDO.MESA && pedido.mesaId
-          ? repositorioMesa.buscarPorId(pedido.mesaId)
-          : null
+      const mesaAntes = pedido.mesaId
+        ? repositorioMesa.buscarPorId(pedido.mesaId)
+        : null
 
       const repositorioDivisao = criarPedidoDivisaoContaRepository()
       const repositorioMovimentacaoDivisao = criarPedidoDivisaoMovimentacaoRepository()
@@ -96,35 +95,40 @@ export function criarCancelarPedido(
         entrada.motivoCancelamento,
       )
 
-      if (pedido.tipo === TIPO_PEDIDO.MESA && pedido.mesaId) {
-        const encerrado = encerrarAgrupamentoAtivoNaConexao(conexao, {
-          pedidoId: pedido.id,
-          motivo: MOTIVO_ENCERRAMENTO_AGRUPAMENTO.PEDIDO_CANCELADO,
-          observacao: entrada.motivoCancelamento,
-          liberarMesaPrincipal: true,
-        })
+      if (pedido.mesaId) {
+        const encerrado =
+          pedido.tipo === TIPO_PEDIDO.MESA
+            ? encerrarAgrupamentoAtivoNaConexao(conexao, {
+                pedidoId: pedido.id,
+                motivo: MOTIVO_ENCERRAMENTO_AGRUPAMENTO.PEDIDO_CANCELADO,
+                observacao: entrada.motivoCancelamento,
+                liberarMesaPrincipal: true,
+              })
+            : null
 
         if (!encerrado) {
           atualizarStatusMesaNaConexao(conexao, pedido.mesaId, STATUS_MESA.LIVRE)
         }
 
-        inserirMovimentacaoNaConexao(conexao, {
-          pedidoId: pedido.id,
-          tipo: TIPO_MOVIMENTACAO_MESA.PEDIDO_CANCELADO,
-          mesaOrigemId: pedido.mesaId,
-          mesaAgrupamentoId: pedido.mesaAgrupamentoId,
-          dadosAntes: {
+        if (pedido.tipo === TIPO_PEDIDO.MESA) {
+          inserirMovimentacaoNaConexao(conexao, {
             pedidoId: pedido.id,
-            status: pedido.status,
-            mesa: mesaAntes ? snapshotMesa(mesaAntes) : null,
-          },
-          dadosDepois: {
-            pedidoId: pedido.id,
-            status: STATUS_PEDIDO.CANCELADO,
-            motivoCancelamento: entrada.motivoCancelamento,
-          },
-          motivo: entrada.motivoCancelamento,
-        })
+            tipo: TIPO_MOVIMENTACAO_MESA.PEDIDO_CANCELADO,
+            mesaOrigemId: pedido.mesaId,
+            mesaAgrupamentoId: pedido.mesaAgrupamentoId,
+            dadosAntes: {
+              pedidoId: pedido.id,
+              status: pedido.status,
+              mesa: mesaAntes ? snapshotMesa(mesaAntes) : null,
+            },
+            dadosDepois: {
+              pedidoId: pedido.id,
+              status: STATUS_PEDIDO.CANCELADO,
+              motivoCancelamento: entrada.motivoCancelamento,
+            },
+            motivo: entrada.motivoCancelamento,
+          })
+        }
       }
 
       if (pedido.tipo === TIPO_PEDIDO.DELIVERY) {

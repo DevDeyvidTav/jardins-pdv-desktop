@@ -62,6 +62,44 @@ export function montarFinalizacaoCupomEscPos(): Buffer {
   ])
 }
 
+/** Negrito + altura dupla — corpo da conta/comanda (fonte maior, 48 cols). */
+const ESTILO_CORPO = 0x18
+/** Negrito + altura/largura duplas — origem (BALCAO/DELIVERY/Mesa) e TOTAL. */
+const ESTILO_ORIGEM = 0x38
+/** Altura/largura duplas — setor e títulos. */
+const ESTILO_TITULO = 0x30
+
+function estiloLinhaCupom(linha: string): number {
+  const texto = linha.trim()
+  if (!texto) {
+    return ESTILO_CORPO
+  }
+
+  if (
+    texto === 'BALCAO' ||
+    texto === 'DELIVERY' ||
+    texto === 'MESA' ||
+    /^Mesa\s+\d+$/i.test(texto) ||
+    /^#\d+$/.test(texto) ||
+    /^TOTAL\b/i.test(texto)
+  ) {
+    return ESTILO_ORIGEM
+  }
+
+  if (
+    texto === 'PIZZA' ||
+    texto === 'JAPONESA' ||
+    texto === 'CHINESA' ||
+    texto === 'COZINHA' ||
+    texto === 'CONTA' ||
+    texto === 'COMANDA'
+  ) {
+    return ESTILO_TITULO
+  }
+
+  return ESTILO_CORPO
+}
+
 export function codificarCupomEscPos(linhas: string[]): Buffer {
   const partes: Buffer[] = [
     Buffer.from([ESC, 0x40]),
@@ -70,23 +108,15 @@ export function codificarCupomEscPos(linhas: string[]): Buffer {
   ]
 
   for (const linha of linhas) {
-    const destaqueSetor =
-      linha.trim() === 'PIZZA' ||
-      linha.trim() === 'JAPONESA' ||
-      linha.trim() === 'CHINESA' ||
-      linha.trim() === 'COZINHA' ||
-      linha.trim() === 'CONTA'
+    const estilo = estiloLinhaCupom(linha)
+    const texto =
+      estilo === ESTILO_ORIGEM || estilo === ESTILO_TITULO ? linha.trim() : linha
 
-    if (destaqueSetor) {
-      partes.push(Buffer.from([ESC, 0x21, 0x30]))
-      partes.push(codificarTextoTermica(`${linha.trim()}\n`))
-      partes.push(Buffer.from([ESC, 0x21, 0x00]))
-      continue
-    }
-
-    partes.push(codificarTextoTermica(`${linha}\n`))
+    partes.push(Buffer.from([ESC, 0x21, estilo]))
+    partes.push(codificarTextoTermica(`${texto}\n`))
   }
 
+  partes.push(Buffer.from([ESC, 0x21, 0x00]))
   partes.push(montarFinalizacaoCupomEscPos())
 
   return Buffer.concat(partes)
@@ -181,14 +211,20 @@ export function codificarCupomEscPosComQr(linhas: string[], qr?: string | null):
     if (linha.trim() === '{QR}') {
       const conteudo = qr?.trim()
       if (conteudo) {
+        partes.push(Buffer.from([ESC, 0x21, 0x00]))
         partes.push(montarComandoQrRaster(conteudo))
       }
       continue
     }
 
-    partes.push(codificarTextoTermica(`${linha}\n`))
+    const estilo = estiloLinhaCupom(linha)
+    const texto =
+      estilo === ESTILO_ORIGEM || estilo === ESTILO_TITULO ? linha.trim() : linha
+    partes.push(Buffer.from([ESC, 0x21, estilo]))
+    partes.push(codificarTextoTermica(`${texto}\n`))
   }
 
+  partes.push(Buffer.from([ESC, 0x21, 0x00]))
   partes.push(montarFinalizacaoCupomEscPos())
   return Buffer.concat(partes)
 }

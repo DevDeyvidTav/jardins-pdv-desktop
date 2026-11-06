@@ -78,6 +78,8 @@ const apiPdv: PdvApi = {
     listarMesas: () => ipcRenderer.invoke(CANAIS_IPC.MESAS_LISTAR),
     atualizarMesa: (entrada) => ipcRenderer.invoke(CANAIS_IPC.MESAS_ATUALIZAR, entrada),
     inativarMesa: (entrada) => ipcRenderer.invoke(CANAIS_IPC.MESAS_INATIVAR, entrada),
+    excluirMesasPorIntervalo: (entrada) =>
+      ipcRenderer.invoke(CANAIS_IPC.MESAS_EXCLUIR_INTERVALO, entrada),
     transferirPedido: (entrada) =>
       ipcRenderer.invoke(CANAIS_IPC.MESAS_TRANSFERIR_PEDIDO, entrada),
     agruparPedido: (entrada) =>
@@ -196,6 +198,7 @@ const apiPdv: PdvApi = {
     obter: (entrada) => ipcRenderer.invoke(CANAIS_IPC.CLIENTES_OBTER, entrada),
     atualizar: (entrada) => ipcRenderer.invoke(CANAIS_IPC.CLIENTES_ATUALIZAR, entrada),
     inativar: (entrada) => ipcRenderer.invoke(CANAIS_IPC.CLIENTES_INATIVAR, entrada),
+    excluir: (entrada) => ipcRenderer.invoke(CANAIS_IPC.CLIENTES_EXCLUIR, entrada),
     reativar: (entrada) => ipcRenderer.invoke(CANAIS_IPC.CLIENTES_REATIVAR, entrada),
     vincularPedido: (entrada) =>
       ipcRenderer.invoke(CANAIS_IPC.CLIENTES_VINCULAR_PEDIDO, entrada),

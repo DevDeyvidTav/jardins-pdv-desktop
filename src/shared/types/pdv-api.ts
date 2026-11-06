@@ -40,6 +40,8 @@ import type {
   AtualizarMesaEntrada,
   CriarMesasPorIntervaloEntrada,
   EncerrarAgrupamentoMesaEntrada,
+  ExcluirMesasPorIntervaloEntrada,
+  ExcluirMesasPorIntervaloResultado,
   InativarMesaEntrada,
   ListarHistoricoMesaEntrada,
   ListarHistoricoPedidoMesaEntrada,
@@ -96,10 +98,12 @@ import type {
   AtualizarClienteEntrada,
   Cliente,
   CriarClienteEntrada,
+  ExcluirClienteEntrada,
   InativarClienteEntrada,
   ListarClientesEntrada,
   ObterClienteEntrada,
   ReativarClienteEntrada,
+  ResultadoRemocaoCatalogo as ResultadoRemocaoCliente,
   VincularClientePedidoEntrada,
 } from './cliente'
 import type {
@@ -214,6 +218,9 @@ export interface PdvApi {
     listarMesas: () => Promise<Mesa[]>
     atualizarMesa: (entrada: AtualizarMesaEntrada) => Promise<Mesa>
     inativarMesa: (entrada: InativarMesaEntrada) => Promise<Mesa>
+    excluirMesasPorIntervalo: (
+      entrada: ExcluirMesasPorIntervaloEntrada,
+    ) => Promise<ExcluirMesasPorIntervaloResultado>
     transferirPedido: (
       entrada: TransferirPedidoMesaEntrada,
     ) => Promise<TransferirPedidoMesaResultado>
@@ -331,6 +338,7 @@ export interface PdvApi {
     obter: (entrada: ObterClienteEntrada) => Promise<Cliente>
     atualizar: (entrada: AtualizarClienteEntrada) => Promise<Cliente>
     inativar: (entrada: InativarClienteEntrada) => Promise<Cliente>
+    excluir: (entrada: ExcluirClienteEntrada) => Promise<ResultadoRemocaoCliente>
     reativar: (entrada: ReativarClienteEntrada) => Promise<Cliente>
     vincularPedido: (entrada: VincularClientePedidoEntrada) => Promise<import('./pedido').Pedido>
   }

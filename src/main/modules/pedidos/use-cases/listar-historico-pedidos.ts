@@ -2,7 +2,7 @@ import type {
   ItemHistoricoPedido,
   ListarHistoricoPedidosEntrada,
 } from '@shared/types/pedido'
-import { FILTRO_STATUS_HISTORICO_PEDIDO } from '@shared/types/pedido'
+import { FILTRO_STATUS_HISTORICO_PEDIDO } from '@shared/types/filtro-historico-pedido'
 import type { FormaPagamento } from '@shared/types/pagamento-pedido'
 import {
   criarPedidoRepository,

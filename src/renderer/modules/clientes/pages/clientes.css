@@ -115,6 +115,20 @@
   cursor: pointer;
 }
 
+.clientes__botao-excluir {
+  padding: 0.45rem 0.75rem;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #b91c1c;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.clientes__botao-excluir:hover {
+  background: #fef2f2;
+}
+
 .formulario-cliente,
 .conta-talao,
 .formulario-baixa-talao {

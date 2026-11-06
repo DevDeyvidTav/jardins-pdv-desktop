@@ -21,10 +21,13 @@ export function useAtualizacao() {
 
   useEffect(() => {
     void recarregar()
-    return window.pdv.sistema.onAtualizacaoEvento((dados) => {
+    const cancelar = window.pdv?.sistema?.onAtualizacaoEvento((dados) => {
       setEstado(dados)
       setCarregando(false)
     })
+    return () => {
+      cancelar?.()
+    }
   }, [recarregar])
 
   async function verificar() {

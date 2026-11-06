@@ -5,6 +5,7 @@ import { CODIGOS_ERRO_MESAS, ErroMesas } from './errors/erros-mesas'
 import {
   atualizarMesaSchema,
   criarMesasPorIntervaloSchema,
+  excluirMesasPorIntervaloSchema,
   inativarMesaSchema,
 } from './schemas/mesa.schema'
 import {
@@ -16,6 +17,7 @@ import {
 } from './schemas/mesa-agrupamento.schema'
 import { atualizarMesa } from './use-cases/atualizar-mesa'
 import { criarMesasPorIntervalo } from './use-cases/criar-mesas-por-intervalo'
+import { excluirMesasPorIntervalo } from './use-cases/excluir-mesas-por-intervalo'
 import { inativarMesa } from './use-cases/inativar-mesa'
 import { listarMesas } from './use-cases/listar-mesas'
 import {
@@ -65,6 +67,16 @@ export function registrarHandlersMesas(): void {
   ipcMain.handle(CANAIS_IPC.MESAS_INATIVAR, (_evento, entradaDesconhecida) => {
     try {
       return inativarMesa(inativarMesaSchema.parse(entradaDesconhecida))
+    } catch (erro) {
+      tratarErroMesas(erro)
+    }
+  })
+
+  ipcMain.handle(CANAIS_IPC.MESAS_EXCLUIR_INTERVALO, (_evento, entradaDesconhecida) => {
+    try {
+      return excluirMesasPorIntervalo(
+        excluirMesasPorIntervaloSchema.parse(entradaDesconhecida),
+      )
     } catch (erro) {
       tratarErroMesas(erro)
     }

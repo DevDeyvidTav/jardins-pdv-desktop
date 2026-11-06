@@ -287,6 +287,87 @@ function IconeCaneta() {
   )
 }
 
+function QuantidadeItemEditavel({
+  itemId,
+  quantidade,
+  onAlterar,
+}: {
+  itemId: string
+  quantidade: number
+  onAlterar: (itemId: string, quantidade: number) => Promise<boolean>
+}) {
+  const [valor, setValor] = useState(String(quantidade))
+  const [salvando, setSalvando] = useState(false)
+
+  useEffect(() => {
+    setValor(String(quantidade))
+  }, [quantidade])
+
+  const aplicar = async (bruto: string) => {
+    const numero = Number(bruto)
+    if (!Number.isInteger(numero) || numero <= 0) {
+      setValor(String(quantidade))
+      return
+    }
+    if (numero === quantidade) {
+      setValor(String(quantidade))
+      return
+    }
+    setSalvando(true)
+    try {
+      const ok = await onAlterar(itemId, numero)
+      if (!ok) {
+        setValor(String(quantidade))
+      }
+    } finally {
+      setSalvando(false)
+    }
+  }
+
+  return (
+    <div className="lista-itens-pedido__quantidade">
+      <button
+        type="button"
+        data-testid="botao-diminuir-quantidade"
+        onClick={() => void onAlterar(itemId, quantidade - 1)}
+        disabled={salvando || quantidade <= 1}
+        aria-label="Diminuir quantidade"
+      >
+        -
+      </button>
+      <input
+        className="lista-itens-pedido__quantidade-input"
+        data-testid="item-pedido-quantidade"
+        type="number"
+        inputMode="numeric"
+        min={1}
+        step={1}
+        value={valor}
+        title="Digite a quantidade (inteiro maior que zero)"
+        aria-label="Quantidade do item — digite para editar"
+        disabled={salvando}
+        onChange={(evento) => setValor(evento.target.value)}
+        onBlur={() => void aplicar(valor)}
+        onKeyDown={(evento: KeyboardEvent<HTMLInputElement>) => {
+          if (evento.key === 'Enter') {
+            evento.preventDefault()
+            evento.currentTarget.blur()
+          }
+        }}
+      />
+      <button
+        type="button"
+        data-testid="botao-aumentar-quantidade"
+        onClick={() => void onAlterar(itemId, quantidade + 1)}
+        disabled={salvando}
+        aria-label="Aumentar quantidade"
+      >
+        +
+      </button>
+    </div>
+  )
+}
+
 interface ListaItensPedidoProps {
   itens: PedidoItem[]
   onAlterarQuantidade: (itemId: string, quantidade: number) => Promise<boolean>
@@ -428,34 +509,18 @@ export function ListaItensPedido({
             const ehPizza = item.tipo === TIPO_PEDIDO_ITEM.PIZZA
             const linhasPizza = expandirLinhasSaborPizza(item)
             const enviadoCozinha = itemPedidoEnviadoCozinha(item)
-            const quantidade = (
-              <div className="lista-itens-pedido__quantidade">
-                {editavel && !ehPizza && !enviadoCozinha ? (
-                  <>
-                    <button
-                      type="button"
-                      data-testid="botao-diminuir-quantidade"
-                      onClick={() => void onAlterarQuantidade(item.id, item.quantidade - 1)}
-                      disabled={item.quantidade <= 1}
-                      aria-label="Diminuir quantidade"
-                    >
-                      -
-                    </button>
-                    <span data-testid="item-pedido-quantidade">{item.quantidade}</span>
-                    <button
-                      type="button"
-                      data-testid="botao-aumentar-quantidade"
-                      onClick={() => void onAlterarQuantidade(item.id, item.quantidade + 1)}
-                      aria-label="Aumentar quantidade"
-                    >
-                      +
-                    </button>
-                  </>
-                ) : (
+            const quantidade =
+              editavel && !ehPizza && !enviadoCozinha ? (
+                <QuantidadeItemEditavel
+                  itemId={item.id}
+                  quantidade={item.quantidade}
+                  onAlterar={onAlterarQuantidade}
+                />
+              ) : (
+                <div className="lista-itens-pedido__quantidade">
                   <span data-testid="item-pedido-quantidade">{item.quantidade}</span>
-                )}
-              </div>
-            )
+                </div>
+              )
             const acao = (
               <div className="lista-itens-pedido__acao">
                 {editavel ? (
@@ -610,30 +675,17 @@ export function ListaItensPedido({
               <span data-testid="item-pedido-preco-unitario">
                 {linhasPizza ? '' : formatarMoeda(item.precoUnitarioCentavos)}
               </span>
-              <div className="lista-itens-pedido__quantidade">
-                {editavel && !ehPizza && !enviadoCozinha ? (
-                  <>
-                    <button
-                      type="button"
-                      data-testid="botao-diminuir-quantidade"
-                      onClick={() => void onAlterarQuantidade(item.id, item.quantidade - 1)}
-                      disabled={item.quantidade <= 1}
-                    >
-                      -
-                    </button>
-                    <span data-testid="item-pedido-quantidade">{item.quantidade}</span>
-                    <button
-                      type="button"
-                      data-testid="botao-aumentar-quantidade"
-                      onClick={() => void onAlterarQuantidade(item.id, item.quantidade + 1)}
-                    >
-                      +
-                    </button>
-                  </>
-                ) : (
+              {editavel && !ehPizza && !enviadoCozinha ? (
+                <QuantidadeItemEditavel
+                  itemId={item.id}
+                  quantidade={item.quantidade}
+                  onAlterar={onAlterarQuantidade}
+                />
+              ) : (
+                <div className="lista-itens-pedido__quantidade">
                   <span data-testid="item-pedido-quantidade">{item.quantidade}</span>
-                )}
-              </div>
+                </div>
+              )}
               <span data-testid="item-pedido-total">{formatarMoeda(item.totalCentavos)}</span>
               {editavel ? (
                 <button

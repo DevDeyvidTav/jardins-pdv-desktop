@@ -13,6 +13,7 @@ describe('mesa.schema', () => {
     ).toEqual({
       numeroInicial: 1,
       numeroFinal: 30,
+      tipoUso: 'COMUM',
     })
   })
 

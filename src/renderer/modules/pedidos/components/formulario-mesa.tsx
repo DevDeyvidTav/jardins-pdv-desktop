@@ -1,13 +1,19 @@
 import { useState, type FormEvent } from 'react'
+import { TIPO_USO_MESA, type TipoUsoMesa } from '@shared/types/mesa'
 
 interface FormularioMesaProps {
   carregando: boolean
-  onCriarIntervalo: (numeroInicial: number, numeroFinal: number) => Promise<boolean>
+  onCriarIntervalo: (
+    numeroInicial: number,
+    numeroFinal: number,
+    tipoUso: TipoUsoMesa,
+  ) => Promise<boolean>
 }
 
 export function FormularioMesa({ carregando, onCriarIntervalo }: FormularioMesaProps) {
   const [numeroInicial, setNumeroInicial] = useState('1')
   const [numeroFinal, setNumeroFinal] = useState('30')
+  const [tipoUso, setTipoUso] = useState<TipoUsoMesa>(TIPO_USO_MESA.COMUM)
   const [erroValidacao, setErroValidacao] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
 
@@ -36,7 +42,7 @@ export function FormularioMesa({ carregando, onCriarIntervalo }: FormularioMesaP
     setEnviando(true)
 
     try {
-      await onCriarIntervalo(inicio, fim)
+      await onCriarIntervalo(inicio, fim, tipoUso)
     } finally {
       setEnviando(false)
     }
@@ -50,6 +56,13 @@ export function FormularioMesa({ carregando, onCriarIntervalo }: FormularioMesaP
     inicioPreview >= 1 &&
     fimPreview >= inicioPreview
 
+  const rotuloTipo =
+    tipoUso === TIPO_USO_MESA.BALCAO
+      ? 'balcao'
+      : tipoUso === TIPO_USO_MESA.DELIVERY
+        ? 'delivery'
+        : 'mesa comum'
+
   return (
     <form
       className="formulario-mesa"
@@ -57,7 +70,8 @@ export function FormularioMesa({ carregando, onCriarIntervalo }: FormularioMesaP
       onSubmit={(evento) => void handleSubmit(evento)}
     >
       <p className="formulario-mesa__descricao">
-        Crie mesas em lote informando apenas o intervalo de numeros.
+        Crie mesas em lote pelo intervalo de numeros e escolha se a sequencia e mesa comum,
+        balcao ou delivery.
       </p>
 
       <div className="formulario-mesa__intervalo">
@@ -88,10 +102,47 @@ export function FormularioMesa({ carregando, onCriarIntervalo }: FormularioMesaP
         </label>
       </div>
 
+      <fieldset className="formulario-mesa__tipo" data-testid="campo-tipo-uso-mesa">
+        <legend>Tipo da sequencia</legend>
+        <label>
+          <input
+            type="radio"
+            name="tipo-uso-mesa"
+            value={TIPO_USO_MESA.COMUM}
+            checked={tipoUso === TIPO_USO_MESA.COMUM}
+            onChange={() => setTipoUso(TIPO_USO_MESA.COMUM)}
+            disabled={carregando || enviando}
+          />
+          Mesa comum
+        </label>
+        <label>
+          <input
+            type="radio"
+            name="tipo-uso-mesa"
+            value={TIPO_USO_MESA.BALCAO}
+            checked={tipoUso === TIPO_USO_MESA.BALCAO}
+            onChange={() => setTipoUso(TIPO_USO_MESA.BALCAO)}
+            disabled={carregando || enviando}
+          />
+          Balcao
+        </label>
+        <label>
+          <input
+            type="radio"
+            name="tipo-uso-mesa"
+            value={TIPO_USO_MESA.DELIVERY}
+            checked={tipoUso === TIPO_USO_MESA.DELIVERY}
+            onChange={() => setTipoUso(TIPO_USO_MESA.DELIVERY)}
+            disabled={carregando || enviando}
+          />
+          Delivery
+        </label>
+      </fieldset>
+
       {intervaloValido ? (
         <p className="formulario-mesa__preview" data-testid="preview-intervalo-mesas">
-          Serao criadas as mesas de {inicioPreview} a {fimPreview} (
-          {fimPreview - inicioPreview + 1} mesas).
+          Serao criadas as posicoes de {inicioPreview} a {fimPreview} (
+          {fimPreview - inicioPreview + 1}) como {rotuloTipo}.
         </p>
       ) : null}
 

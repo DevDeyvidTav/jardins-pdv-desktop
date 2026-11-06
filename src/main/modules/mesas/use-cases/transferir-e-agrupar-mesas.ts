@@ -12,8 +12,10 @@ import {
   MOTIVO_ENCERRAMENTO_AGRUPAMENTO,
   STATUS_MESA,
   TIPO_MOVIMENTACAO_MESA,
+  TIPO_USO_MESA,
   type AgruparMesasPedidoEntrada,
   type AgruparMesasPedidoResultado,
+  type Mesa,
   type TransferirPedidoMesaEntrada,
   type TransferirPedidoMesaResultado,
 } from '@shared/types/mesa'
@@ -124,6 +126,20 @@ function mesclarPedidoSecundarioNaConexao(
   registrarEventoPedidoSync(pedidoSecundario.id, OPERACAO_SYNC.CANCEL, conexao)
 }
 
+function garantirMesaComumParaMovimentacao(mesa: Mesa, acao: 'transferir' | 'agrupar'): void {
+  if (mesa.tipoUso === TIPO_USO_MESA.COMUM) {
+    return
+  }
+
+  const rotulo = mesa.tipoUso === TIPO_USO_MESA.BALCAO ? 'balcão' : 'delivery'
+  throw new ErroMesas(
+    CODIGOS_ERRO_MESAS.MESA_ESPECIAL_SEM_MOVIMENTACAO,
+    acao === 'transferir'
+      ? `Mesas de ${rotulo} nao podem ser transferidas.`
+      : `Mesas de ${rotulo} nao podem ser agrupadas.`,
+  )
+}
+
 function garantirCaixaAberto(repositorioSessao: SessaoCaixaRepository): void {
   const sessao = repositorioSessao.buscarSessaoAberta()
   if (!sessao || sessao.status !== STATUS_SESSAO_CAIXA.ABERTO) {
@@ -196,6 +212,8 @@ export function criarTransferirPedidoMesa(
       )
     }
 
+    garantirMesaComumParaMovimentacao(mesaOrigem, 'transferir')
+
     if (mesaOrigem.status !== STATUS_MESA.OCUPADA) {
       throw new ErroMesas(
         CODIGOS_ERRO_MESAS.MESA_ORIGEM_NAO_OCUPADA,
@@ -210,6 +228,8 @@ export function criarTransferirPedidoMesa(
         'Mesa destino nao encontrada.',
       )
     }
+
+    garantirMesaComumParaMovimentacao(mesaDestino, 'transferir')
 
     if (!mesaDestino.ativo || mesaDestino.status === STATUS_MESA.INATIVA) {
       throw new ErroMesas(
@@ -410,6 +430,7 @@ export function criarAgruparMesasPedido(
           `Mesa nao encontrada: ${id}.`,
         )
       }
+      garantirMesaComumParaMovimentacao(mesa, 'agrupar')
       return mesa
     })
 

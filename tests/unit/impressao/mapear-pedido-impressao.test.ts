@@ -99,6 +99,7 @@ const mesa: Mesa = {
   numero: 1,
   nome: '1',
   status: 'OCUPADA',
+  tipoUso: 'COMUM',
   ativo: true,
   criadoEm: agora,
   atualizadoEm: agora,

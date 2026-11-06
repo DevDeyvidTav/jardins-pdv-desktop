@@ -1,5 +1,7 @@
-import type { FiltroStatusHistoricoPedido } from '@shared/types/pedido'
-import { FILTRO_STATUS_HISTORICO_PEDIDO } from '@shared/types/pedido'
+import {
+  FILTRO_STATUS_HISTORICO_PEDIDO,
+  type FiltroStatusHistoricoPedido,
+} from '@shared/types/filtro-historico-pedido'
 import { FORMA_PAGAMENTO, type FormaPagamento } from '@shared/types/pagamento-pedido'
 
 interface FiltrosHistoricoPedidosProps {
