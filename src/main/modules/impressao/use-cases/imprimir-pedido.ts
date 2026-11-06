@@ -288,7 +288,10 @@ function enviarDocumento(
   let aviso: string | null = null
 
   try {
-    enviarBuffer(codificarCupomEscPos(linhas), destino)
+    enviarBuffer(
+      codificarCupomEscPos(linhas, tipo === TIPO_DOCUMENTO_IMPRESSAO.CONTA ? 'conta' : 'comanda'),
+      destino,
+    )
     impresso = true
     registrarLog('info', 'impressao_pedido_enviada', {
       operacao: 'impressao.imprimirPedido',

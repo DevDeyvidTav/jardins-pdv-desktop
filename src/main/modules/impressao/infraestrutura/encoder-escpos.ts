@@ -62,12 +62,24 @@ export function montarFinalizacaoCupomEscPos(): Buffer {
   ])
 }
 
-/** Negrito + altura dupla — corpo da conta/comanda (fonte maior, 48 cols). */
+/** Negrito + altura dupla — corpo da comanda (fonte maior, 48 cols). */
 const ESTILO_CORPO = 0x18
+/**
+ * Negrito, altura simples — corpo da conta.
+ * Menor que a altura dupla atual e maior que a fonte condensada antiga.
+ */
+const ESTILO_CORPO_CONTA = 0x08
+/** Negrito + altura dupla — cabeçalho da conta (Jardins, Mesa), sem largura dupla. */
+const ESTILO_CABECALHO_CONTA = 0x18
 /** Negrito + altura/largura duplas — origem (BALCAO/DELIVERY/Mesa) e TOTAL. */
 const ESTILO_ORIGEM = 0x38
 /** Altura/largura duplas — setor e títulos. */
 const ESTILO_TITULO = 0x30
+
+const ALINHAR_ESQUERDA = 0x00
+const ALINHAR_CENTRO = 0x01
+
+export type ModoCupomEscPos = 'conta' | 'comanda'
 
 function estiloLinhaCupom(linha: string): number {
   const texto = linha.trim()
@@ -100,17 +112,48 @@ function estiloLinhaCupom(linha: string): number {
   return ESTILO_CORPO
 }
 
-export function codificarCupomEscPos(linhas: string[]): Buffer {
+function linhaCabecalhoConta(linha: string, noCabecalho: boolean): boolean {
+  const texto = linha.trim()
+  if (!texto) return false
+  if (noCabecalho) return true
+  return texto === 'Nao e documento fiscal'
+}
+
+export function codificarCupomEscPos(
+  linhas: string[],
+  modo: ModoCupomEscPos = 'comanda',
+): Buffer {
   const partes: Buffer[] = [
     Buffer.from([ESC, 0x40]),
     Buffer.from([ESC, 0x74, CODEPAGE_PC850]),
-    Buffer.from([ESC, 0x61, 0x00]),
+    Buffer.from([ESC, 0x61, ALINHAR_ESQUERDA]),
   ]
 
+  let noCabecalho = modo === 'conta'
+  let alinhamento = ALINHAR_ESQUERDA
+
   for (const linha of linhas) {
-    const estilo = estiloLinhaCupom(linha)
+    if (noCabecalho && /^-{3,}$/.test(linha.trim())) {
+      noCabecalho = false
+    }
+
+    const cabecalhoConta = modo === 'conta' && linhaCabecalhoConta(linha, noCabecalho)
+    const estilo = cabecalhoConta
+      ? ESTILO_CABECALHO_CONTA
+      : modo === 'conta'
+        ? ESTILO_CORPO_CONTA
+        : estiloLinhaCupom(linha)
+    const centralizar = cabecalhoConta
+    const proximoAlinhamento = centralizar ? ALINHAR_CENTRO : ALINHAR_ESQUERDA
+    if (proximoAlinhamento !== alinhamento) {
+      partes.push(Buffer.from([ESC, 0x61, proximoAlinhamento]))
+      alinhamento = proximoAlinhamento
+    }
+
     const texto =
-      estilo === ESTILO_ORIGEM || estilo === ESTILO_TITULO ? linha.trim() : linha
+      centralizar || estilo === ESTILO_ORIGEM || estilo === ESTILO_TITULO
+        ? linha.trim()
+        : linha
 
     partes.push(Buffer.from([ESC, 0x21, estilo]))
     partes.push(codificarTextoTermica(`${texto}\n`))

@@ -9,6 +9,20 @@ import {
 } from '../../../src/main/modules/impressao/infraestrutura/encoder-escpos'
 
 describe('encoder ESC/POS', () => {
+  it('na conta usa fonte intermediaria e centraliza Jardins e Mesa', () => {
+    const buffer = codificarCupomEscPos(
+      ['          JARDINS', '          Mesa 19', '----------------', '1 RODIZIO'],
+      'conta',
+    )
+
+    expect(buffer.includes(Buffer.from([0x1b, 0x61, 0x01]))).toBe(true)
+    expect(buffer.includes(Buffer.from([0x1b, 0x21, 0x18]))).toBe(true)
+    expect(buffer.includes(Buffer.from([0x1b, 0x21, 0x08]))).toBe(true)
+    expect(buffer.includes(Buffer.from([0x1b, 0x21, 0x38]))).toBe(false)
+    expect(buffer.includes(Buffer.from('JARDINS', 'latin1'))).toBe(true)
+    expect(buffer.includes(Buffer.from('Mesa 19', 'latin1'))).toBe(true)
+  })
+
   it('inicia, usa fonte maior no corpo e destaca origem/setor', () => {
     const buffer = codificarCupomEscPos(['          Mesa 12', '          PIZZA', '1x YAKISOBA'])
 

@@ -51,7 +51,13 @@ export function criarImprimirAmostra(
     }
 
     try {
-      enviarBuffer(codificarCupomEscPos(linhas), destino)
+      enviarBuffer(
+        codificarCupomEscPos(
+          linhas,
+          entrada.tipo === TIPO_DOCUMENTO_IMPRESSAO.CONTA ? 'conta' : 'comanda',
+        ),
+        destino,
+      )
       impresso = true
       registrarLog('info', 'impressao_amostra_enviada', {
         operacao: 'impressao.imprimirAmostra',
