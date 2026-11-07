@@ -155,6 +155,10 @@ export interface CancelarPedidoEntrada {
   motivoCancelamento: string
 }
 
+export interface ExcluirPedidoEntrada {
+  pedidoId: string
+}
+
 export {
   FILTRO_STATUS_HISTORICO_PEDIDO,
   type FiltroStatusHistoricoPedido,

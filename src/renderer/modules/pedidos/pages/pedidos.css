@@ -62,6 +62,11 @@
   overflow: hidden;
 }
 
+.pedidos-operacao__grade-area--adicionar-item {
+  gap: 0;
+  padding: 0;
+}
+
 .pedidos-operacao__grade-scroll {
   flex: 1;
   min-height: 0;
@@ -727,8 +732,60 @@
 }
 
 .formulario-pagamento [data-testid='campo-motivo-cortesia'],
-.formulario-pagamento .campos-troco-dinheiro {
+.formulario-pagamento .campos-troco-dinheiro,
+.formulario-pagamento__atalhos,
+.formulario-pagamento__detalhe {
   grid-column: 1 / -1;
+}
+
+.formulario-pagamento__atalhos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.painel-mesa-pedido .formulario-pagamento__atalhos button,
+.formulario-pagamento__atalhos button {
+  padding: 0.4rem 0.65rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #111827;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.formulario-pagamento__detalhe {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0.5rem 0.625rem;
+  border-radius: 6px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+}
+
+.formulario-pagamento__detalhe div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.formulario-pagamento__detalhe dt {
+  color: #4b5563;
+  font-weight: 600;
+}
+
+.formulario-pagamento__detalhe dd {
+  margin: 0;
+  font-weight: 700;
+  color: #111827;
+}
+
+.formulario-pagamento__troco {
+  color: #166534;
 }
 
 .campos-troco-dinheiro {
@@ -2297,46 +2354,35 @@
   }
 }
 
-/* Modal de adicionar item — fluxo completo com espaço de sobra */
-.modal-adicionar-item__overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  background: rgba(17, 24, 39, 0.55);
-}
-
-.modal-adicionar-item__painel {
+/* Painel de adicionar item — ocupa a area das mesas (sem modal) */
+.painel-adicionar-item {
   display: flex;
   flex-direction: column;
-  width: min(72rem, 100%);
-  max-height: 100%;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
   background: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.25);
   overflow: hidden;
 }
 
-.modal-adicionar-item__cabecalho {
+.painel-adicionar-item__cabecalho {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 1rem 1.5rem;
+  flex-shrink: 0;
+  padding: 0.75rem 1rem;
   border-bottom: 1px solid #e5e7eb;
 }
 
-.modal-adicionar-item__cabecalho h2 {
+.painel-adicionar-item__cabecalho h2 {
   margin: 0;
   font-size: 1.125rem;
   font-weight: 700;
   color: #111827;
 }
 
-.modal-adicionar-item__fechar {
+.painel-adicionar-item__fechar {
   border: 1px solid #d1d5db;
   background: #ffffff;
   padding: 0.5rem 1rem;
@@ -2347,73 +2393,73 @@
   cursor: pointer;
 }
 
-.modal-adicionar-item__fechar:hover {
+.painel-adicionar-item__fechar:hover {
   background: #f3f4f6;
   border-color: #111827;
 }
 
-.modal-adicionar-item__conteudo {
+.painel-adicionar-item__conteudo {
   flex: 1;
+  min-height: 0;
   overflow: auto;
-  padding: 1.5rem;
+  padding: 1rem;
 }
 
-/* Dentro do modal o seletor respira: tiles maiores e grade sem teto baixo */
-.modal-adicionar-item__conteudo .formulario-adicionar-item {
+.painel-adicionar-item__conteudo .formulario-adicionar-item {
   gap: 1rem;
 }
 
-.modal-adicionar-item__conteudo .seletor-item__grade {
-  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+.painel-adicionar-item__conteudo .seletor-item__grade {
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
   gap: 0.625rem;
   max-height: none;
 }
 
-.modal-adicionar-item__conteudo .seletor-item__grade--tamanhos {
-  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+.painel-adicionar-item__conteudo .seletor-item__grade--tamanhos {
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
 }
 
-.modal-adicionar-item__conteudo .seletor-item__grade--sabores {
-  grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
+.painel-adicionar-item__conteudo .seletor-item__grade--sabores {
+  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
 }
 
-.modal-adicionar-item__conteudo .busca-produtos-pedido .seletor-item__tile {
-  min-height: 4.25rem;
+.painel-adicionar-item__conteudo .busca-produtos-pedido .seletor-item__tile {
+  min-height: 4rem;
   padding: 0.75rem 1rem;
   font-size: 0.9375rem;
 }
 
-.modal-adicionar-item__conteudo .seletor-item__tile-meta {
+.painel-adicionar-item__conteudo .seletor-item__tile-meta {
   font-size: 0.8125rem;
 }
 
-.modal-adicionar-item__conteudo .formulario-adicionar-item__sabores {
+.painel-adicionar-item__conteudo .formulario-adicionar-item__sabores {
   max-height: none;
   padding: 0.75rem 1rem;
 }
 
-.modal-adicionar-item__conteudo .formulario-adicionar-item__dica,
-.modal-adicionar-item__conteudo .formulario-adicionar-item__meta {
+.painel-adicionar-item__conteudo .formulario-adicionar-item__dica,
+.painel-adicionar-item__conteudo .formulario-adicionar-item__meta {
   font-size: 0.875rem;
 }
 
-.modal-adicionar-item__conteudo .seletor-item__barra-add {
+.painel-adicionar-item__conteudo .seletor-item__barra-add {
   grid-template-columns: minmax(0, 1fr) 5rem auto;
   gap: 0.75rem;
   padding: 0.875rem 1rem;
 }
 
-.modal-adicionar-item__conteudo .seletor-item__barra-add-info {
+.painel-adicionar-item__conteudo .seletor-item__barra-add-info {
   font-size: 0.9375rem;
 }
 
-.modal-adicionar-item__conteudo .busca-produtos-pedido__botao-adicionar {
+.painel-adicionar-item__conteudo .busca-produtos-pedido__botao-adicionar {
   padding: 0.75rem 1.5rem;
   font-size: 0.9375rem;
 }
 
-.modal-adicionar-item__conteudo .busca-produtos-pedido input,
-.modal-adicionar-item__conteudo .busca-produtos-pedido select {
+.painel-adicionar-item__conteudo .busca-produtos-pedido input,
+.painel-adicionar-item__conteudo .busca-produtos-pedido select {
   padding: 0.75rem 0.875rem;
   font-size: 0.9375rem;
 }

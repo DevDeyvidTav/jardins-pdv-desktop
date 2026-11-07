@@ -48,6 +48,7 @@ export const CANAIS_IPC = {
   PEDIDOS_APLICAR_DESCONTO: 'pedidos:aplicar-desconto',
   PEDIDOS_OBTER_RESUMO: 'pedidos:obter-resumo',
   PEDIDOS_CANCELAR: 'pedidos:cancelar',
+  PEDIDOS_EXCLUIR: 'pedidos:excluir',
   PEDIDOS_LISTAR_HISTORICO: 'pedidos:listar-historico',
   PEDIDOS_ATUALIZAR_SOLICITACAO_FISCAL: 'pedidos:atualizar-solicitacao-fiscal',
   FISCAL_OBTER_DOCUMENTO: 'fiscal:obter-documento',

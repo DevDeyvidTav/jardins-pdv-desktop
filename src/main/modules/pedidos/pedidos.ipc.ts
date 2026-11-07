@@ -9,6 +9,7 @@ import {
   definirObservacaoItemPedidoSchema,
   aplicarDescontoPedidoSchema,
   cancelarPedidoSchema,
+  excluirPedidoSchema,
   criarPedidoMesaSchema,
   obterPedidoAbertoPorMesaSchema,
   obterResumoPedidoSchema,
@@ -22,6 +23,7 @@ import { alterarQuantidadeItemPedido } from './use-cases/alterar-quantidade-item
 import { definirObservacaoItemPedido } from './use-cases/definir-observacao-item-pedido'
 import { aplicarDescontoPedido } from './use-cases/aplicar-desconto-pedido'
 import { cancelarPedido } from './use-cases/cancelar-pedido'
+import { excluirPedido } from './use-cases/excluir-pedido'
 import { criarPedidoBalcao } from './use-cases/criar-pedido-balcao'
 import { criarPedidoMesa } from './use-cases/criar-pedido-mesa'
 import {
@@ -152,6 +154,15 @@ export function registrarHandlersPedidos(): void {
   ipcMain.handle(CANAIS_IPC.PEDIDOS_CANCELAR, (_evento, entradaDesconhecida) => {
     try {
       return cancelarPedido(cancelarPedidoSchema.parse(entradaDesconhecida))
+    } catch (erro) {
+      tratarErroPedidos(erro)
+    }
+  })
+
+  ipcMain.handle(CANAIS_IPC.PEDIDOS_EXCLUIR, (_evento, entradaDesconhecida) => {
+    try {
+      excluirPedido(excluirPedidoSchema.parse(entradaDesconhecida))
+      return { ok: true }
     } catch (erro) {
       tratarErroPedidos(erro)
     }

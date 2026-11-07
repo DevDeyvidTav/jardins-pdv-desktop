@@ -4,8 +4,6 @@ import type { Cliente } from '@shared/types/cliente'
 import { STATUS_MESA } from '@shared/types/mesa'
 import type { ResumoPedido } from '@shared/types/pedido'
 import { TIPO_PEDIDO } from '@shared/types/pedido'
-import type { CategoriaProduto } from '@shared/types/categoria-produto'
-import type { ProdutoComCategoria } from '@shared/types/produto'
 import {
   STATUS_DIVISAO_CONTA,
   type CriarParteDivisaoEntrada,
@@ -13,7 +11,6 @@ import {
 import { formatarMoeda, converterReaisParaCentavos } from '@shared/utils/moeda'
 import { ROTULOS_STATUS_MESA } from '../constants/mesa-status-cores'
 import { ModalMotivoCancelamento } from './modal-motivo-cancelamento'
-import { FormularioAdicionarItemPedido } from './formulario-adicionar-item-pedido'
 import { ListaItensPedido } from './pedido-itens'
 import { FormularioPagamentoPedido } from '../../pagamentos/components/formulario-pagamento-pedido'
 import { DadosEntrega } from '../../delivery/components/dados-entrega'
@@ -32,23 +29,9 @@ interface PainelMesaPedidoProps {
   mesas: Mesa[]
   resumoPedido: ResumoPedido | null
   resumoAgrupamento: ResumoMesaAgrupamento | null
-  produtosAtivos: ProdutoComCategoria[]
-  categoriasAtivas: CategoriaProduto[]
-  exibirFormularioItem: boolean
   carregandoPedido: boolean
   onAbrirPedido: () => void
   onAdicionarItem: () => void
-  onFecharFormularioItem: () => void
-  onAdicionarItemPedido: (
-    produtoId: string,
-    quantidade: number,
-    observacao?: string,
-  ) => Promise<boolean>
-  onAdicionarPizzaPedido: (
-    tamanhoId: string,
-    saborIds: string[],
-    observacao?: string,
-  ) => Promise<boolean>
   onAlterarQuantidade: (itemId: string, quantidade: number) => Promise<boolean>
   onDefinirObservacao: (itemId: string, observacao: string) => Promise<boolean>
   onRemoverItem: (itemId: string, motivoCancelamento?: string) => Promise<boolean>
@@ -57,6 +40,7 @@ interface PainelMesaPedidoProps {
     motivoDesconto?: string,
   ) => Promise<boolean>
   onCancelarPedido: (motivoCancelamento: string) => Promise<boolean>
+  onExcluirPedido?: () => Promise<boolean>
   onRegistrarPagamento: (pagamento: PagamentoInformado) => Promise<boolean>
   onAtualizarSolicitacaoFiscal?: (solicitado: boolean, cpf: string) => Promise<boolean>
   onCriarDivisaoConta: (partes: CriarParteDivisaoEntrada[]) => Promise<boolean>
@@ -80,20 +64,15 @@ export function PainelMesaPedido({
   mesas,
   resumoPedido,
   resumoAgrupamento,
-  produtosAtivos,
-  categoriasAtivas,
-  exibirFormularioItem,
   carregandoPedido,
   onAbrirPedido,
   onAdicionarItem,
-  onFecharFormularioItem,
-  onAdicionarItemPedido,
-  onAdicionarPizzaPedido,
   onAlterarQuantidade,
   onDefinirObservacao,
   onRemoverItem,
   onAplicarDesconto,
   onCancelarPedido,
+  onExcluirPedido,
   onRegistrarPagamento,
   onAtualizarSolicitacaoFiscal,
   onCriarDivisaoConta,
@@ -134,6 +113,10 @@ export function PainelMesaPedido({
   const [mostrarTransferir, setMostrarTransferir] = useState(false)
   const [mostrarAgrupar, setMostrarAgrupar] = useState(false)
   const [cancelandoPedido, setCancelandoPedido] = useState(false)
+  const [excluindoPedido, setExcluindoPedido] = useState(false)
+  const pedidoSemItensAtivos =
+    Boolean(resumoPedido) &&
+    !resumoPedido!.itens.some((item) => itemPedidoEstaAtivo(item))
   const [valorDescontoReais, setValorDescontoReais] = useState('')
   const [motivoDesconto, setMotivoDesconto] = useState('')
   const [erroDesconto, setErroDesconto] = useState<string | null>(null)
@@ -167,6 +150,20 @@ export function PainelMesaPedido({
       if (ok) setMostrarConfirmacaoCancelar(false)
     } finally {
       setCancelandoPedido(false)
+    }
+  }
+
+  const handleExcluirPedido = async () => {
+    if (!onExcluirPedido) return
+    const confirmar = window.confirm(
+      'Excluir este pedido vazio? Ele sera removido de vez e a mesa sera liberada.',
+    )
+    if (!confirmar) return
+    setExcluindoPedido(true)
+    try {
+      await onExcluirPedido()
+    } finally {
+      setExcluindoPedido(false)
     }
   }
 
@@ -397,43 +394,6 @@ export function PainelMesaPedido({
           </div>
 
           <div className="painel-mesa-pedido__inferior">
-            {exibirFormularioItem && resumoPedido.pedido.status === 'ABERTO' ? (
-              <div
-                className="modal-adicionar-item__overlay"
-                data-testid="modal-adicionar-item"
-                role="dialog"
-                aria-modal="true"
-                aria-label="Adicionar item ao pedido"
-                onKeyDown={(evento) => {
-                  if (evento.key === 'Escape') {
-                    onFecharFormularioItem()
-                  }
-                }}
-              >
-                <div className="modal-adicionar-item__painel">
-                  <header className="modal-adicionar-item__cabecalho">
-                    <h2>Adicionar item</h2>
-                    <button
-                      type="button"
-                      className="modal-adicionar-item__fechar"
-                      data-testid="botao-fechar-adicionar-item"
-                      onClick={onFecharFormularioItem}
-                    >
-                      Fechar ✕
-                    </button>
-                  </header>
-                  <div className="modal-adicionar-item__conteudo">
-                    <FormularioAdicionarItemPedido
-                      produtos={produtosAtivos}
-                      categoriasProduto={categoriasAtivas}
-                      onAdicionarProduto={onAdicionarItemPedido}
-                      onAdicionarPizza={onAdicionarPizzaPedido}
-                    />
-                  </div>
-                </div>
-              </div>
-            ) : null}
-
             <footer className="painel-mesa-pedido__rodape">
               {resumoPedido.pedido.status === 'ABERTO' ? (
                 <div className="painel-mesa-pedido__acoes-pedido">
@@ -519,14 +479,26 @@ export function PainelMesaPedido({
                     </button>
                   ) : null}
 
-                  <button
-                    type="button"
-                    className="painel-mesa-pedido__acao-cancelar"
-                    data-testid="botao-cancelar-pedido"
-                    onClick={() => setMostrarConfirmacaoCancelar(true)}
-                  >
-                    Cancelar pedido
-                  </button>
+                  {pedidoSemItensAtivos && onExcluirPedido ? (
+                    <button
+                      type="button"
+                      className="painel-mesa-pedido__acao-cancelar"
+                      data-testid="botao-excluir-pedido"
+                      disabled={excluindoPedido}
+                      onClick={() => void handleExcluirPedido()}
+                    >
+                      {excluindoPedido ? 'Excluindo…' : 'Excluir pedido'}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="painel-mesa-pedido__acao-cancelar"
+                      data-testid="botao-cancelar-pedido"
+                      onClick={() => setMostrarConfirmacaoCancelar(true)}
+                    >
+                      Cancelar pedido
+                    </button>
+                  )}
                 </div>
               ) : null}
 
@@ -751,6 +723,7 @@ export function PainelMesaPedido({
             ) : (
               <FormularioPagamentoPedido
                 totalCentavos={resumoPedido.pedido.valorRestanteCentavos}
+                valorJaPagoCentavos={resumoPedido.pedido.valorPagoCentavos}
                 erroExterno={erroPagamento}
                 permitirTalao={permitirTalao}
                 fiscal={

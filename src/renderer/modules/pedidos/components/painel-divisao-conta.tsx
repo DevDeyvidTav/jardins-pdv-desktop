@@ -146,6 +146,7 @@ export function PainelDivisaoConta({
           </p>
           <FormularioPagamentoPedido
             totalCentavos={parteSelecionada.valorRestanteCentavos}
+            valorJaPagoCentavos={parteSelecionada.valorPagoCentavos}
             erroExterno={erroExterno}
             permitirTalao={permitirTalao}
             fiscal={fiscal}

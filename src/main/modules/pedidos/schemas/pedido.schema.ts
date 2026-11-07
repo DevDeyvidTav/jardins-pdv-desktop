@@ -88,6 +88,10 @@ export const cancelarPedidoSchema = z.object({
   motivoCancelamento: motivoCancelamentoSchema,
 })
 
+export const excluirPedidoSchema = z.object({
+  pedidoId: z.string().trim().min(1, 'Pedido e obrigatorio.'),
+})
+
 export const atualizarSolicitacaoFiscalSchema = z.object({
   pedidoId: z.string().trim().min(1, 'Pedido e obrigatorio.'),
   fiscalSolicitado: z.boolean(),

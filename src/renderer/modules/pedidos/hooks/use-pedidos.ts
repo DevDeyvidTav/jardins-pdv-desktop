@@ -81,6 +81,7 @@ export interface UsePedidosResultado {
   removerItem: (itemId: string, motivoCancelamento?: string) => Promise<boolean>
   aplicarDescontoPedido: (descontoCentavos: number, motivoDesconto?: string) => Promise<boolean>
   cancelarPedido: (motivoCancelamento: string) => Promise<boolean>
+  excluirPedido: () => Promise<boolean>
   registrarPagamento: (pagamento: PagamentoInformado) => Promise<boolean>
   atualizarSolicitacaoFiscal: (solicitado: boolean, cpf: string) => Promise<boolean>
   emissaoNfcePedidoId: string | null
@@ -738,6 +739,28 @@ export function usePedidos(): UsePedidosResultado {
     [carregarDados, resumoPedido],
   )
 
+  const excluirPedido = useCallback(async (): Promise<boolean> => {
+    if (!resumoPedido) return false
+    setErro(null)
+    setSucesso(null)
+    try {
+      await window.pdv.pedidos.excluirPedido({
+        pedidoId: resumoPedido.pedido.id,
+      })
+      setResumoPedido(null)
+      setResumoAgrupamento(null)
+      setExibirFormularioItem(false)
+      setMesaSelecionada(null)
+      await carregarDados()
+      setAbaAtiva('mesas')
+      setSucesso('Pedido excluido.')
+      return true
+    } catch (causa) {
+      setErro(extrairMensagemErro(causa))
+      return false
+    }
+  }, [carregarDados, resumoPedido])
+
   const registrarPagamento = useCallback(
     async (pagamento: PagamentoInformado): Promise<boolean> => {
       if (!resumoPedido) return false
@@ -944,6 +967,8 @@ export function usePedidos(): UsePedidosResultado {
   )
 
   const abrirFormularioItem = useCallback(() => {
+    setAbaAtiva('mesas')
+    setExibirCadastroMesas(false)
     setExibirFormularioItem(true)
   }, [])
 
@@ -1120,6 +1145,7 @@ export function usePedidos(): UsePedidosResultado {
     removerItem,
     aplicarDescontoPedido,
     cancelarPedido,
+    excluirPedido,
     registrarPagamento,
     atualizarSolicitacaoFiscal,
     emissaoNfcePedidoId,

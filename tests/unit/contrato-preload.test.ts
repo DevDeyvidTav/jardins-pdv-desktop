@@ -314,6 +314,7 @@ describe('contrato da API exposta pelo preload', () => {
           status: 'CANCELADO' as const,
           canceladoEm: new Date().toISOString(),
         }),
+        excluirPedido: async () => ({ ok: true as const }),
         listarHistoricoPedidos: async () => [],
         listarHistoricoMovimentacaoMesa: async () => [],
         adicionarPizza: async () => RESUMO_BASE,

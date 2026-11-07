@@ -114,6 +114,7 @@ const apiPdv: PdvApi = {
     obterResumoPedido: (entrada) =>
       ipcRenderer.invoke(CANAIS_IPC.PEDIDOS_OBTER_RESUMO, entrada),
     cancelarPedido: (entrada) => ipcRenderer.invoke(CANAIS_IPC.PEDIDOS_CANCELAR, entrada),
+    excluirPedido: (entrada) => ipcRenderer.invoke(CANAIS_IPC.PEDIDOS_EXCLUIR, entrada),
     listarHistoricoPedidos: (entrada) =>
       ipcRenderer.invoke(CANAIS_IPC.PEDIDOS_LISTAR_HISTORICO, entrada ?? {}),
     listarHistoricoMovimentacaoMesa: (entrada) =>

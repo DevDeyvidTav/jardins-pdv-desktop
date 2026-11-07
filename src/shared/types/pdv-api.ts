@@ -59,6 +59,7 @@ import type {
   DefinirObservacaoItemPedidoEntrada,
   AplicarDescontoPedidoEntrada,
   CancelarPedidoEntrada,
+  ExcluirPedidoEntrada,
   CriarPedidoMesaEntrada,
   ItemHistoricoPedido,
   ListarHistoricoPedidosEntrada,
@@ -259,6 +260,7 @@ export interface PdvApi {
     ) => Promise<ResumoPedido>
     obterResumoPedido: (entrada: ObterResumoPedidoEntrada) => Promise<ResumoPedido>
     cancelarPedido: (entrada: CancelarPedidoEntrada) => Promise<Pedido>
+    excluirPedido: (entrada: ExcluirPedidoEntrada) => Promise<{ ok: true }>
     listarHistoricoPedidos: (
       entrada?: ListarHistoricoPedidosEntrada,
     ) => Promise<ItemHistoricoPedido[]>

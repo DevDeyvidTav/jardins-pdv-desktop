@@ -5,8 +5,8 @@ import {
   type PagamentoInformado,
 } from '@shared/types/pagamento-pedido'
 import { converterReaisParaCentavos, formatarMoeda } from '@shared/utils/moeda'
-import { resolverPagamentoParcial } from '@shared/utils/resolver-pagamento-parcial'
-import { CamposTrocoDinheiro } from './campos-troco-dinheiro'
+import { resolverValorDinheiro } from '@shared/utils/resolver-pagamento-parcial'
+import { cedulasAtalhoParaRecebido } from '@shared/utils/troco-dinheiro'
 import { normalizarCpf } from '@shared/utils/cpf'
 
 interface SolicitacaoFiscalFormulario {
@@ -18,6 +18,8 @@ interface SolicitacaoFiscalFormulario {
 
 interface Props {
   totalCentavos: number
+  /** Pagamentos ja registrados no pedido ou na parte, sem contar o valor deste formulario. */
+  valorJaPagoCentavos?: number
   erroExterno?: string | null
   permitirTalao?: boolean
   fiscal?: SolicitacaoFiscalFormulario
@@ -39,6 +41,7 @@ const FORMAS_BASE: PagamentoInformado['formaPagamento'][] = [
 
 export function FormularioPagamentoPedido({
   totalCentavos,
+  valorJaPagoCentavos = 0,
   erroExterno = null,
   permitirTalao = false,
   fiscal,
@@ -48,7 +51,6 @@ export function FormularioPagamentoPedido({
     FORMA_PAGAMENTO.DINHEIRO,
   )
   const [valor, setValor] = useState(formatarCentavosParaInput(totalCentavos))
-  const [valorRecebido, setValorRecebido] = useState('')
   const [motivoCortesia, setMotivoCortesia] = useState('')
   const [erro, setErro] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
@@ -65,7 +67,6 @@ export function FormularioPagamentoPedido({
 
   useEffect(() => {
     setValor(formatarCentavosParaInput(totalCentavos))
-    setValorRecebido('')
   }, [totalCentavos])
 
   useEffect(() => {
@@ -73,12 +74,6 @@ export function FormularioPagamentoPedido({
       setFormaPagamento(FORMA_PAGAMENTO.DINHEIRO)
     }
   }, [permitirTalao, formaPagamento])
-
-  useEffect(() => {
-    if (!ehDinheiro) {
-      setValorRecebido('')
-    }
-  }, [ehDinheiro])
 
   async function confirmar(evento: FormEvent) {
     evento.preventDefault()
@@ -89,28 +84,19 @@ export function FormularioPagamentoPedido({
       return
     }
 
-    let recebidoDigitado: number | null = null
-    if (ehDinheiro && valorRecebido.trim() !== '') {
-      recebidoDigitado = converterReaisParaCentavos(valorRecebido)
-      if (recebidoDigitado === null) {
-        setErro('Informe um valor recebido valido.')
-        return
-      }
-    }
-
-    const resolvido = resolverPagamentoParcial({
-      valorDigitadoCentavos: valorDigitado,
-      valorRecebidoCentavos: recebidoDigitado,
-      restanteCentavos: totalCentavos,
-      ehDinheiro,
-    })
+    const resolvido = ehDinheiro
+      ? resolverValorDinheiro({
+          valorDigitadoCentavos: valorDigitado,
+          restanteCentavos: totalCentavos,
+        })
+      : { valorCentavos: valorDigitado, valorRecebidoCentavos: undefined }
 
     if (resolvido.valorCentavos <= 0) {
       setErro('Informe um valor maior que zero.')
       return
     }
 
-    if (resolvido.valorCentavos > totalCentavos) {
+    if (!ehDinheiro && resolvido.valorCentavos > totalCentavos) {
       setErro('Pagamento nao pode ser maior que o valor restante.')
       return
     }
@@ -139,7 +125,6 @@ export function FormularioPagamentoPedido({
 
       if (ok) {
         setMotivoCortesia('')
-        setValorRecebido('')
       } else if (!erroExterno) {
         setErro('Nao foi possivel registrar o pagamento.')
       }
@@ -150,22 +135,24 @@ export function FormularioPagamentoPedido({
 
   const mensagemErro = erro ?? erroExterno
   const valorDigitado = converterReaisParaCentavos(valor)
-  const recebidoDigitado =
-    ehDinheiro && valorRecebido.trim() !== ''
-      ? converterReaisParaCentavos(valorRecebido)
-      : null
-  const valorDestePagamento =
-    valorDigitado != null && valorDigitado > 0
-      ? resolverPagamentoParcial({
+  const resolvidoDinheiro =
+    ehDinheiro && valorDigitado != null && valorDigitado > 0
+      ? resolverValorDinheiro({
           valorDigitadoCentavos: valorDigitado,
-          valorRecebidoCentavos: recebidoDigitado,
           restanteCentavos: totalCentavos,
-          ehDinheiro,
-        }).valorCentavos
+        })
       : null
+  const valorDestePagamento = ehDinheiro
+    ? (resolvidoDinheiro?.valorCentavos ?? null)
+    : valorDigitado != null && valorDigitado > 0
+      ? valorDigitado
+      : null
+  const trocoCentavos = resolvidoDinheiro?.trocoCentavos ?? 0
   const restanteAposPagamento =
     valorDestePagamento != null ? Math.max(0, totalCentavos - valorDestePagamento) : null
   const ehParcial = restanteAposPagamento != null && restanteAposPagamento > 0
+  const atalhosDinheiro =
+    ehDinheiro && totalCentavos > 0 ? cedulasAtalhoParaRecebido(totalCentavos) : []
 
   return (
     <form
@@ -193,7 +180,7 @@ export function FormularioPagamentoPedido({
           </select>
         </label>
         <label className="formulario-pagamento__campo">
-          Deste pagamento
+          {ehDinheiro ? 'Valor' : 'Deste pagamento'}
           <input
             data-testid="campo-valor-pagamento"
             value={valor}
@@ -201,7 +188,7 @@ export function FormularioPagamentoPedido({
             placeholder="0,00"
             inputMode="decimal"
             disabled={enviando}
-            aria-label="Valor do pagamento"
+            aria-label={ehDinheiro ? 'Valor em dinheiro' : 'Valor do pagamento'}
           />
         </label>
         {formaPagamento === FORMA_PAGAMENTO.CORTESIA ? (
@@ -213,13 +200,28 @@ export function FormularioPagamentoPedido({
             disabled={enviando}
           />
         ) : null}
-        {ehDinheiro ? (
-          <CamposTrocoDinheiro
-            valorAplicadoCentavos={valorDestePagamento}
-            valorRecebido={valorRecebido}
-            onValorRecebidoChange={setValorRecebido}
-            disabled={enviando}
-          />
+        {ehDinheiro && totalCentavos > 0 ? (
+          <div className="formulario-pagamento__atalhos" data-testid="atalhos-troco">
+            <button
+              type="button"
+              data-testid="atalho-sem-troco"
+              disabled={enviando}
+              onClick={() => setValor(formatarCentavosParaInput(totalCentavos))}
+            >
+              Sem troco
+            </button>
+            {atalhosDinheiro.map((cedula) => (
+              <button
+                key={cedula}
+                type="button"
+                data-testid={`atalho-cedula-${cedula}`}
+                disabled={enviando}
+                onClick={() => setValor(formatarCentavosParaInput(cedula))}
+              >
+                {formatarMoeda(cedula)}
+              </button>
+            ))}
+          </div>
         ) : null}
       </div>
       {fiscal ? (
@@ -257,12 +259,6 @@ export function FormularioPagamentoPedido({
           ) : null}
         </div>
       ) : null}
-      <p>Restante: {formatarMoeda(totalCentavos)}</p>
-      {ehParcial ? (
-        <p className="formulario-pagamento__parcial" data-testid="aviso-pagamento-parcial">
-          Pagamento parcial. Ainda restará {formatarMoeda(restanteAposPagamento)}.
-        </p>
-      ) : null}
       {mensagemErro ? (
         <p role="alert" data-testid="erro-pagamento">
           {mensagemErro}
@@ -275,6 +271,46 @@ export function FormularioPagamentoPedido({
       >
         Confirmar pagamento
       </button>
+      {ehDinheiro ? (
+        <dl className="formulario-pagamento__detalhe" data-testid="detalhe-pagamento-dinheiro">
+          <div>
+            <dt>Forma</dt>
+            <dd>{ROTULOS_FORMA_PAGAMENTO[formaPagamento]}</dd>
+          </div>
+          <div>
+            <dt>Já pago</dt>
+            <dd data-testid="detalhe-ja-pago">{formatarMoeda(valorJaPagoCentavos)}</dd>
+          </div>
+          <div>
+            <dt>Neste pagamento</dt>
+            <dd data-testid="detalhe-neste-pagamento">
+              {formatarMoeda(valorDestePagamento ?? 0)}
+            </dd>
+          </div>
+          <div>
+            <dt>Troco</dt>
+            <dd
+              data-testid="valor-troco"
+              className={trocoCentavos > 0 ? 'formulario-pagamento__troco' : undefined}
+            >
+              {formatarMoeda(trocoCentavos)}
+            </dd>
+          </div>
+          <div>
+            <dt>Restante</dt>
+            <dd data-testid="detalhe-restante">
+              {formatarMoeda(restanteAposPagamento ?? totalCentavos)}
+            </dd>
+          </div>
+        </dl>
+      ) : (
+        <p>Restante: {formatarMoeda(totalCentavos)}</p>
+      )}
+      {ehParcial ? (
+        <p className="formulario-pagamento__parcial" data-testid="aviso-pagamento-parcial">
+          Pagamento parcial. Ainda restará {formatarMoeda(restanteAposPagamento)}.
+        </p>
+      ) : null}
     </form>
   )
 }
