@@ -1,4 +1,4 @@
-import { formatarCpf } from '@shared/utils/cpf'
+import { mascararCpfCnpj, normalizarDocumentoNota } from '@shared/utils/cpf'
 import { itemPedidoEstaAtivo, type PedidoItem } from '@shared/types/pedido'
 import { TIPO_PEDIDO_ITEM } from '@shared/types/pizza'
 import { expandirLinhasSaborPizza } from '@shared/utils/linhas-sabor-pizza'
@@ -278,9 +278,11 @@ export function montarDanfeNfce(entrada: {
   }
 
   linhas.push(''.padEnd(48, '='))
-  if (entrada.cpfDestinatario) {
+  const documentoDestinatario = normalizarDocumentoNota(entrada.cpfDestinatario)
+  if (documentoDestinatario.length === 11 || documentoDestinatario.length === 14) {
     linhas.push(centralizarLinha('CONSUMIDOR'))
-    linhas.push(centralizarLinha(`CPF: ${formatarCpf(entrada.cpfDestinatario)}`))
+    const rotulo = documentoDestinatario.length === 14 ? 'CNPJ' : 'CPF'
+    linhas.push(centralizarLinha(`${rotulo}: ${mascararCpfCnpj(documentoDestinatario)}`))
   } else {
     linhas.push(centralizarLinha('CONSUMIDOR NAO IDENTIFICADO'))
   }

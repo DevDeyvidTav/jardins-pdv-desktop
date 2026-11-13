@@ -1,10 +1,10 @@
 import type { Pedido, PedidoItem } from '@shared/types/pedido'
 import { itemPedidoEstaAtivo } from '@shared/types/pedido'
-import { cpfEhValido, normalizarCpf } from '@shared/utils/cpf'
+import { resolverDocumentoNota } from '@shared/utils/cpf'
 import { itemProdutoPodeEmitirNfce } from '@shared/utils/snapshot-fiscal-item'
 
 export type ResultadoAvaliacaoNfce =
-  | { ok: true; cpf: string | null }
+  | { ok: true; documento: string | null }
   | { ok: false; motivo: string }
 
 export function avaliarEmissaoNfce(entrada: {
@@ -17,12 +17,12 @@ export function avaliarEmissaoNfce(entrada: {
   exigirValorPago?: boolean
 }): ResultadoAvaliacaoNfce {
   if (!entrada.fiscalSolicitado) {
-    return { ok: true, cpf: null }
+    return { ok: true, documento: null }
   }
 
-  const cpfInformado = normalizarCpf(entrada.fiscalCpfDestinatario)
-  if (cpfInformado.length > 0 && !cpfEhValido(cpfInformado)) {
-    return { ok: false, motivo: 'CPF da nota invalido.' }
+  const documento = resolverDocumentoNota(entrada.fiscalCpfDestinatario)
+  if (!documento.ok) {
+    return documento
   }
 
   const valorPago =
@@ -47,5 +47,5 @@ export function avaliarEmissaoNfce(entrada: {
     }
   }
 
-  return { ok: true, cpf: cpfInformado.length === 11 ? cpfInformado : null }
+  return { ok: true, documento: documento.documento }
 }

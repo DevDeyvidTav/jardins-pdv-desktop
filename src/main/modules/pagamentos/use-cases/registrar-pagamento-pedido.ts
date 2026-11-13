@@ -41,7 +41,7 @@ import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
 import { registrarEventoPedidoSync } from '../../sincronizacao/services/registrar-evento-pedido'
 import { registrarAcaoAuditoria } from '../../sincronizacao/services/registrar-acao-auditoria'
 import { avaliarEmissaoNfce } from '../../pedidos/services/avaliar-emissao-nfce'
-import { cpfEhValido, normalizarCpf } from '@shared/utils/cpf'
+import { resolverDocumentoNota } from '@shared/utils/cpf'
 
 export function criarRegistrarPagamentoPedido(
   repositorioPedido: PedidoRepository = criarPedidoRepository(),
@@ -185,17 +185,14 @@ export function criarRegistrarPagamentoPedido(
             ? pedido.fiscalCpfDestinatario
             : entrada.fiscalCpfDestinatario
         if (entrada.fiscalSolicitado !== undefined) {
-          const cpfNormalizado = normalizarCpf(fiscalCpfDestinatario)
-          if (cpfNormalizado.length > 0 && !cpfEhValido(cpfNormalizado)) {
-            throw new ErroPedidos(
-              CODIGOS_ERRO_PEDIDOS.ENTRADA_INVALIDA,
-              'CPF da nota invalido.',
-            )
+          const documento = resolverDocumentoNota(fiscalCpfDestinatario)
+          if (!documento.ok) {
+            throw new ErroPedidos(CODIGOS_ERRO_PEDIDOS.ENTRADA_INVALIDA, documento.motivo)
           }
           repositorioPedido.atualizarSolicitacaoFiscal({
             pedidoId: pedido.id,
             fiscalSolicitado,
-            fiscalCpfDestinatario: cpfNormalizado.length === 11 ? cpfNormalizado : null,
+            fiscalCpfDestinatario: documento.documento,
           })
         }
 

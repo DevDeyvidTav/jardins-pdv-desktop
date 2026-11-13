@@ -25,7 +25,7 @@ import { obterConexaoBancoLocal } from '../../../database/inicializar-banco'
 import { OPERACAO_SYNC } from '@shared/types/sincronizacao'
 import { registrarEventoPedidoSync } from '../../sincronizacao/services/registrar-evento-pedido'
 import { avaliarEmissaoNfce } from '../../pedidos/services/avaliar-emissao-nfce'
-import { normalizarCpf } from '@shared/utils/cpf'
+import { resolverDocumentoNota } from '@shared/utils/cpf'
 import {
   criarSessaoCaixaRepository,
   type SessaoCaixaRepository,
@@ -328,10 +328,17 @@ export function criarRegistrarPagamentoParteDivisao(
           ? pedido.fiscalCpfDestinatario
           : entrada.fiscalCpfDestinatario
       if (entrada.fiscalSolicitado !== undefined) {
+        const documento = resolverDocumentoNota(fiscalCpfDestinatario)
+        if (!documento.ok) {
+          throw new ErroDivisaoConta(
+            CODIGOS_ERRO_DIVISAO_CONTA.ENTRADA_INVALIDA,
+            documento.motivo,
+          )
+        }
         repositorioPedido.atualizarSolicitacaoFiscal({
           pedidoId: pedido.id,
           fiscalSolicitado,
-          fiscalCpfDestinatario: normalizarCpf(fiscalCpfDestinatario) || null,
+          fiscalCpfDestinatario: documento.documento,
         })
       }
 

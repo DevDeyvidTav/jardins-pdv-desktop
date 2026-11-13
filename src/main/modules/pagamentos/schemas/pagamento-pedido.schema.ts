@@ -46,7 +46,7 @@ export const registrarPagamentoPedidoSchema = z.object({
     .min(1, 'Motivo da cortesia e obrigatorio.')
     .optional(),
   fiscalSolicitado: z.boolean().optional(),
-  fiscalCpfDestinatario: z.string().trim().max(14).nullable().optional(),
+  fiscalCpfDestinatario: z.string().trim().max(18).nullable().optional(),
 }).superRefine((value, ctx) => {
   if (value.formaPagamento === FORMA_PAGAMENTO.CORTESIA) {
     if (!value.motivoCortesia || value.motivoCortesia.trim().length === 0) {

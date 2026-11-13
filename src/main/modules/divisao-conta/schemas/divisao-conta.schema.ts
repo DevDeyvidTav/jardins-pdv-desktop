@@ -36,7 +36,7 @@ export const registrarPagamentoParteDivisaoSchema = z
     valorRecebidoCentavos: valorRecebidoCentavosSchema,
     motivoCortesia: z.string().trim().min(1).optional(),
     fiscalSolicitado: z.boolean().optional(),
-    fiscalCpfDestinatario: z.string().trim().max(14).nullable().optional(),
+    fiscalCpfDestinatario: z.string().trim().max(18).nullable().optional(),
   })
   .superRefine((value, ctx) => {
     if (

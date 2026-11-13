@@ -95,7 +95,7 @@ export const excluirPedidoSchema = z.object({
 export const atualizarSolicitacaoFiscalSchema = z.object({
   pedidoId: z.string().trim().min(1, 'Pedido e obrigatorio.'),
   fiscalSolicitado: z.boolean(),
-  fiscalCpfDestinatario: z.string().trim().max(14).nullable().optional(),
+  fiscalCpfDestinatario: z.string().trim().max(18).nullable().optional(),
 })
 
 export const listarHistoricoPedidosSchema = z.object({

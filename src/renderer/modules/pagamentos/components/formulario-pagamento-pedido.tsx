@@ -7,7 +7,7 @@ import {
 import { converterReaisParaCentavos, formatarMoeda } from '@shared/utils/moeda'
 import { resolverValorDinheiro } from '@shared/utils/resolver-pagamento-parcial'
 import { cedulasAtalhoParaRecebido } from '@shared/utils/troco-dinheiro'
-import { normalizarCpf } from '@shared/utils/cpf'
+import { mascararCpfCnpj, normalizarDocumentoNota } from '@shared/utils/cpf'
 
 interface SolicitacaoFiscalFormulario {
   solicitado: boolean
@@ -54,10 +54,10 @@ export function FormularioPagamentoPedido({
   const [motivoCortesia, setMotivoCortesia] = useState('')
   const [erro, setErro] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
-  const [cpfLocal, setCpfLocal] = useState(fiscal?.cpf ?? '')
+  const [cpfLocal, setCpfLocal] = useState(mascararCpfCnpj(fiscal?.cpf ?? ''))
 
   useEffect(() => {
-    setCpfLocal(fiscal?.cpf ?? '')
+    setCpfLocal(mascararCpfCnpj(fiscal?.cpf ?? ''))
   }, [fiscal?.cpf])
 
   const formas = permitirTalao
@@ -241,17 +241,18 @@ export function FormularioPagamentoPedido({
               data-testid="campo-cpf-nfce"
               value={cpfLocal}
               onChange={(evento) => {
-                const proximo = evento.target.value
-                setCpfLocal(proximo)
-                const normalizado = normalizarCpf(proximo)
-                if (normalizado.length === 0 || normalizado.length === 11) {
-                  fiscal.onChange(true, proximo)
+                const mascarado = mascararCpfCnpj(evento.target.value)
+                setCpfLocal(mascarado)
+                const digitos = normalizarDocumentoNota(mascarado)
+                if (digitos.length === 0 || digitos.length === 11 || digitos.length === 14) {
+                  fiscal.onChange(true, digitos)
                 }
               }}
-              placeholder="CPF na nota (opcional)"
+              placeholder="CPF ou CNPJ na nota (opcional)"
               inputMode="numeric"
+              maxLength={18}
               disabled={enviando}
-              aria-label="CPF na nota"
+              aria-label="CPF ou CNPJ na nota"
             />
           ) : null}
           {fiscal.aviso ? (

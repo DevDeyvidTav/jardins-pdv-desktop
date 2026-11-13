@@ -41,7 +41,7 @@ describe('avaliarEmissaoNfce', () => {
       fiscalCpfDestinatario: '52998224725',
     })
 
-    expect(resultado).toEqual({ ok: true, cpf: '52998224725' })
+    expect(resultado).toEqual({ ok: true, documento: '52998224725' })
   })
 
   it('bloqueia produto sem NCM', () => {
@@ -68,6 +68,17 @@ describe('avaliarEmissaoNfce', () => {
     })
 
     expect(resultado.ok).toBe(false)
+  })
+
+  it('aceita CNPJ valido na nota', () => {
+    const resultado = avaliarEmissaoNfce({
+      pedido,
+      itens: [itemComNcm],
+      fiscalSolicitado: true,
+      fiscalCpfDestinatario: '11.222.333/0001-81',
+    })
+
+    expect(resultado).toEqual({ ok: true, documento: '11222333000181' })
   })
 
   it('permite pizza sem produtoId', () => {

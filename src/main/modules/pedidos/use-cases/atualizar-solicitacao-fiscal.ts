@@ -45,7 +45,7 @@ export function criarAtualizarSolicitacaoFiscal(
       const atualizado = repositorioPedido.atualizarSolicitacaoFiscal({
         pedidoId: pedido.id,
         fiscalSolicitado: entrada.fiscalSolicitado,
-        fiscalCpfDestinatario: avaliacao.cpf,
+        fiscalCpfDestinatario: avaliacao.documento,
       })
 
       registrarEventoPedidoSync(pedido.id, OPERACAO_SYNC.UPDATE, conexao)
